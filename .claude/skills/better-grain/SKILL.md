@@ -32,10 +32,66 @@ Constraints that shape decisions:
 
 ## Stack
 
-React Native with Expo, one codebase for iOS and Android. Media playback via
-`expo-video` (AVPlayer / ExoPlayer underneath) for picture-in-picture,
-background audio, and lock-screen controls. Distribution via EAS to TestFlight
-and Play internal testing.
+React Native with Expo SDK 57 and Expo Router, one codebase for iOS and
+Android. App display name is **Grist**, bundle `com.asafrose.grist`; the repo
+stays `better-grain`. Media playback via `expo-video` (AVPlayer / ExoPlayer
+underneath) for picture-in-picture, background audio, and lock-screen
+controls; all three need the config plugin, so development uses a dev client
+(`npx expo run:ios`), never Expo Go. Distribution via EAS to TestFlight and a
+signed Android APK.
+
+Repo is an npm-workspaces monorepo:
+
+```
+apps/mobile          Expo app, src/ layout (routes only in src/app)
+packages/grain-api   HTTP client, response types, Zod schemas (also for webhook payloads)
+apps/relay           (future) webhooks → push notifications; app never assumes it exists
+```
+
+Tooling: npm, oxlint + oxfmt (`npm run lint` checks both), TypeScript strict,
+jest-expo for logic tests only, GitHub Actions on Ubuntu (lint, typecheck,
+test). Maestro end-to-end flows run on the local iOS simulator, not in CI.
+After `npm install`, run `npm run fix-lock`: the work machine resolves packages through a private proxy and CI cannot reach it (`npm run lint` fails on proxy URLs).
+Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
+non-interactive shells; the `nvm` shell function hangs there.
+
+## Architecture decisions
+
+- SQLite (`expo-sqlite`, FTS5) is the source of truth. Recordings,
+  participants, action items, summaries, template sections, transcripts.
+  Cold open renders from the database before any network call.
+- Sync: `after_datetime` incremental on foreground, weekly full reconcile of
+  the 90-day window to catch renames and deletions.
+- Transcripts for the last 90 days are prefetched on Wi-Fi with a small
+  concurrency cap and indexed for on-device search.
+- Media streams from the download endpoint; downloads happen only on an
+  explicit "Download for offline" tap. Caps: 2 GB media, 30-day downloads,
+  90-day index. All three are Settings rows.
+- Single account per install (one PAT). OAuth2 PKCE later.
+- UI: theme tokens in `apps/mobile/src/theme` lifted from the design canvas,
+  inline styles, `@expo/ui` for sheets and switches where stable, JS `Tabs`
+  (native tabs are alpha), our own SVG icon set in `components/icon.tsx`
+  (SF Symbols don't render on Android). Deferred Grain features open
+  `recording.url` in `expo-web-browser`.
+- No server in v1. Grain has webhooks; a relay that turns them into push
+  notifications is a later package, designed for but not built.
+
+## Process
+
+- Design canvas is the spec: https://claude.ai/code/artifact/6bd37fb5-2af1-4673-af72-da4c88502b8e
+  (source in `design/`, regenerate with `python3 design/build.py`).
+- GitHub Issues hold tasks, one per screen, milestone `v1`. Each names its
+  artboard, PARITY rows, and acceptance checks. PARITY.md stays the feature
+  status record.
+- Three sequential foundation PRs, then screens in parallel via subagents in
+  git worktrees, integrated from the main session.
+- Every PR: CI green, Maestro flow on the simulator for the issue's
+  acceptance checks, a simulator screenshot beside the artboard with
+  deviations noted in the PR body. Asaf approves every PR for now. Squash
+  merges only.
+- Fixtures are recorded from the real workspace with `GRAIN_PAT` from
+  `.env.local` and anonymized (names, emails, companies) before commit.
+- Sentry and EAS Update arrive with the first team build, not before.
 
 Companion skills vendored in this repo (see `../VENDORED.md`):
 

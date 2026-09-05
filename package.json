@@ -1,0 +1,23 @@
+{
+  "name": "better-grain",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run -s check-lock && oxlint && oxfmt --check",
+    "format": "oxfmt",
+    "test": "npm run test --workspaces --if-present",
+    "fix-lock": "sed -i \"\" \"s|https://registry.npmjs.org/|https://registry.npmjs.org/|g\" package-lock.json",
+    "check-lock": "! grep -q registry.npmjs.org package-lock.json"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
