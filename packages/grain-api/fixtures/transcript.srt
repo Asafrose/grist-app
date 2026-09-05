@@ -1,0 +1,159 @@
+1
+00:00:04,130 --> 00:00:04,833
+Marcus Kowalski: To be clear, ingestion cost is not a concern because we do not price by volume.
+
+2
+00:00:05,372 --> 00:00:06,665
+Mia Duarte: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+
+3
+00:00:07,531 --> 00:00:08,791
+Marcus Kowalski: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+4
+00:00:10,024 --> 00:00:16,492
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+5
+00:00:16,621 --> 00:00:21,785
+Marcus Kowalski: To be clear, ingestion cost is not a concern because we do not price by volume.
+
+6
+00:00:21,849 --> 00:00:30,257
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+7
+00:00:30,711 --> 00:00:34,491
+Marcus Kowalski: What does the timeline look like if we start integration in the middle of the month?
+
+8
+00:00:35,960 --> 00:00:43,478
+Mia Duarte: Let me share my screen and walk through the investigation view.
+
+9
+00:00:44,276 --> 00:00:48,566
+Marcus Kowalski: To be clear, ingestion cost is not a concern because we do not price by volume.
+
+10
+00:00:49,096 --> 00:00:51,201
+Mia Duarte: All the common ones, and we add new sources quickly when a customer needs one.
+
+11
+00:00:51,603 --> 00:00:56,537
+Marcus Kowalski: That makes sense. I need to take this to leadership before we commit.
+
+12
+00:00:58,540 --> 00:01:02,060
+Noa Whitfield: Let me share my screen and walk through the investigation view.
+
+13
+00:01:03,420 --> 00:01:07,310
+Mia Duarte: To be clear, ingestion cost is not a concern because we do not price by volume.
+
+14
+00:01:07,540 --> 00:01:09,560
+Marcus Kowalski: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+15
+00:01:09,560 --> 00:01:11,990
+Mia Duarte: Which identity providers do you support out of the box?
+
+16
+00:01:13,080 --> 00:01:14,599
+Noa Whitfield: What does the timeline look like if we start integration in the middle of the month?
+
+17
+00:01:15,660 --> 00:01:27,669
+Marcus Kowalski: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+18
+00:01:28,619 --> 00:02:19,250
+Mia Duarte: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+
+19
+00:02:20,512 --> 00:02:26,023
+Noa Whitfield: Yes, I will send that along with the measurement guidance today.
+
+20
+00:02:27,523 --> 00:02:49,285
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+21
+00:02:50,532 --> 00:02:57,300
+Noa Whitfield: That makes sense. I need to take this to leadership before we commit.
+
+22
+00:02:58,870 --> 00:03:08,478
+Marcus Kowalski: What does the timeline look like if we start integration in the middle of the month?
+
+23
+00:03:09,270 --> 00:03:12,094
+Mia Duarte: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+
+24
+00:03:16,432 --> 00:03:50,583
+Mia Duarte: Got it. And does the filtering happen on our side or yours?
+
+25
+00:03:52,623 --> 00:03:52,817
+Marcus Kowalski: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+
+26
+00:03:53,544 --> 00:04:00,688
+Noa Whitfield: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+27
+00:04:01,442 --> 00:04:24,944
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+28
+00:04:26,671 --> 00:04:33,294
+Noa Whitfield: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+
+29
+00:04:33,487 --> 00:04:34,982
+Mia Duarte: That makes sense. I need to take this to leadership before we commit.
+
+30
+00:04:35,930 --> 00:04:37,489
+Noa Whitfield: Yes, I will send that along with the measurement guidance today.
+
+31
+00:04:39,843 --> 00:05:06,439
+Marcus Kowalski: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+
+32
+00:05:07,353 --> 00:05:24,610
+Mia Duarte: That makes sense. I need to take this to leadership before we commit.
+
+33
+00:05:25,411 --> 00:05:30,939
+Noa Whitfield: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+34
+00:05:31,741 --> 00:05:32,702
+Mia Duarte: Got it. And does the filtering happen on our side or yours?
+
+35
+00:05:32,927 --> 00:05:33,968
+Noa Whitfield: Which identity providers do you support out of the box?
+
+36
+00:05:34,946 --> 00:05:40,763
+Marcus Kowalski: Which identity providers do you support out of the box?
+
+37
+00:05:41,949 --> 00:05:54,431
+Mia Duarte: Let me share my screen and walk through the investigation view.
+
+38
+00:05:55,590 --> 00:06:07,792
+Marcus Kowalski: Let me share my screen and walk through the investigation view.
+
+39
+00:06:08,804 --> 00:06:11,037
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+
+40
+00:06:12,435 --> 00:06:22,749
+Marcus Kowalski: We would integrate first, tune while your team is out, and go live early next month.

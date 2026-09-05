@@ -44,13 +44,13 @@ Status values:
 | Date, participants, teams chips | recording fields + `include.participants` | native |
 | Meeting type | `meeting_type` | native |
 | Sensitivity, viewers, automation sharing | none | deep-link |
-| Video / audio playback | download recording, streamed with range requests; `media_type` picks player | native |
+| Video / audio playback | download recording 302s to a signed media URL that honors HTTP Range (verified 206 on 2026-09-05); stream it, `media_type` picks player | native |
 | Speed, ±10s, PiP, background audio | native player | native |
 | Chapters (labels and scrubber markers) | none | derived from template-section timestamps, or omitted |
 | Action items | `include.ai_action_items` (text, status, timestamp, assignee) | native |
 | Action item checkbox toggle | none | deep-link |
 | Summary bullets with seek | `include.ai_summary` markdown; parse `m:ss` tokens | native |
-| Template sections | `include.ai_template_sections` (json / markdown / text) | native |
+| Template sections | `ai_template_sections` came back empty for a recording that shows sections in the UI; the sections are `##` headings inside `ai_summary.text`, parsed with `splitSummarySections` | native |
 | Add custom template | none | deep-link |
 | Private notes read | Personal API `include.private_notes` | native |
 | Private notes write | none | deep-link |
@@ -62,7 +62,7 @@ Status values:
 | Timeline talk-time bars | aggregate transcript segments per participant | derived |
 | Timeline company aggregate | group participants by email domain | derived |
 | Screenshare row | `include.screenshares` (start, end, participant_id) | native |
-| Clips tab | `include.highlights` (text, transcript, speakers, timestamp, duration, url, thumbnail) | native |
+| Clips tab | `include.highlights: true` (boolean, not an object as the hooks docs suggest); ids are 40-char strings, not UUIDs | native |
 | Create clip | none | deep-link |
 | Coaching tab | none | deferred |
 | Tags add / remove | put / delete tag | native |
@@ -118,6 +118,13 @@ Status values:
 | Sign in (later) | OAuth2 authorization code + PKCE; client ID from Grain | native, pending client ID |
 | Profile name / email | list users | native |
 | Workspace / admin settings | none | deferred |
+
+## Observed but undocumented (2026-09-05)
+
+- `recording.workspace_shared: boolean`
+- `participant.observed_join_time` / `observed_leave_time` (ISO strings)
+- `participant.email` is null for some external attendees; `thumbnail_url` is null on fresh recordings
+- `participant.scope` includes `unknown`
 
 ## Known API gaps that most affect the mobile experience
 

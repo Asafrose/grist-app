@@ -49,7 +49,9 @@ apps/relay           (future) webhooks → push notifications; app never assumes
 ```
 
 Tooling: npm, oxlint + oxfmt (`npm run lint` checks both), TypeScript strict,
-jest-expo for logic tests only, GitHub Actions on Ubuntu (lint, typecheck,
+Vitest in `packages/*`; `jest-expo` + React Native Testing Library in `apps/mobile`
+for stores and components (RNTL 14: `await render(...)`, then query via `screen`;
+use `@/test/render` which wraps SafeAreaProvider). GitHub Actions on Ubuntu (lint, typecheck,
 test). Maestro end-to-end flows run on the local iOS simulator, not in CI.
 After `npm install`, run `npm run fix-lock`: the work machine resolves packages through a private proxy and CI cannot reach it (`npm run lint` fails on proxy URLs).
 Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
@@ -68,11 +70,26 @@ non-interactive shells; the `nvm` shell function hangs there.
   explicit "Download for offline" tap. Caps: 2 GB media, 30-day downloads,
   90-day index. All three are Settings rows.
 - Single account per install (one PAT). OAuth2 PKCE later.
-- UI: theme tokens in `apps/mobile/src/theme` lifted from the design canvas,
-  inline styles, `@expo/ui` for sheets and switches where stable, JS `Tabs`
-  (native tabs are alpha), our own SVG icon set in `components/icon.tsx`
-  (SF Symbols don't render on Android). Deferred Grain features open
-  `recording.url` in `expo-web-browser`.
+- App state lives in zustand stores under `apps/mobile/src/lib` (auth first; player and settings follow). Each store exports the hook plus a plain-function facade for use outside React. Stores hydrate themselves at module load and expose a readiness promise; the root layout suspends on it with React `use()` rather than triggering loads from effects.
+- UI: NativeWind (Tailwind classes) with react-native-reusables as the component
+  kit, copy-pasted into `apps/mobile/src/components/ui` and owned by us. Design
+  tokens live as CSS variables in `apps/mobile/global.css` (light and dark via
+  `prefers-color-scheme`) and as Tailwind theme extensions in
+  `tailwind.config.js`: semantic colors (`bg-background`, `text-foreground`,
+  `text-muted-foreground`, `bg-primary`, `bg-accent`, `text-external`),
+  fonts (`font-jakarta`, `font-jakarta-medium/semibold/bold/extrabold`,
+  `font-mono`), radii. Screens import primitives from `@/components/ui/*`
+  only, never from the kit's packages directly. Compound components
+  (`<Button><Text>…</Text></Button>`), no string-title props.
+  `apps/mobile/src/theme` keeps only the hex palette (`useColors`) and font
+  names for code that needs raw values: navigation theme, tab bar, SVG icons.
+  Our own SVG icon set stays in `components/icon.tsx` (SF Symbols don't render
+  on Android). `@expo/ui` for the few controls where native feel matters
+  (filter bottom sheet, switches, pickers). JS `Tabs` (native tabs are alpha).
+  Deferred Grain features open `recording.url` in `expo-web-browser`.
+- Add kit components with `npx @react-native-reusables/cli@latest add <name>`
+  from `apps/mobile`; `components.json` already points it at
+  `src/components/ui`. Start Metro from `apps/mobile`, never the repo root.
 - No server in v1. Grain has webhooks; a relay that turns them into push
   notifications is a later package, designed for but not built.
 

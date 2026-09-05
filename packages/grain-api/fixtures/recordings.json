@@ -1,0 +1,627 @@
+{
+  "cursor": "ApJNWoNoBHcCdjJ3DWNocm9ub2xvZ2ljYWx3BGRlc2No",
+  "recordings": [
+    {
+      "id": "173c50aa-98ed-4d12-a3d9-eb9861bcb091",
+      "title": "Relecloud / Northwind: Pricing review",
+      "source": "zoom",
+      "url": "https://grain.com/share/recording/173c50aa-98ed-4d12-a3d9-eb9861bcb091/NP22LVZmErOyuCAiPsTepjCcWXMzKj8qyuU3Jcjg",
+      "media_type": "video",
+      "tags": [],
+      "start_datetime": "2026-09-04T22:01:18Z",
+      "highlights": [],
+      "recorders": [
+        {
+          "id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f",
+          "name": "Marcus Kowalski",
+          "email": "marcus.kowalski@treyresearch.example",
+          "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822"
+        }
+      ],
+      "end_datetime": "2026-09-04T22:45:17Z",
+      "participants": [
+        {
+          "id": "2eee6e97-3970-4e63-a0cf-789156230671",
+          "name": "Noa Whitfield",
+          "scope": "internal",
+          "email": "noa.whitfield@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T22:01:18Z",
+          "observed_leave_time": "2026-09-04T22:45:15Z"
+        },
+        {
+          "id": "63a7d2d0-a128-4f3b-ae81-716d6a48e8f5",
+          "name": "Zara Lind",
+          "scope": "external",
+          "email": "zara.lind@acme.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T22:08:57Z",
+          "observed_leave_time": "2026-09-04T22:45:17Z"
+        },
+        {
+          "id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+          "name": "Marcus Kowalski",
+          "scope": "internal",
+          "email": "marcus.kowalski@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T22:01:18Z",
+          "observed_leave_time": "2026-09-04T22:45:17Z"
+        },
+        {
+          "id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+          "name": "Mia Duarte",
+          "scope": "unknown",
+          "email": null,
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T22:01:18Z",
+          "observed_leave_time": "2026-09-04T22:45:17Z"
+        }
+      ],
+      "teams": [
+        {
+          "id": "81dcc8c9-b301-43d1-a180-b724dfb6e07a",
+          "name": "Lamna team"
+        }
+      ],
+      "thumbnail_url": null,
+      "share_state": "workspace",
+      "duration_ms": 2641000,
+      "meeting_type": {
+        "id": "a1771739-b9d0-493e-a230-9602bccef436",
+        "name": "Sales",
+        "scope": "external"
+      },
+      "workspace_shared": false,
+      "calendar_event": {
+        "ical_uid": "event-173c50aa",
+        "scheduled_end_datetime": "2026-09-04T23:00:00Z",
+        "scheduled_start_datetime": "2026-09-04T22:00:00Z"
+      },
+      "ai_summary": {
+        "text": "## Demo highlights\n\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 17:04\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n\n## Next steps\n\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 10:14\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:12\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 10:14\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 17:04\n\n## Open questions\n\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:29\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 1:28\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 17:04\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 17:04\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n\n## Customer context\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 1:28\n  - Positioned the offering as a blend of automated triage and senior human response. 17:04\n  - Positioned the offering as a blend of automated triage and senior human response. 42:29\n  - Positioned the offering as a blend of automated triage and senior human response. 42:12\n- Positioned the offering as a blend of automated triage and senior human response. 42:12\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:29\n  - Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n- Positioned the offering as a blend of automated triage and senior human response. 1:28\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:12\n\n## Open questions\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:12\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n\n## Summary\n\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n  - Positioned the offering as a blend of automated triage and senior human response. 17:04\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:12\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 17:04\n  - Positioned the offering as a blend of automated triage and senior human response. 42:29\n  - Positioned the offering as a blend of automated triage and senior human response. 42:29\n\n## Customer context\n\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 10:14\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 17:04"
+      },
+      "ai_template_sections": [],
+      "private_notes": null,
+      "ai_action_items": [
+        {
+          "status": "pending",
+          "timestamp": 2532005,
+          "text": "Share the full list of supported integrations",
+          "assignee": {
+            "id": "f6e7e0bb-8103-4e70-ab45-5c8bf032d08b",
+            "name": "Marcus Kowalski",
+            "user_id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f"
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 1024231,
+          "text": "Share the full list of supported integrations",
+          "assignee": {
+            "id": "f6e7e0bb-8103-4e70-ab45-5c8bf032d08b",
+            "name": "Marcus Kowalski",
+            "user_id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f"
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 2196508,
+          "text": "Confirm endpoint data visibility for the pilot",
+          "assignee": {
+            "id": "93544778-4726-4c4f-a99c-4b5e7b4cc872",
+            "name": "Noa Whitfield",
+            "user_id": "c07d73b4-2546-47d0-ab0a-803b0597f74f"
+          }
+        }
+      ],
+      "screenshares": [
+        {
+          "start": 393210,
+          "end": 1245475,
+          "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822"
+        },
+        {
+          "start": 1255676,
+          "end": 2271206,
+          "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671"
+        }
+      ]
+    },
+    {
+      "id": "71944978-9e25-4f09-ae27-0269cd85c7e6",
+      "title": "Trey Research / Northwind: Demo + POV discussion",
+      "source": "zoom",
+      "url": "https://grain.com/share/recording/71944978-9e25-4f09-ae27-0269cd85c7e6/Rtmg4WasisbaODbWdAGmF-T9tsO0ZYh2k986bAD7",
+      "media_type": "video",
+      "tags": [],
+      "start_datetime": "2026-09-04T17:01:52Z",
+      "highlights": [],
+      "recorders": [
+        {
+          "id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f",
+          "name": "Marcus Kowalski",
+          "email": "marcus.kowalski@treyresearch.example",
+          "participant_id": "98d952f3-027a-4c75-afc4-957e89108887"
+        }
+      ],
+      "end_datetime": "2026-09-04T17:28:33Z",
+      "participants": [
+        {
+          "id": "deee6055-34ff-496e-a6b8-8fdef600ee1e",
+          "name": "Lena Iqbal",
+          "scope": "internal",
+          "email": "lena.iqbal@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T17:01:49Z",
+          "observed_leave_time": "2026-09-04T17:28:33Z"
+        },
+        {
+          "id": "0f974ab8-f0d2-4ca5-a1c1-6d0f905ee1b7",
+          "name": "Theo Okafor",
+          "scope": "external",
+          "email": "theo.okafor@litware.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T17:01:49Z",
+          "observed_leave_time": "2026-09-04T17:28:33Z"
+        },
+        {
+          "id": "4f88d35a-04a3-45f6-aaba-8e786a17b26b",
+          "name": "Jordan Marin",
+          "scope": "external",
+          "email": "jordan.marin@litware.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T17:01:52Z",
+          "observed_leave_time": "2026-09-04T17:28:33Z"
+        },
+        {
+          "id": "98d952f3-027a-4c75-afc4-957e89108887",
+          "name": "Marcus Kowalski",
+          "scope": "internal",
+          "email": "marcus.kowalski@treyresearch.example",
+          "confirmed_attendee": false,
+          "observed_join_time": null,
+          "observed_leave_time": null
+        },
+        {
+          "id": "eb440059-723f-41d4-a7b3-1e15dc282f29",
+          "name": "Mira Marin",
+          "scope": "internal",
+          "email": "mira.marin@treyresearch.example",
+          "confirmed_attendee": false,
+          "observed_join_time": null,
+          "observed_leave_time": null
+        }
+      ],
+      "teams": [
+        {
+          "id": "81dcc8c9-b301-43d1-a180-b724dfb6e07a",
+          "name": "Lamna team"
+        }
+      ],
+      "thumbnail_url": null,
+      "share_state": "workspace",
+      "duration_ms": 1603567,
+      "meeting_type": {
+        "id": "797bbcd7-15e4-41bd-a8b7-7413f9a921eb",
+        "name": "Partnerships & Consulting",
+        "scope": "external"
+      },
+      "workspace_shared": false,
+      "calendar_event": {
+        "ical_uid": "event-71944978",
+        "scheduled_end_datetime": "2026-09-04T17:30:00Z",
+        "scheduled_start_datetime": "2026-09-04T17:00:00Z"
+      },
+      "ai_summary": {
+        "text": "## Open questions\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 17:04\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 1:28\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n\n## Demo highlights\n\n- Positioned the offering as a blend of automated triage and senior human response. 1:28\n- Positioned the offering as a blend of automated triage and senior human response. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 1:28\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:12\n\n## Demo highlights\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 1:28\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n- Positioned the offering as a blend of automated triage and senior human response. 17:04\n\n## Open questions\n\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:29\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 17:04\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n- Positioned the offering as a blend of automated triage and senior human response. 42:29\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n\n## Next steps\n\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 1:28\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 1:28\n\n## Positioning\n\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 17:04\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:12\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:12\n\n## Customer context\n\n- Positioned the offering as a blend of automated triage and senior human response. 42:29\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:12\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 10:14"
+      },
+      "ai_template_sections": [],
+      "private_notes": null,
+      "ai_action_items": [
+        {
+          "status": "pending",
+          "timestamp": 1028386,
+          "text": "Take pricing to leadership for budget approval",
+          "assignee": {
+            "id": "3ba8b820-0a42-45bb-a25a-b9e6d625b0dd",
+            "name": "Lena Iqbal",
+            "user_id": "b437825a-585a-4760-aa68-345070495a12"
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 1430255,
+          "text": "Schedule a scoping session and define success criteria",
+          "assignee": {
+            "id": "3ba8b820-0a42-45bb-a25a-b9e6d625b0dd",
+            "name": "Lena Iqbal",
+            "user_id": "b437825a-585a-4760-aa68-345070495a12"
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 1531016,
+          "text": "Take pricing to leadership for budget approval",
+          "assignee": {
+            "id": "3ba8b820-0a42-45bb-a25a-b9e6d625b0dd",
+            "name": "Lena Iqbal",
+            "user_id": "b437825a-585a-4760-aa68-345070495a12"
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 1045656,
+          "text": "Take pricing to leadership for budget approval",
+          "assignee": {
+            "id": "5b518ad4-2872-47ad-a4ce-981491fe2be8",
+            "name": "Theo Okafor",
+            "user_id": null
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 655595,
+          "text": "Share the full list of supported integrations",
+          "assignee": {
+            "id": "5b518ad4-2872-47ad-a4ce-981491fe2be8",
+            "name": "Theo Okafor",
+            "user_id": null
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 1184988,
+          "text": "Take pricing to leadership for budget approval",
+          "assignee": {
+            "id": "5b518ad4-2872-47ad-a4ce-981491fe2be8",
+            "name": "Theo Okafor",
+            "user_id": null
+          }
+        }
+      ],
+      "screenshares": []
+    },
+    {
+      "id": "9c81f844-067e-4f7a-a35b-150829091cbf",
+      "title": "Wingtip / Northwind: Onboarding call",
+      "source": "zoom",
+      "url": "https://grain.com/share/recording/9c81f844-067e-4f7a-a35b-150829091cbf/hHt9ikg7wrIpUElcgpd_wGlnO_DxH1SGuL4qKRQz",
+      "media_type": "video",
+      "tags": [],
+      "start_datetime": "2026-09-04T16:00:07Z",
+      "highlights": [],
+      "recorders": [
+        {
+          "id": "0f9a8932-a48a-4403-a337-6a25ed5381ec",
+          "name": "Lucas Natarajan",
+          "email": "lucas.natarajan@treyresearch.example",
+          "participant_id": "bf989421-4645-4320-af3b-dc9d4cfd8e54"
+        }
+      ],
+      "end_datetime": "2026-09-04T16:46:24Z",
+      "participants": [
+        {
+          "id": "bf989421-4645-4320-af3b-dc9d4cfd8e54",
+          "name": "Lucas Natarajan",
+          "scope": "internal",
+          "email": "lucas.natarajan@treyresearch.example",
+          "confirmed_attendee": false,
+          "observed_join_time": null,
+          "observed_leave_time": null
+        },
+        {
+          "id": "0e926596-2a0a-4e6e-a773-1f40a0e055d4",
+          "name": "Theo Moreau",
+          "scope": "unknown",
+          "email": null,
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T16:00:22Z",
+          "observed_leave_time": "2026-09-04T16:46:24Z"
+        },
+        {
+          "id": "0f181f2b-0570-4825-a54f-4e9e5d70ec7d",
+          "name": "Felix Costa",
+          "scope": "unknown",
+          "email": "felix.costa@woodgrove.example",
+          "confirmed_attendee": false,
+          "observed_join_time": null,
+          "observed_leave_time": null
+        },
+        {
+          "id": "bd47cd77-fb84-435a-a682-c25ee0787f55",
+          "name": "Mira Nyström",
+          "scope": "unknown",
+          "email": null,
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T16:00:08Z",
+          "observed_leave_time": "2026-09-04T16:46:24Z"
+        },
+        {
+          "id": "99aa732b-5ad4-453d-a182-23cd71d2bd23",
+          "name": "Noa Whitfield",
+          "scope": "internal",
+          "email": "noa.whitfield@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T16:00:06Z",
+          "observed_leave_time": "2026-09-04T16:46:22Z"
+        }
+      ],
+      "teams": [
+        {
+          "id": "81dcc8c9-b301-43d1-a180-b724dfb6e07a",
+          "name": "Lamna team"
+        }
+      ],
+      "thumbnail_url": null,
+      "share_state": "workspace",
+      "duration_ms": 2778000,
+      "meeting_type": {
+        "id": "a1771739-b9d0-493e-a230-9602bccef436",
+        "name": "Sales",
+        "scope": "external"
+      },
+      "workspace_shared": false,
+      "calendar_event": {
+        "ical_uid": "event-9c81f844",
+        "scheduled_end_datetime": "2026-09-04T17:00:00Z",
+        "scheduled_start_datetime": "2026-09-04T16:00:00Z"
+      },
+      "ai_summary": {
+        "text": "## Summary\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 10:14\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n- Positioned the offering as a blend of automated triage and senior human response. 17:04\n\n## Summary\n\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 1:28\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:12\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 17:04\n  - Positioned the offering as a blend of automated triage and senior human response. 10:14\n\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:29\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:29\n\n## Summary\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n  - Open question on how limited endpoint visibility affects detection coverage during the pilot. 17:04\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 1:28\n\n- Positioned the offering as a blend of automated triage and senior human response. 42:29\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:29\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:29\n\n## Customer context\n\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 1:28\n  - Positioned the offering as a blend of automated triage and senior human response. 17:04\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 17:04\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:12\n\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n  - Positioned the offering as a blend of automated triage and senior human response. 42:12\n\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 1:28\n  - Positioned the offering as a blend of automated triage and senior human response. 42:12\n\n## Next steps\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 1:28\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 1:28\n\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:29\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n\n## Summary\n\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 17:04\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 1:28\n  - Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 1:28\n\n## Demo highlights\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 17:04\n- Positioned the offering as a blend of automated triage and senior human response. 1:28"
+      },
+      "ai_template_sections": [],
+      "private_notes": null,
+      "ai_action_items": [
+        {
+          "status": "pending",
+          "timestamp": 347958,
+          "text": "Take pricing to leadership for budget approval",
+          "assignee": {
+            "id": "b533f8f1-6028-4323-aac8-fb4563c68a1c",
+            "name": "Mira Nyström",
+            "user_id": null
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 414446,
+          "text": "Share the full list of supported integrations",
+          "assignee": {
+            "id": "47f6c23e-a5ce-4ce7-a9cb-80e4fd274eec",
+            "name": "Theo Moreau",
+            "user_id": null
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 1994201,
+          "text": "Confirm endpoint data visibility for the pilot",
+          "assignee": {
+            "id": "47f6c23e-a5ce-4ce7-a9cb-80e4fd274eec",
+            "name": "Theo Moreau",
+            "user_id": null
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 2051772,
+          "text": "Confirm endpoint data visibility for the pilot",
+          "assignee": {
+            "id": "b533f8f1-6028-4323-aac8-fb4563c68a1c",
+            "name": "Mira Nyström",
+            "user_id": null
+          }
+        }
+      ],
+      "screenshares": [
+        {
+          "start": 795823,
+          "end": 1691809,
+          "participant_id": "99aa732b-5ad4-453d-a182-23cd71d2bd23"
+        }
+      ]
+    },
+    {
+      "id": "0cd0c299-9807-4c53-a408-85de22d7d6b5",
+      "title": "Wingtip / Northwind: Renewal discussion",
+      "source": "zoom",
+      "url": "https://grain.com/share/recording/0cd0c299-9807-4c53-a408-85de22d7d6b5/6IpTNefUtZk1euh2nUn6lcEfGRthFplfa7TspRp_",
+      "media_type": "video",
+      "tags": [],
+      "start_datetime": "2026-09-04T15:01:05Z",
+      "highlights": [],
+      "recorders": [
+        {
+          "id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f",
+          "name": "Marcus Kowalski",
+          "email": "marcus.kowalski@treyresearch.example",
+          "participant_id": "44c1bd43-fbf6-4159-a977-8cfef098546d"
+        }
+      ],
+      "end_datetime": "2026-09-04T16:08:19Z",
+      "participants": [
+        {
+          "id": "44c1bd43-fbf6-4159-a977-8cfef098546d",
+          "name": "Marcus Kowalski",
+          "scope": "internal",
+          "email": "marcus.kowalski@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T15:01:04Z",
+          "observed_leave_time": "2026-09-04T16:08:19Z"
+        },
+        {
+          "id": "8a1a86a4-93f3-40f2-a73c-12f8704c9dca",
+          "name": "Elias Abara",
+          "scope": "unknown",
+          "email": "elias.abara@woodgrove.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T15:01:55Z",
+          "observed_leave_time": "2026-09-04T16:08:19Z"
+        },
+        {
+          "id": "b4c1405e-7a4b-40d7-a894-5af9a26f8b88",
+          "name": "Tomas Lind",
+          "scope": "external",
+          "email": "tomas.lind@proseware.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T15:04:52Z",
+          "observed_leave_time": "2026-09-04T16:08:19Z"
+        },
+        {
+          "id": "253a22e7-715e-446f-ab8f-c77d8d043fc6",
+          "name": "Dana Nyström",
+          "scope": "unknown",
+          "email": null,
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T15:01:58Z",
+          "observed_leave_time": "2026-09-04T15:02:49Z"
+        },
+        {
+          "id": "ede378de-1aae-43f7-ab95-191f41354f16",
+          "name": "Ines Marin",
+          "scope": "internal",
+          "email": "ines.marin@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T15:01:05Z",
+          "observed_leave_time": "2026-09-04T16:01:23Z"
+        }
+      ],
+      "teams": [
+        {
+          "id": "81dcc8c9-b301-43d1-a180-b724dfb6e07a",
+          "name": "Lamna team"
+        }
+      ],
+      "thumbnail_url": null,
+      "share_state": "workspace",
+      "duration_ms": 4034284,
+      "meeting_type": {
+        "id": "a1771739-b9d0-493e-a230-9602bccef436",
+        "name": "Sales",
+        "scope": "external"
+      },
+      "workspace_shared": false,
+      "calendar_event": {
+        "ical_uid": "event-0cd0c299",
+        "scheduled_end_datetime": "2026-09-04T16:00:00Z",
+        "scheduled_start_datetime": "2026-09-04T15:00:00Z"
+      },
+      "ai_summary": {
+        "text": "## Positioning\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n\n## Open questions\n\n- Positioned the offering as a blend of automated triage and senior human response. 42:12\n  - Positioned the offering as a blend of automated triage and senior human response. 10:14\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 1:28\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 10:14\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:29\n\n## Customer context\n\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n  - Positioned the offering as a blend of automated triage and senior human response. 42:12\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 17:04\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:29\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 1:28\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n\n## Positioning\n\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 1:28\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:12\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 17:04\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:12\n\n## Customer context\n\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 17:04\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:12\n  - Open question on how limited endpoint visibility affects detection coverage during the pilot. 17:04\n  - Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:29\n  - Positioned the offering as a blend of automated triage and senior human response. 10:14\n\n## Next steps\n\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:29\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:29\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:29"
+      },
+      "ai_template_sections": [],
+      "private_notes": null,
+      "ai_action_items": [
+        {
+          "status": "pending",
+          "timestamp": 3812513,
+          "text": "Share the full list of supported integrations",
+          "assignee": {
+            "id": "f6e7e0bb-8103-4e70-ab45-5c8bf032d08b",
+            "name": "Marcus Kowalski",
+            "user_id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f"
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 4021059,
+          "text": "Take pricing to leadership for budget approval",
+          "assignee": {
+            "id": "bd55092c-5910-4958-a9ca-041d408bf113",
+            "name": "Dana Nyström",
+            "user_id": null
+          }
+        },
+        {
+          "status": "pending",
+          "timestamp": 215823,
+          "text": "Confirm endpoint data visibility for the pilot",
+          "assignee": {
+            "id": "f6e7e0bb-8103-4e70-ab45-5c8bf032d08b",
+            "name": "Marcus Kowalski",
+            "user_id": "08b3f69b-b374-41b5-a3bc-b7fef590fc0f"
+          }
+        }
+      ],
+      "screenshares": [
+        {
+          "start": 924954,
+          "end": 2421403,
+          "participant_id": "44c1bd43-fbf6-4159-a977-8cfef098546d"
+        },
+        {
+          "start": 2473835,
+          "end": 3231028,
+          "participant_id": "ede378de-1aae-43f7-ab95-191f41354f16"
+        },
+        {
+          "start": 3476638,
+          "end": 3492953,
+          "participant_id": "ede378de-1aae-43f7-ab95-191f41354f16"
+        }
+      ]
+    },
+    {
+      "id": "73ac5151-cf78-4242-a04e-9c7187a8f9ed",
+      "title": "Fabrikam / Northwind: Quarterly check-in",
+      "source": "zoom",
+      "url": "https://grain.com/share/recording/73ac5151-cf78-4242-a04e-9c7187a8f9ed/oc1ZPl3eflTfv1sv69OolLl9Zks_umhia__kxYmo",
+      "media_type": "video",
+      "tags": [],
+      "start_datetime": "2026-09-04T14:32:14Z",
+      "highlights": [],
+      "recorders": [
+        {
+          "id": "90a5c77b-d213-425b-a4c5-01618c32787a",
+          "name": "Felix Whitfield",
+          "email": "felix.whitfield@treyresearch.example",
+          "participant_id": "07f25477-b810-4ca8-a9da-093f40d7a8a2"
+        }
+      ],
+      "end_datetime": "2026-09-04T14:34:02Z",
+      "participants": [
+        {
+          "id": "07f25477-b810-4ca8-a9da-093f40d7a8a2",
+          "name": "Felix Whitfield",
+          "scope": "internal",
+          "email": "felix.whitfield@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T14:32:13Z",
+          "observed_leave_time": "2026-09-04T14:34:02Z"
+        },
+        {
+          "id": "1c77a519-7e10-4e0f-a487-5d143ddc4c5b",
+          "name": "Marcus Haddad",
+          "scope": "external",
+          "email": "marcus.haddad@treyresearch.example",
+          "confirmed_attendee": true,
+          "observed_join_time": "2026-09-04T14:33:44Z",
+          "observed_leave_time": "2026-09-04T14:34:02Z"
+        }
+      ],
+      "teams": [
+        {
+          "id": "81dcc8c9-b301-43d1-a180-b724dfb6e07a",
+          "name": "Lamna team"
+        }
+      ],
+      "thumbnail_url": null,
+      "share_state": "workspace",
+      "duration_ms": 108967,
+      "meeting_type": null,
+      "workspace_shared": false,
+      "calendar_event": {
+        "ical_uid": "event-73ac5151",
+        "scheduled_end_datetime": "2026-09-04T15:00:00Z",
+        "scheduled_start_datetime": "2026-09-04T14:30:00Z"
+      },
+      "ai_summary": {
+        "text": "Data filtering is handled by the vendor team on request rather than by a self-serve control.\n\n- Positioned the offering as a blend of automated triage and senior human response. 10:14\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:29"
+      },
+      "ai_template_sections": [],
+      "private_notes": null,
+      "ai_action_items": [],
+      "screenshares": []
+    }
+  ]
+}

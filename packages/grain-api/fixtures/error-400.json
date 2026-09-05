@@ -1,0 +1,4 @@
+{
+  "error": "bad_request",
+  "data": "Invalid input arguments:\nType mismatch. Expected Boolean but got Object. At path: #/include/highlights."
+}

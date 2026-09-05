@@ -30,7 +30,9 @@
           "backgroundColor": "#F7F6F2",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76,
-          "dark": { "backgroundColor": "#121415" }
+          "dark": {
+            "backgroundColor": "#121415"
+          }
         }
       ],
       [
@@ -46,7 +48,8 @@
             "./assets/fonts/JetBrainsMono-Medium.ttf"
           ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

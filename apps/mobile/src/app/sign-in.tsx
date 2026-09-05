@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "@/components/placeholder-screen";
+import { SignIn } from "@/screens/sign-in";
 
 export default function SignInRoute() {
-  return <PlaceholderScreen title="Sign in" note="Paste a Grain personal access token." />;
+  return <SignIn />;
 }

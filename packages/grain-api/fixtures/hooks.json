@@ -1,0 +1,12 @@
+{
+  "hooks": [
+    {
+      "id": "bc1688cb-302b-4243-a84d-6b2083716c5c",
+      "enabled": true,
+      "hook_url": "https://relay.example/hooks/abc",
+      "hook_type": "recording_added",
+      "include": {},
+      "inserted_at": "2026-01-01T09:30:00Z"
+    }
+  ]
+}

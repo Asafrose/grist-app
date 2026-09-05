@@ -16,6 +16,16 @@
       {
         "allowAsProps": true
       }
+    ],
+    "no-await-in-loop": "off",
+    "oxc/no-map-spread": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/role-has-required-aria-props": "off",
+    "import/no-unassigned-import": [
+      "error",
+      {
+        "allow": ["**/*.css"]
+      }
     ]
   },
   "settings": {
@@ -30,6 +40,7 @@
     "design",
     "design-system",
     ".claude",
-    "**/*.config.js"
+    "**/*.config.js",
+    "apps/mobile/src/components/ui/**"
   ]
 }

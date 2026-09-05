@@ -1,0 +1,40 @@
+Marcus Kowalski: To be clear, ingestion cost is not a concern because we do not price by volume.
+Mia Duarte: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+Marcus Kowalski: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Marcus Kowalski: To be clear, ingestion cost is not a concern because we do not price by volume.
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Marcus Kowalski: What does the timeline look like if we start integration in the middle of the month?
+Mia Duarte: Let me share my screen and walk through the investigation view.
+Marcus Kowalski: To be clear, ingestion cost is not a concern because we do not price by volume.
+Mia Duarte: All the common ones, and we add new sources quickly when a customer needs one.
+Marcus Kowalski: That makes sense. I need to take this to leadership before we commit.
+Noa Whitfield: Let me share my screen and walk through the investigation view.
+Mia Duarte: To be clear, ingestion cost is not a concern because we do not price by volume.
+Marcus Kowalski: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Mia Duarte: Which identity providers do you support out of the box?
+Noa Whitfield: What does the timeline look like if we start integration in the middle of the month?
+Marcus Kowalski: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Mia Duarte: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+Noa Whitfield: Yes, I will send that along with the measurement guidance today.
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Noa Whitfield: That makes sense. I need to take this to leadership before we commit.
+Marcus Kowalski: What does the timeline look like if we start integration in the middle of the month?
+Mia Duarte: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+Mia Duarte: Got it. And does the filtering happen on our side or yours?
+Marcus Kowalski: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+Noa Whitfield: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Noa Whitfield: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+Mia Duarte: That makes sense. I need to take this to leadership before we commit.
+Noa Whitfield: Yes, I will send that along with the measurement guidance today.
+Marcus Kowalski: On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.
+Mia Duarte: That makes sense. I need to take this to leadership before we commit.
+Noa Whitfield: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Mia Duarte: Got it. And does the filtering happen on our side or yours?
+Noa Whitfield: Which identity providers do you support out of the box?
+Marcus Kowalski: Which identity providers do you support out of the box?
+Mia Duarte: Let me share my screen and walk through the investigation view.
+Marcus Kowalski: Let me share my screen and walk through the investigation view.
+Mia Duarte: So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.
+Marcus Kowalski: We would integrate first, tune while your team is out, and go live early next month.

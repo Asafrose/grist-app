@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "id": "c8562f5b-7cc8-4636-ad54-c51f7062bb1f",
+      "name": "Noa Abara",
+      "email": "noa.abara@treyresearch.example"
+    },
+    {
+      "id": "bb8aa396-f0b2-4aca-a5a3-43112086b6e1",
+      "name": "Ravi Reyes",
+      "email": "ravi.reyes@treyresearch.example"
+    },
+    {
+      "id": "9df2edb7-58a1-4219-ad10-79fa9a9bf3ee",
+      "name": "Theo Iqbal",
+      "email": "theo.iqbal@treyresearch.example"
+    },
+    {
+      "id": "7aa63d74-1ed9-4e6b-ae5b-92ecfe83f97e",
+      "name": "Priya Lind",
+      "email": "priya.lind@treyresearch.example"
+    },
+    {
+      "id": "bc404364-1630-4319-a131-a35b306c1085",
+      "name": "Theo Marin",
+      "email": "theo.marin@treyresearch.example"
+    },
+    {
+      "id": "2898347d-c109-43cf-a35c-f9de8a91cb87",
+      "name": "Nadia Costa",
+      "email": "nadia.costa@treyresearch.example"
+    }
+  ]
+}

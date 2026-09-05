@@ -1,0 +1,10 @@
+{
+  "status": 302,
+  "location": "https://media.grain.com/recordings/173c50aa-98ed-4d12-a3d9-eb9861bcb091.mp4?Expires=1900000000&Key-Pair-Id=EXAMPLE&Signature=EXAMPLE",
+  "range": {
+    "status": 206,
+    "accept_ranges": null,
+    "content_range": "bytes 0-0/95691312",
+    "content_type": "video/mp4"
+  }
+}

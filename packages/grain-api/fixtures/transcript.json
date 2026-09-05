@@ -1,0 +1,282 @@
+[
+  {
+    "start": 4130,
+    "text": "To be clear, ingestion cost is not a concern because we do not price by volume.",
+    "end": 4833,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 5372,
+    "text": "On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.",
+    "end": 6665,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 7531,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 8791,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 10024,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 16492,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 16621,
+    "text": "To be clear, ingestion cost is not a concern because we do not price by volume.",
+    "end": 21785,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 21849,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 30257,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 30711,
+    "text": "What does the timeline look like if we start integration in the middle of the month?",
+    "end": 34491,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 35960,
+    "text": "Let me share my screen and walk through the investigation view.",
+    "end": 43478,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 44276,
+    "text": "To be clear, ingestion cost is not a concern because we do not price by volume.",
+    "end": 48566,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 49096,
+    "text": "All the common ones, and we add new sources quickly when a customer needs one.",
+    "end": 51201,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 51603,
+    "text": "That makes sense. I need to take this to leadership before we commit.",
+    "end": 56537,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 58540,
+    "text": "Let me share my screen and walk through the investigation view.",
+    "end": 62060,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 63420,
+    "text": "To be clear, ingestion cost is not a concern because we do not price by volume.",
+    "end": 67310,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 67540,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 69560,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 69560,
+    "text": "Which identity providers do you support out of the box?",
+    "end": 71990,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 73080,
+    "text": "What does the timeline look like if we start integration in the middle of the month?",
+    "end": 74599,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 75660,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 87669,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 88619,
+    "text": "On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.",
+    "end": 139250,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 140512,
+    "text": "Yes, I will send that along with the measurement guidance today.",
+    "end": 146023,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 147523,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 169285,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 170532,
+    "text": "That makes sense. I need to take this to leadership before we commit.",
+    "end": 177300,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 178870,
+    "text": "What does the timeline look like if we start integration in the middle of the month?",
+    "end": 188478,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 189270,
+    "text": "On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.",
+    "end": 192094,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 196432,
+    "text": "Got it. And does the filtering happen on our side or yours?",
+    "end": 230583,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 232623,
+    "text": "On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.",
+    "end": 232817,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 233544,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 240688,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 241442,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 264944,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 266671,
+    "text": "On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.",
+    "end": 273294,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 273487,
+    "text": "That makes sense. I need to take this to leadership before we commit.",
+    "end": 274982,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 275930,
+    "text": "Yes, I will send that along with the measurement guidance today.",
+    "end": 277489,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 279843,
+    "text": "On ours. If something is noisy the team pushes a change; it is not a self-serve toggle today.",
+    "end": 306439,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 307353,
+    "text": "That makes sense. I need to take this to leadership before we commit.",
+    "end": 324610,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 325411,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 330939,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 331741,
+    "text": "Got it. And does the filtering happen on our side or yours?",
+    "end": 332702,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 332927,
+    "text": "Which identity providers do you support out of the box?",
+    "end": 333968,
+    "participant_id": "2eee6e97-3970-4e63-a0cf-789156230671",
+    "speaker": "Noa Whitfield"
+  },
+  {
+    "start": 334946,
+    "text": "Which identity providers do you support out of the box?",
+    "end": 340763,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 341949,
+    "text": "Let me share my screen and walk through the investigation view.",
+    "end": 354431,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 355590,
+    "text": "Let me share my screen and walk through the investigation view.",
+    "end": 367792,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  },
+  {
+    "start": 368804,
+    "text": "So the way we think about ingestion is you connect the point solutions directly, or through a SIEM if you already have one.",
+    "end": 371037,
+    "participant_id": "3fc8e55c-3a31-44ca-aefc-8defefaf39a9",
+    "speaker": "Mia Duarte"
+  },
+  {
+    "start": 372435,
+    "text": "We would integrate first, tune while your team is out, and go live early next month.",
+    "end": 382749,
+    "participant_id": "e33fb508-6ef6-4ccc-af24-0e102aeef822",
+    "speaker": "Marcus Kowalski"
+  }
+]

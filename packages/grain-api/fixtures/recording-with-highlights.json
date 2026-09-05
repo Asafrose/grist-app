@@ -1,0 +1,182 @@
+{
+  "id": "2788d7af-7433-400c-a9dc-0818166143cd",
+  "title": "Wingtip / Northwind: Renewal discussion",
+  "source": "zoom",
+  "url": "https://grain.com/share/recording/2788d7af-7433-400c-a9dc-0818166143cd/CYIGxzhNWiKmZjbFAhaamjqbhqoAGkcfVes7Rrtp",
+  "media_type": "video",
+  "tags": [],
+  "start_datetime": "2026-08-21T14:01:34Z",
+  "highlights": [
+    {
+      "id": "58e4167fbb50fde2f27684a5092e63ed06021a26",
+      "timestamp": 1864356,
+      "text": "Open question on how limited endpoint visibility affects detection coverage during the pilot.",
+      "duration": 46087,
+      "url": "https://grain.com/share/highlight/58e4167fbb50fde2f27684a5092e63ed06021a26",
+      "tags": [],
+      "recording_id": "2788d7af-7433-400c-a9dc-0818166143cd",
+      "transcript": "Yes, I will send that along with the measurement guidance today. What does the timeline look like if we start integration in the middle of the month? Got it. And does the filtering happen on our side or yours?",
+      "thumbnail_url": "https://media.grain.com/public_thumbnails/highlights/58e4167fbb50fde2f27684a5092e63ed06021a26",
+      "speakers": ["Ravi Peretz"],
+      "created_datetime": "2026-08-23T10:58:25Z"
+    }
+  ],
+  "recorders": [
+    {
+      "id": "d5a503f0-87fa-463b-a72c-38ebcc8cedc6",
+      "name": "Lucas Reyes",
+      "email": "lucas.reyes@treyresearch.example",
+      "participant_id": "1a5b95e9-8566-433e-ab18-a6105650af32"
+    }
+  ],
+  "participants": [
+    {
+      "id": "5babd247-aeff-4314-a006-131550ad73ef",
+      "name": "Ines Novak",
+      "scope": "external",
+      "email": "ines.novak@coho.example",
+      "confirmed_attendee": true,
+      "observed_join_time": "2026-08-21T14:04:41Z",
+      "observed_leave_time": "2026-08-21T14:44:57Z"
+    },
+    {
+      "id": "840ee641-39cc-4323-aca6-3eb9416d40f4",
+      "name": "Nadia Costa",
+      "scope": "internal",
+      "email": "nadia.costa@treyresearch.example",
+      "confirmed_attendee": false,
+      "observed_join_time": null,
+      "observed_leave_time": null
+    },
+    {
+      "id": "d3e3bcc9-3a1f-4fd4-a7c3-185f8bf2c815",
+      "name": "Ravi Kowalski",
+      "scope": "internal",
+      "email": "ravi.kowalski@treyresearch.example",
+      "confirmed_attendee": false,
+      "observed_join_time": null,
+      "observed_leave_time": null
+    },
+    {
+      "id": "c384140a-5bb5-4c70-a7ba-fb147abcce15",
+      "name": "Ines Fischer",
+      "scope": "external",
+      "email": "ines.fischer@coho.example",
+      "confirmed_attendee": true,
+      "observed_join_time": "2026-08-21T14:04:02Z",
+      "observed_leave_time": "2026-08-21T14:44:56Z"
+    },
+    {
+      "id": "1a5b95e9-8566-433e-ab18-a6105650af32",
+      "name": "Lucas Reyes",
+      "scope": "internal",
+      "email": "lucas.reyes@treyresearch.example",
+      "confirmed_attendee": true,
+      "observed_join_time": "2026-08-21T14:01:35Z",
+      "observed_leave_time": "2026-08-21T14:44:57Z"
+    },
+    {
+      "id": "0e494cd3-db92-4d8f-a815-d26a6d65c1c7",
+      "name": "Jonah Novak",
+      "scope": "unknown",
+      "email": null,
+      "confirmed_attendee": true,
+      "observed_join_time": "2026-08-21T14:11:28Z",
+      "observed_leave_time": "2026-08-21T14:44:57Z"
+    },
+    {
+      "id": "55871468-6a53-4c44-a63c-b416c933752a",
+      "name": "Ines Marin",
+      "scope": "internal",
+      "email": "ines.marin@treyresearch.example",
+      "confirmed_attendee": true,
+      "observed_join_time": "2026-08-21T14:01:34Z",
+      "observed_leave_time": "2026-08-21T14:44:57Z"
+    }
+  ],
+  "end_datetime": "2026-08-21T14:44:57Z",
+  "teams": [
+    {
+      "id": "81dcc8c9-b301-43d1-a180-b724dfb6e07a",
+      "name": "Lamna team"
+    }
+  ],
+  "thumbnail_url": null,
+  "share_state": "workspace",
+  "duration_ms": 2605000,
+  "meeting_type": {
+    "id": "a1771739-b9d0-493e-a230-9602bccef436",
+    "name": "Sales",
+    "scope": "external"
+  },
+  "workspace_shared": false,
+  "calendar_event": {
+    "ical_uid": "event-2788d7af",
+    "scheduled_end_datetime": "2026-08-21T14:30:00Z",
+    "scheduled_start_datetime": "2026-08-21T14:00:00Z"
+  },
+  "ai_summary": {
+    "text": "## Customer context\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 10:14\n- Positioned the offering as a blend of automated triage and senior human response. 1:28\n\n## Customer context\n\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 17:04\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 17:04\n  - Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:12\n  - The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:12\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:29\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 10:14\n\n## Open questions\n\n- Positioned the offering as a blend of automated triage and senior human response. 1:28\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:29\n  - Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 42:12\n- Positioned the offering as a blend of automated triage and senior human response. 10:14\n\n## Open questions\n\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:12\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 42:29\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 17:04\n\n## Demo highlights\n\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 10:14\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 1:28\n- Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:29\n- Positioned the offering as a blend of automated triage and senior human response. 17:04\n\n## Customer context\n\n- Pricing was discussed as an annual flat fee; the customer will confirm budget with leadership. 10:14\n  - Data filtering is handled by the vendor team on request rather than by a self-serve control. 1:28\n  - Open question on how limited endpoint visibility affects detection coverage during the pilot. 42:12\n- The customer has no central monitoring today and wants to answer security questionnaires with confidence. 42:29\n\n## Customer context\n- Data filtering is handled by the vendor team on request rather than by a self-serve control. 42:29\n- Proof of value would cover cloud, identity, and endpoint sources with a go-live early next month. 1:28\n- Positioned the offering as a blend of automated triage and senior human response. 42:12"
+  },
+  "ai_template_sections": [],
+  "private_notes": null,
+  "ai_action_items": [
+    {
+      "status": "pending",
+      "timestamp": 1756542,
+      "text": "Schedule a scoping session and define success criteria",
+      "assignee": {
+        "id": "7326c24d-a57d-4b68-aa50-e1afd83fb5ec",
+        "name": "Ines Novak",
+        "user_id": null
+      }
+    },
+    {
+      "status": "pending",
+      "timestamp": 2071106,
+      "text": "Send the measurement requirements and pricing summary",
+      "assignee": {
+        "id": "7326c24d-a57d-4b68-aa50-e1afd83fb5ec",
+        "name": "Ines Novak",
+        "user_id": null
+      }
+    },
+    {
+      "status": "pending",
+      "timestamp": 1842073,
+      "text": "Share the full list of supported integrations",
+      "assignee": {
+        "id": "1ef30b9d-f64d-4551-a5b6-22cf7384c60c",
+        "name": "Lucas Reyes",
+        "user_id": "d5a503f0-87fa-463b-a72c-38ebcc8cedc6"
+      }
+    },
+    {
+      "status": "pending",
+      "timestamp": 2031836,
+      "text": "Confirm endpoint data visibility for the pilot",
+      "assignee": {
+        "id": "7326c24d-a57d-4b68-aa50-e1afd83fb5ec",
+        "name": "Ines Novak",
+        "user_id": null
+      }
+    },
+    {
+      "status": "pending",
+      "timestamp": 1477782,
+      "text": "Send the measurement requirements and pricing summary",
+      "assignee": {
+        "id": "a5a9ca8a-1ca1-410c-a7f5-c52e05702d02",
+        "name": "Ines Marin",
+        "user_id": "ab15d3d8-fa7b-453c-a713-d5cf5a56f99a"
+      }
+    }
+  ],
+  "screenshares": [
+    {
+      "start": 892932,
+      "end": 2559809,
+      "participant_id": "55871468-6a53-4c44-a63c-b416c933752a"
+    }
+  ]
+}
