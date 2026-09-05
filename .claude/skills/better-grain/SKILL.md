@@ -30,6 +30,24 @@ Constraints that shape decisions:
 - Rate limit is 300 requests/minute per token. Cache aggressively; the
   app should open instantly to the last-seen list.
 
+## Stack
+
+React Native with Expo, one codebase for iOS and Android. Media playback via
+`expo-video` (AVPlayer / ExoPlayer underneath) for picture-in-picture,
+background audio, and lock-screen controls. Distribution via EAS to TestFlight
+and Play internal testing.
+
+Companion skills vendored in this repo (see `../VENDORED.md`):
+
+| Task | Load |
+|------|------|
+| Project layout, routing, native controls, tokens, data fetching | `expo-overview` and the `expo-*` skills it points to |
+| RN performance and implementation rules | `vercel-react-native-skills` |
+| UX and visual design decisions | `ui-ux-pro-max` (web-leaning; take its patterns, not its landing-page layouts) |
+| iOS conventions (HIG, SF Symbols, Dynamic Type) | `mobile-ios-design` |
+| Android conventions (Material 3) | `mobile-android-design` |
+| Builds and store distribution | `eas-app-stores`, `eas-simulator` |
+
 ## References
 
 - `references/GRAIN_APP_FEATURES.md`: what the Grain web app does today,
