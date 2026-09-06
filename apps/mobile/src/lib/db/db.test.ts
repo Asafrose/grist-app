@@ -14,6 +14,7 @@ import {
   highlightsQuery,
   indexStats,
   listRecordings,
+  listTeams,
   meetingTypeOptions,
   participantOptions,
   pruneRecordingsBefore,
@@ -84,6 +85,47 @@ describe("recordings", () => {
     expect(c.highlights.length).toBe(clips.highlights!.length);
     expect(c.highlightCount).toBe(clips.highlights!.length);
     expect(highlightsQuery(db).all()[0].recordingTitle).toBe(clips.title);
+  });
+
+  it("lists clips newest first with their recording's title and recorders, filtered by team and recorder", () => {
+    const db = testDb();
+    const other: Recording = {
+      ...clips,
+      id: "other",
+      teams: [{ id: "team-x", name: "X team" }],
+      recorders: [{ id: "rec-x", name: "Xavier" }],
+      highlights: clips.highlights!.map((h) => ({
+        ...h,
+        id: `x-${h.id}`,
+        recording_id: "other",
+        created_datetime: "2027-01-01T00:00:00Z",
+      })),
+    };
+    upsertRecordings(db, [...recs, clips, other], NOW);
+    const all = highlightsQuery(db).all();
+    expect(all).toHaveLength(clips.highlights!.length * 2);
+    expect(all[0].highlight.recordingId).toBe("other");
+    expect(all[0]).toMatchObject({ recordingTitle: clips.title, recorders: other.recorders });
+    expect(highlightsQuery(db, { limit: 1 }).all()).toHaveLength(1);
+    expect(
+      highlightsQuery(db, { teamId: "team-x" })
+        .all()
+        .map((c) => c.highlight.recordingId),
+    ).toEqual(["other"]);
+    expect(highlightsQuery(db, { recorderId: clips.recorders[0].id }).all()).toHaveLength(
+      clips.highlights!.length,
+    );
+    expect(highlightsQuery(db, { recorderId: "nobody" }).all()).toEqual([]);
+  });
+
+  it("lists the distinct teams across recordings", () => {
+    const db = testDb();
+    expect(listTeams(db)).toEqual([]);
+    upsertRecordings(db, [...recs, { ...clips, teams: [{ id: "team-x", name: "A team" }] }], NOW);
+    const teams = listTeams(db);
+    expect(teams[0]).toEqual({ id: "team-x", name: "A team" });
+    expect(new Set(teams.map((t) => t.id)).size).toBe(teams.length);
+    expect(teams.map((t) => t.id)).toContain(recs[0].teams[0].id);
   });
 
   it("filters by scope, team and meeting type", () => {

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { useAuth } from "@/lib/auth";
 import { countRecordings, listRecordings } from "@/lib/db";
+import { formatDayLabel } from "@/lib/format";
 import { defaultFilters, filters, useFilters } from "@/lib/filters";
 import { library, libraryReady, useLibrary } from "@/lib/library";
 import { getWorkspace } from "@/lib/workspace";
@@ -52,12 +53,13 @@ describe("Meetings", () => {
     const me = getWorkspace(db()).meId!;
     const mine = listRecordings(db(), { recorderId: me });
     expect(mine.length).toBeGreaterThan(0);
-    expect(screen.getByText("TODAY")).toBeOnTheScreen();
-    expect(screen.getByText("YESTERDAY")).toBeOnTheScreen();
+    const labels = new Set(mine.map((r) => formatDayLabel(r.startDatetime).toUpperCase()));
+    for (const label of labels) expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     expect(screen.getByTestId(`meeting-${mine[0].id}`)).toBeOnTheScreen();
-    expect(screen.getAllByText("External").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Acme").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Marcus Kowalski").length).toBeGreaterThan(0);
+    if (mine.some((r) => r.externalCount > 0)) {
+      expect(screen.getAllByText("External").length).toBeGreaterThan(0);
+    }
+    expect(screen.getAllByText(mine[0].recorders[0]!.name).length).toBeGreaterThan(0);
     expect(screen.getByTestId("view-mine")).toBeSelected();
     expect(screen.getByTestId(`view-team-${getWorkspace(db()).teams[0].id}`)).toBeOnTheScreen();
   });

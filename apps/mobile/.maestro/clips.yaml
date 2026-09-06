@@ -1,0 +1,48 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- tapOn:
+    id: "tab-clips"
+- assertVisible: "Clips"
+- extendedWaitUntil:
+    visible:
+      id: "clip-.*"
+    timeout: 20000
+- assertVisible: ".*Northwind.*"
+- takeScreenshot: clips-workspace
+# Open a clip before touching the chips: after FlashList recycles cells, Maestro's
+# element positions go stale on iOS and element taps miss. Coordinates still work.
+- tapOn:
+    id: "clip-.*"
+    index: 0
+- extendedWaitUntil:
+    notVisible:
+      id: "clips-list"
+    timeout: 5000
+- assertVisible: ".*Northwind.*"
+- takeScreenshot: clips-meeting
+- tapOn: "Meetings"
+- tapOn:
+    id: "tab-clips"
+- tapOn:
+    id: "chip-mine"
+- assertVisible:
+    id: "clip-.*"
+- takeScreenshot: clips-mine
+- tapOn:
+    id: "chip-workspace"
+- assertVisible:
+    id: "clips-list"

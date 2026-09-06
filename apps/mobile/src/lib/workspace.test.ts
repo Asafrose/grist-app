@@ -40,7 +40,7 @@ describe("workspace", () => {
     );
     expect(ws.meetingTypes.find((m) => m.name === "Internal")?.scope).toBe("internal");
     expect(ws.users.length).toBeGreaterThan(1);
-    expect(ws.users[0]).toMatchObject({ name: "Marcus Kowalski" });
+    expect(ws.users[0]).toMatchObject({ id: recorderOptions(db)[0].id });
     expect(ws.users[0].email).toContain("@");
     expect(ws.meId).toBe(recorderOptions(db)[0].id);
   });

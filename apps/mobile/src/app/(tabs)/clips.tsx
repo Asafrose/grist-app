@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "@/components/placeholder-screen";
+import { Clips } from "@/screens/clips";
 
 export default function ClipsRoute() {
-  return <PlaceholderScreen title="Clips" note="Workspace clips feed." />;
+  return <Clips />;
 }

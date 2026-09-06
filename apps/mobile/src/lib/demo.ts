@@ -40,8 +40,10 @@ const offsetsHours = [
 
 export function demoRecordings(now = Date.now()): Recording[] {
   const bases = [...(page.recordings as Recording[]), detail as Recording, withClips as Recording];
+  const recorders = [...new Map(bases.flatMap((b) => b.recorders).map((r) => [r.id, r])).values()];
   return offsetsHours.map((hours, i) => {
     const base = bases[i % bases.length];
+    const recorder = recorders[i % recorders.length];
     const start = now - hours * HOUR;
     const isInternal = i % 4 === 3;
     const title = isInternal
@@ -60,10 +62,17 @@ export function demoRecordings(now = Date.now()): Recording[] {
       start_datetime: isoSeconds(start),
       end_datetime: isoSeconds(start + durationMs),
       participants,
+      recorders: base.recorders.map((r) => ({
+        ...r,
+        id: recorder.id,
+        name: recorder.name,
+        email: recorder.email,
+      })),
       highlights: (base.highlights ?? []).map((h) => ({
         ...h,
         id: `demo-${i}-${h.id}`,
         recording_id: `demo-${i}`,
+        created_datetime: isoSeconds(start + h.timestamp + h.duration + HOUR),
       })),
       meeting_type: isInternal
         ? { id: "mt-internal", name: "Internal", scope: "internal" }

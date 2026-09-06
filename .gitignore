@@ -21,3 +21,4 @@ design/canvas/*.html
 apps/mobile/ios/
 apps/mobile/android/
 coverage/
+.claude/worktrees/

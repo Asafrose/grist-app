@@ -1,5 +1,16 @@
 import { type Recording, splitSummarySections } from "@grist/grain-api";
-import { and, desc, eq, getTableColumns, gte, inArray, lt, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  type AnyColumn,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  lt,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "./index";
 import {
   actionItems,
@@ -200,9 +211,7 @@ function filterClauses(f: RecordingsFilter): (SQL | undefined)[] {
     f.before ? lt(recordings.startDatetime, f.before) : undefined,
     f.scope === "external" ? sql`${recordings.externalCount} > 0` : undefined,
     f.scope === "internal" ? eq(recordings.externalCount, 0) : undefined,
-    f.teamId
-      ? sql`EXISTS (SELECT 1 FROM json_each(${recordings.teams}) WHERE json_extract(value, '$.id') = ${f.teamId})`
-      : undefined,
+    f.teamId ? jsonHasId(recordings.teams, f.teamId) : undefined,
     f.meetingTypeId
       ? sql`json_extract(${recordings.meetingType}, '$.id') = ${f.meetingTypeId}`
       : undefined,
@@ -320,13 +329,51 @@ export function getRecording(db: Db, id: string) {
 
 export type RecordingDetail = NonNullable<ReturnType<typeof getRecording>>;
 
-export function highlightsQuery(db: Db, limit = 200) {
+export type HighlightsFilter = {
+  teamId?: string;
+  recorderId?: string;
+  limit?: number;
+};
+
+const jsonHasId = (column: SQL | AnyColumn, id: string) =>
+  sql`EXISTS (SELECT 1 FROM json_each(${column}) WHERE json_extract(value, '$.id') = ${id})`;
+
+export function highlightsQuery(db: Db, f: HighlightsFilter = {}) {
+  const clauses: (SQL | undefined)[] = [
+    f.teamId ? jsonHasId(recordings.teams, f.teamId) : undefined,
+    f.recorderId ? jsonHasId(recordings.recorders, f.recorderId) : undefined,
+  ];
   return db
-    .select({ highlight: highlights, recordingTitle: recordings.title })
+    .select({
+      highlight: highlights,
+      recordingTitle: recordings.title,
+      recordingStart: recordings.startDatetime,
+      recorders: recordings.recorders,
+    })
     .from(highlights)
     .innerJoin(recordings, eq(highlights.recordingId, recordings.id))
-    .orderBy(desc(highlights.createdDatetime))
-    .limit(limit);
+    .where(and(...clauses))
+    .orderBy(desc(highlights.createdDatetime), desc(recordings.startDatetime), highlights.timestamp)
+    .limit(f.limit ?? 200);
+}
+
+export type ClipRow = ReturnType<ReturnType<typeof highlightsQuery>["all"]>[number];
+
+export type TeamRow = { id: string; name: string };
+
+export function teamsQuery(db: Db) {
+  return db
+    .selectDistinct({
+      id: sql<string>`json_extract(value, '$.id')`.as("id"),
+      name: sql<string>`json_extract(value, '$.name')`.as("name"),
+    })
+    .from(recordings)
+    .innerJoin(sql`json_each(${recordings.teams})`, sql`1 = 1`)
+    .orderBy(sql`name`);
+}
+
+export function listTeams(db: Db): TeamRow[] {
+  return teamsQuery(db).all();
 }
 
 export function clearAll(db: Db): void {
