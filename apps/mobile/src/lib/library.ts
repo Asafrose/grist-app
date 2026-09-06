@@ -8,6 +8,7 @@ import { isDemoToken, seedDemo } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 import { playback } from "@/lib/player";
 import { META_LAST_SYNC, prefetchTranscripts, syncLibrary } from "@/lib/sync";
+import { syncWorkspace } from "@/lib/workspace";
 
 export const REFRESH_DEBOUNCE_MS = 60_000;
 
@@ -53,8 +54,10 @@ async function refresh(force = false): Promise<void> {
         useLibrary.setState({ sync: "idle", lastSyncAt: new Date().toISOString() });
         return;
       }
-      const api = makeClient(token).recordings;
+      const client = makeClient(token);
+      const api = client.recordings;
       await syncLibrary(db, api);
+      await syncWorkspace(db, client).catch(() => undefined);
       useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
       const net = await Network.getNetworkStateAsync();
       if (net.type === Network.NetworkStateType.WIFI) await prefetchTranscripts(db, api);

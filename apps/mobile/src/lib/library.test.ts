@@ -34,7 +34,13 @@ const iterate = jest.fn(async function* () {
   yield { cursor: null, recordings: recs };
 });
 const transcript = jest.fn(async () => []);
-(makeClient as jest.Mock).mockImplementation(() => ({ recordings: { iterate, transcript } }));
+const workspaceLists = {
+  users: { list: jest.fn(async () => ({ users: [] })) },
+  teams: { list: jest.fn(async () => ({ teams: [] })) },
+  meetingTypes: { list: jest.fn(async () => ({ meeting_types: [] })) },
+};
+const fakeClient = () => ({ recordings: { iterate, transcript }, ...workspaceLists });
+(makeClient as jest.Mock).mockImplementation(fakeClient);
 
 const appStateListener: (state: string) => void = (
   AppState.addEventListener as jest.Mock
@@ -42,7 +48,7 @@ const appStateListener: (state: string) => void = (
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { iterate, transcript } }));
+  (makeClient as jest.Mock).mockImplementation(fakeClient);
 });
 
 describe("library store", () => {

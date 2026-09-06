@@ -56,6 +56,7 @@ export function demoRecordings(now = Date.now()): Recording[] {
       id: `demo-${i}`,
       title,
       media_type: i % 5 === 4 ? "audio" : base.media_type,
+      workspace_shared: i % 3 !== 0,
       start_datetime: isoSeconds(start),
       end_datetime: isoSeconds(start + durationMs),
       participants,

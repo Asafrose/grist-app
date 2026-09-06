@@ -5,6 +5,7 @@ import withClips from "@grist/grain-api/fixtures/recording-with-highlights.json"
 import transcript from "@grist/grain-api/fixtures/transcript.json";
 import {
   clearAll,
+  countRecordings,
   deleteMeta,
   deleteRecordings,
   getMeta,
@@ -12,12 +13,17 @@ import {
   getTranscript,
   highlightsQuery,
   listRecordings,
+  meetingTypeOptions,
+  participantOptions,
   pruneRecordingsBefore,
+  recorderOptions,
   recordingsMissingTranscript,
   searchRecordings,
   searchTranscripts,
   setMeta,
   setTranscript,
+  tagOptions,
+  teamOptions,
   upsertRecordings,
 } from "@/lib/db";
 import { testDb } from "@/test/db";
@@ -87,6 +93,76 @@ describe("recordings", () => {
     if (team) expect(listRecordings(db, { teamId: team.id }).length).toBeGreaterThan(0);
     const mt = recs.find((r) => r.meeting_type)?.meeting_type;
     if (mt) expect(listRecordings(db, { meetingTypeId: mt.id }).length).toBeGreaterThan(0);
+  });
+
+  it("filters by title, participant, tag, recorder and workspace sharing, and counts", () => {
+    const db = testDb();
+    const tagged: Recording = { ...recs[1], tags: ["vip", "q3"], workspace_shared: true };
+    upsertRecordings(db, [recs[0], tagged, ...recs.slice(2)], NOW);
+
+    expect(listRecordings(db, { title: "pricing" }).map((r) => r.id)).toEqual([recs[0].id]);
+    expect(listRecordings(db, { title: "  PRICING  " })).toHaveLength(1);
+    expect(listRecordings(db, { title: "100%" })).toEqual([]);
+    expect(listRecordings(db, { title: "   " })).toHaveLength(recs.length);
+
+    const name = recs[0].participants![1].name;
+    const withName = listRecordings(db, { participant: name });
+    expect(withName.map((r) => r.id)).toContain(recs[0].id);
+    expect(withName.length).toBe(
+      recs.filter((r) => r.participants!.some((p) => p.name === name)).length,
+    );
+
+    expect(listRecordings(db, { tag: "vip" }).map((r) => r.id)).toEqual([recs[1].id]);
+    expect(listRecordings(db, { tag: "nope" })).toEqual([]);
+    expect(listRecordings(db, { workspace: true }).map((r) => r.id)).toEqual([recs[1].id]);
+
+    const recorder = recs[0].recorders[0];
+    const byRecorder = listRecordings(db, { recorderId: recorder.id });
+    expect(byRecorder.length).toBe(
+      recs.filter((r) => r.recorders.some((x) => x.id === recorder.id)).length,
+    );
+    expect(countRecordings(db, { recorderId: recorder.id })).toBe(byRecorder.length);
+    expect(countRecordings(db)).toBe(recs.length);
+    expect(countRecordings(db, { scope: "external", tag: "vip" })).toBe(1);
+  });
+
+  it("carries external participant emails on list rows", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    const row = listRecordings(db).find((r) => r.id === recs[0].id)!;
+    expect(JSON.parse(row.externalEmails)).toEqual(
+      recs[0].participants!.filter((p) => p.scope === "external" && p.email).map((p) => p.email),
+    );
+    const noExternal = listRecordings(db).find((r) => r.externalCount === 0);
+    if (noExternal) expect(JSON.parse(noExternal.externalEmails)).toEqual([]);
+  });
+
+  it("lists filter options with counts, most frequent first", () => {
+    const db = testDb();
+    const tagged: Recording = { ...recs[1], tags: ["vip"] };
+    upsertRecordings(db, [recs[0], tagged, ...recs.slice(2)], NOW);
+
+    const people = participantOptions(db);
+    expect(people[0].count).toBeGreaterThanOrEqual(people.at(-1)!.count);
+    expect(people.map((p) => p.name)).toContain(recs[0].participants![0].name);
+
+    expect(tagOptions(db)).toEqual([{ id: "vip", name: "vip", count: 1 }]);
+
+    const recorders = recorderOptions(db);
+    expect(recorders[0]).toMatchObject({
+      id: recs[0].recorders[0].id,
+      name: recs[0].recorders[0].name,
+    });
+    expect(recorders[0].email).toBe(recs[0].recorders[0].email);
+    expect(recorders[0].count).toBeGreaterThan(1);
+
+    expect(teamOptions(db)).toEqual([
+      { id: recs[0].teams[0].id, name: recs[0].teams[0].name, count: recs.length },
+    ]);
+
+    const types = meetingTypeOptions(db);
+    expect(types.find((t) => t.name === "Sales")).toMatchObject({ scope: "external" });
+    expect(types.reduce((n, t) => n + t.count, 0)).toBe(recs.filter((r) => r.meeting_type).length);
   });
 
   it("deletes and prunes with children and search rows", () => {

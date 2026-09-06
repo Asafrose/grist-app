@@ -58,6 +58,16 @@ function Root() {
             name="meeting/[id]"
             options={{ headerShown: true, title: "", headerBackTitle: "Meetings" }}
           />
+          <Stack.Screen
+            name="filters"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.82, 1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 20,
+              contentStyle: { backgroundColor: palette[scheme].surface },
+            }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />

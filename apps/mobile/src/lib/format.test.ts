@@ -1,4 +1,12 @@
-import { formatClock, formatDuration, formatMeetingDate, formatShortDate } from "@/lib/format";
+import {
+  formatClock,
+  formatDayLabel,
+  formatDuration,
+  formatDurationCompact,
+  formatMeetingDate,
+  formatShortDate,
+  formatTime,
+} from "@/lib/format";
 
 describe("formatClock", () => {
   it.each([
@@ -65,5 +73,41 @@ describe("formatShortDate", () => {
     expect(a).not.toContain("2026");
     expect(b).toMatch(/Dec.* 24/);
     expect(b).toContain("2025");
+  });
+});
+
+describe("formatDayLabel", () => {
+  const now = new Date(2026, 8, 6, 15, 30);
+  it("uses Today and Yesterday, then a long weekday with month and day", () => {
+    expect(formatDayLabel(new Date(2026, 8, 6, 0, 15).toISOString(), now)).toBe("Today");
+    expect(formatDayLabel(new Date(2026, 8, 5, 23, 45).toISOString(), now)).toBe("Yesterday");
+    const thisYear = formatDayLabel(new Date(2026, 8, 3, 20, 1).toISOString(), now);
+    expect(thisYear).toMatch(/^Thursday,? .*Sep.* 3$/);
+    expect(thisYear).not.toContain("2026");
+    expect(formatDayLabel(new Date(2025, 11, 24, 9, 0).toISOString(), now)).toContain("2025");
+  });
+});
+
+describe("formatTime", () => {
+  it("prints the local clock time", () => {
+    const d = new Date(2026, 8, 6, 13, 5);
+    expect(formatTime(d.toISOString())).toBe(
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
+    );
+  });
+});
+
+describe("formatDurationCompact", () => {
+  it.each([
+    [0, "0s"],
+    [16_000, "16s"],
+    [59_400, "59s"],
+    [60_000, "1m"],
+    [44 * 60_000, "44m"],
+    [60 * 60_000, "1h"],
+    [67 * 60_000, "1h 7m"],
+    [-5000, "0s"],
+  ])("formats %s ms as %s", (ms, expected) => {
+    expect(formatDurationCompact(ms)).toBe(expected);
   });
 });

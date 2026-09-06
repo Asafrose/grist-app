@@ -1,0 +1,79 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- assertVisible: "TODAY|YESTERDAY"
+- assertVisible:
+    id: "view-mine"
+- assertVisible: ".*External.*"
+- takeScreenshot: meetings-list
+# Open a meeting before filtering: after the list re-renders, Maestro's positions for
+# recycled FlashList cells go stale on iOS and taps miss.
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "player-start"
+    timeout: 10000
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"
+# Title filter narrows the list locally.
+- tapOn:
+    id: "title-filter"
+- inputText: "Fabrikam"
+- assertVisible: ".*Fabrikam.*"
+- assertNotVisible: ".*Relecloud.*"
+- takeScreenshot: meetings-title-filter
+- tapOn:
+    id: "title-filter-clear"
+- hideKeyboard
+- assertVisible: ".*Relecloud.*"
+# Workspace and team chips.
+- tapOn:
+    id: "view-workspace"
+- assertVisible: ".*Northwind.*"
+- tapOn:
+    id: "view-mine"
+# Filters sheet: choose External, apply, see count and chip.
+- tapOn:
+    id: "open-filters"
+- assertVisible: "Filters"
+- assertVisible: ".*Show .* meetings?.*"
+- tapOn:
+    id: "scope-external"
+- assertVisible: ".*Show .* meetings?.*"
+- takeScreenshot: filters-sheet
+- tapOn:
+    id: "filters-apply"
+- assertVisible:
+    id: "active-scope"
+- assertNotVisible: ".*Internal.*"
+- takeScreenshot: meetings-external
+# Reset from the sheet clears the chip.
+- tapOn:
+    id: "active-scope"
+- assertVisible: "Filters"
+- tapOn:
+    id: "filters-reset"
+- tapOn:
+    id: "filters-apply"
+- assertNotVisible:
+    id: "active-scope"
+# Rows open the meeting screen.

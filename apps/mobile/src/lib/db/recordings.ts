@@ -1,5 +1,5 @@
 import { type Recording, splitSummarySections } from "@grist/grain-api";
-import { and, desc, eq, gte, inArray, lt, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, gte, inArray, lt, sql, type SQL } from "drizzle-orm";
 import type { Db } from "./index";
 import {
   actionItems,
@@ -18,6 +18,11 @@ export type RecordingsFilter = {
   scope?: "internal" | "external";
   teamId?: string;
   meetingTypeId?: string;
+  title?: string;
+  participant?: string;
+  tag?: string;
+  recorderId?: string;
+  workspace?: boolean;
   limit?: number;
 };
 
@@ -185,8 +190,12 @@ export function recordingIds(db: Db, after?: string): string[] {
     .map((r) => r.id);
 }
 
-export function recordingsQuery(db: Db, f: RecordingsFilter = {}) {
-  const clauses: (SQL | undefined)[] = [
+function escapeLike(text: string): string {
+  return text.replaceAll(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+function filterClauses(f: RecordingsFilter): (SQL | undefined)[] {
+  return [
     f.after ? gte(recordings.startDatetime, f.after) : undefined,
     f.before ? lt(recordings.startDatetime, f.before) : undefined,
     f.scope === "external" ? sql`${recordings.externalCount} > 0` : undefined,
@@ -197,13 +206,97 @@ export function recordingsQuery(db: Db, f: RecordingsFilter = {}) {
     f.meetingTypeId
       ? sql`json_extract(${recordings.meetingType}, '$.id') = ${f.meetingTypeId}`
       : undefined,
+    f.title?.trim()
+      ? sql`${recordings.title} LIKE ${`%${escapeLike(f.title.trim())}%`} ESCAPE '\\'`
+      : undefined,
+    f.participant
+      ? sql`EXISTS (SELECT 1 FROM ${participants} WHERE ${participants.recordingId} = ${recordings.id} AND ${participants.name} = ${f.participant})`
+      : undefined,
+    f.tag
+      ? sql`EXISTS (SELECT 1 FROM json_each(${recordings.tags}) WHERE value = ${f.tag})`
+      : undefined,
+    f.recorderId
+      ? sql`EXISTS (SELECT 1 FROM json_each(${recordings.recorders}) WHERE json_extract(value, '$.id') = ${f.recorderId})`
+      : undefined,
+    f.workspace ? eq(recordings.workspaceShared, true) : undefined,
   ];
+}
+
+const externalEmails = sql<string>`(SELECT json_group_array(p.email) FROM participants p
+  WHERE p.recording_id = recordings.id AND p.scope = 'external' AND p.email IS NOT NULL)`.as(
+  "external_emails",
+);
+
+export function recordingsQuery(db: Db, f: RecordingsFilter = {}) {
   return db
-    .select()
+    .select({ ...getTableColumns(recordings), externalEmails })
     .from(recordings)
-    .where(and(...clauses))
+    .where(and(...filterClauses(f)))
     .orderBy(desc(recordings.startDatetime))
     .limit(f.limit ?? 500);
+}
+
+export type RecordingListRow = ReturnType<typeof recordingsQuery>["_"]["result"][number];
+
+export function countRecordings(db: Db, f: RecordingsFilter = {}): number {
+  return (
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(recordings)
+      .where(and(...filterClauses(f)))
+      .get()?.n ?? 0
+  );
+}
+
+export type Option = { id: string; name: string; count: number };
+
+export function participantOptions(db: Db): Option[] {
+  return db
+    .select({
+      id: participants.name,
+      name: participants.name,
+      count: sql<number>`count(DISTINCT ${participants.recordingId})`,
+    })
+    .from(participants)
+    .groupBy(participants.name)
+    .orderBy(sql`count(DISTINCT ${participants.recordingId}) DESC`, participants.name)
+    .all();
+}
+
+export function tagOptions(db: Db): Option[] {
+  return db.all<Option>(sql`
+    SELECT value AS id, value AS name, count(*) AS count
+    FROM ${recordings}, json_each(${recordings.tags})
+    GROUP BY value ORDER BY count DESC, value
+  `);
+}
+
+export function recorderOptions(db: Db): (Option & { email: string | null })[] {
+  return db.all<Option & { email: string | null }>(sql`
+    SELECT json_extract(value, '$.id') AS id, min(json_extract(value, '$.name')) AS name,
+           min(json_extract(value, '$.email')) AS email, count(*) AS count
+    FROM ${recordings}, json_each(${recordings.recorders})
+    GROUP BY json_extract(value, '$.id') ORDER BY count DESC, name
+  `);
+}
+
+export function teamOptions(db: Db): Option[] {
+  return db.all<Option>(sql`
+    SELECT json_extract(value, '$.id') AS id, min(json_extract(value, '$.name')) AS name, count(*) AS count
+    FROM ${recordings}, json_each(${recordings.teams})
+    GROUP BY json_extract(value, '$.id') ORDER BY count DESC, name
+  `);
+}
+
+export function meetingTypeOptions(db: Db): (Option & { scope: string })[] {
+  return db.all<Option & { scope: string }>(sql`
+    SELECT json_extract(${recordings.meetingType}, '$.id') AS id,
+           min(json_extract(${recordings.meetingType}, '$.name')) AS name,
+           min(json_extract(${recordings.meetingType}, '$.scope')) AS scope,
+           count(*) AS count
+    FROM ${recordings} WHERE ${recordings.meetingType} IS NOT NULL
+    GROUP BY json_extract(${recordings.meetingType}, '$.id') ORDER BY count DESC, name
+  `);
 }
 
 export function listRecordings(db: Db, f?: RecordingsFilter) {
