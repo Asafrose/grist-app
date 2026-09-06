@@ -174,6 +174,21 @@ describe("prefetchTranscripts", () => {
     expect(api.transcript).not.toHaveBeenCalled();
   });
 
+  it("stops between transcripts when asked to", async () => {
+    const db = testDb();
+    const remote = [at(1, "a"), at(2, "b"), at(3, "c")];
+    const api = fakeApi(() => remote);
+    await syncLibrary(db, api, NOW);
+    let calls = 0;
+    const result = await prefetchTranscripts(db, api, {
+      now: NOW,
+      concurrency: 1,
+      shouldStop: () => calls++ >= 1,
+    });
+    expect(result.fetched).toHaveLength(1);
+    expect(api.transcript).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps going when one transcript fails", async () => {
     const db = testDb();
     const remote = [at(1, "a"), at(2, "b")];

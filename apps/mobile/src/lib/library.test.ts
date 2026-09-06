@@ -70,6 +70,7 @@ describe("library store", () => {
     expect(listRecordings(s.db!)).toHaveLength(2);
     expect(s.sync).toBe("idle");
     expect(s.lastSyncAt).not.toBeNull();
+    await library.prefetchDone();
     expect(transcript).toHaveBeenCalledTimes(2);
   });
 
@@ -90,6 +91,7 @@ describe("library store", () => {
     (Network.getNetworkStateAsync as jest.Mock).mockResolvedValueOnce({ type: "CELLULAR" });
     transcript.mockClear();
     await library.refresh(true);
+    await library.prefetchDone();
     expect(transcript).not.toHaveBeenCalled();
   });
 

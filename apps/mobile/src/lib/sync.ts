@@ -87,7 +87,7 @@ export type PrefetchResult = { fetched: string[]; failed: string[] };
 export async function prefetchTranscripts(
   db: Db,
   api: RecordingsApi,
-  opts: { now?: number; concurrency?: number; limit?: number } = {},
+  opts: { now?: number; concurrency?: number; limit?: number; shouldStop?: () => boolean } = {},
 ): Promise<PrefetchResult> {
   const now = opts.now ?? Date.now();
   const queue = recordingsMissingTranscript(db, isoSeconds(now - WINDOW_MS), opts.limit ?? 50);
@@ -95,6 +95,7 @@ export async function prefetchTranscripts(
 
   async function worker() {
     for (let id = queue.shift(); id; id = queue.shift()) {
+      if (opts.shouldStop?.()) return;
       try {
         const segments = await api.transcript(id);
         setTranscript(db, id, segments, isoSeconds(now));

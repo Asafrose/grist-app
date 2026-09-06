@@ -8,7 +8,7 @@ import { isDemoToken, seedDemo } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 import { playback } from "@/lib/player";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
-import { META_LAST_SYNC, prefetchTranscripts, syncLibrary } from "@/lib/sync";
+import { META_LAST_SYNC, prefetchTranscripts, type RecordingsApi, syncLibrary } from "@/lib/sync";
 import { thumbnails } from "@/lib/thumbnails";
 import { syncWorkspace } from "@/lib/workspace";
 
@@ -64,11 +64,7 @@ async function refresh(force = false): Promise<void> {
       await syncLibrary(db, api, { onPage: bump });
       await syncWorkspace(db, client).catch(() => undefined);
       useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
-      const net = await Network.getNetworkStateAsync();
-      if (net.type === Network.NetworkStateType.WIFI) {
-        await Promise.race([thumbnails.whenIdle(), sleep(PREFETCH_YIELD_MS)]);
-        await prefetchTranscripts(db, api);
-      }
+      void prefetchInBackground(db, api, token);
     } catch (e) {
       useLibrary.setState({ sync: "error", error: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -79,6 +75,34 @@ async function refresh(force = false): Promise<void> {
   })();
   return inflight;
 }
+
+let prefetching: Promise<void> | null = null;
+
+function prefetchInBackground(db: Db, api: RecordingsApi, token: string): Promise<void> {
+  if (prefetching) return prefetching;
+  prefetching = (async () => {
+    try {
+      const net = await Network.getNetworkStateAsync();
+      if (net.type !== Network.NetworkStateType.WIFI) return;
+      await Promise.race([thumbnails.whenIdle(), sleep(PREFETCH_YIELD_MS)]);
+      if (auth.token() !== token) return;
+      await prefetchTranscripts(db, api, { shouldStop: () => auth.token() !== token });
+      if (auth.token() === token) bump();
+    } catch {
+      // transcripts are a cache; the next refresh tries again
+    } finally {
+      prefetching = null;
+    }
+  })();
+  return prefetching;
+}
+
+export const library = {
+  refresh,
+  clear,
+  touch: bump,
+  prefetchDone: () => prefetching ?? Promise.resolve(),
+};
 
 async function clear(): Promise<void> {
   await libraryReady;
@@ -92,8 +116,6 @@ async function clear(): Promise<void> {
   useLibrary.setState({ sync: "idle", lastSyncAt: null, error: null });
   bump();
 }
-
-export const library = { refresh, clear, touch: bump };
 
 async function hydrate(): Promise<void> {
   const db = await openDb();
