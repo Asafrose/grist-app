@@ -34,6 +34,7 @@ jest.mock("@/lib/db/open", () => ({
   openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn(), useGrainClient: jest.fn() }));
+jest.mock("expo-sqlite", () => ({ addDatabaseChangeListener: () => ({ remove() {} }) }));
 jest.mock("expo-router", () => {
   const React = jest.requireActual("react");
   let params: Record<string, string> = {};

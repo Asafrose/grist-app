@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import type { RecordingDetail } from "@/lib/db";
+import type { RecordingDetail } from "@/lib/data";
 
 export type TabProps = { rec: RecordingDetail; onSeek: (ms: number) => void };
 

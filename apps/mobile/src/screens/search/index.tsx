@@ -8,23 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
-  type Db,
   type HighlightHit,
-  indexStats,
   type RecordingRow,
-  searchHighlights,
-  searchRecordings,
-  searchTranscriptsGrouped,
+  recentSearches,
+  type SearchResult,
+  type SearchSegment,
   type TranscriptHit,
-} from "@/lib/db";
+  useIndexStats,
+  useRecentSearches,
+  useSearch,
+} from "@/lib/data";
 import { formatClock, formatDuration, formatMeetingDate } from "@/lib/format";
-import { useDb, useLibraryVersion } from "@/lib/library";
-import { addRecentSearch, clearRecentSearches, getRecentSearches } from "@/lib/recent-searches";
 import { type SnippetRun, snippetRuns } from "@/lib/snippet";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 
-type Segment = "titles" | "transcripts" | "clips";
+type Segment = SearchSegment;
 
 const SEGMENTS: { key: Segment; label: string }[] = [
   { key: "titles", label: "Titles" },
@@ -75,20 +74,18 @@ function Runs({ runs }: { runs: SnippetRun[] }) {
 
 type Results = { items: Item[]; matches: number };
 
-function buildResults(db: Db, q: string, segment: Segment): Results {
-  if (!q) return { items: [], matches: 0 };
-  if (segment === "titles") {
-    const recs = searchRecordings(db, q);
+function buildResults(result: SearchResult): Results {
+  if (result.segment === "titles") {
+    const recs = result.recordings;
     return {
       items: recs.map<Item>((rec) => ({ kind: "recording", key: rec.id, rec, header: false })),
       matches: recs.length,
     };
   }
-  if (segment === "transcripts") {
-    const groups = searchTranscriptsGrouped(db, q);
+  if (result.segment === "transcripts") {
     const items: Item[] = [];
     let matches = 0;
-    for (const g of groups) {
+    for (const g of result.groups) {
       items.push({ kind: "recording", key: g.recording.id, rec: g.recording, header: true });
       g.hits.forEach((hit, i) => {
         items.push({
@@ -103,7 +100,7 @@ function buildResults(db: Db, q: string, segment: Segment): Results {
     }
     return { items, matches };
   }
-  const hits = searchHighlights(db, q);
+  const hits = result.hits;
   return {
     items: hits.map<Item>((hit) => ({ kind: "clip", key: hit.highlight.id, hit })),
     matches: hits.length,
@@ -203,32 +200,25 @@ function ClipRow({ hit, onPress }: { hit: HighlightHit; onPress: () => void }) {
 }
 
 export function Search() {
-  const db = useDb();
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const version = useLibraryVersion();
   const inputRef = useRef<TextInput>(null);
 
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [segment, setSegment] = useState<Segment>("titles");
-  const [recent, setRecent] = useState(() => getRecentSearches(db));
+  const recent = useRecentSearches();
 
   const typed = query.trim();
   const debounced = useDebouncedValue(typed);
   const q = typed ? debounced : "";
 
-  const snapshot = useMemo(() => ({ db, version }), [db, version]);
-  const stats = useMemo(() => indexStats(snapshot.db), [snapshot]);
-  const { items, matches } = useMemo(
-    () => buildResults(snapshot.db, q, segment),
-    [snapshot, q, segment],
-  );
+  const stats = useIndexStats();
+  const result = useSearch(q, segment);
+  const { items, matches } = useMemo(() => buildResults(result), [result]);
 
-  const remember = (text: string) => {
-    if (text.trim()) setRecent(addRecentSearch(db, text));
-  };
+  const remember = recentSearches.add;
 
   const open = (item: Item) => {
     remember(q);
@@ -381,10 +371,7 @@ export function Search() {
               testID="clear-recent"
               accessibilityRole="button"
               hitSlop={8}
-              onPress={() => {
-                clearRecentSearches(db);
-                setRecent([]);
-              }}
+              onPress={recentSearches.clear}
             >
               <Text className="font-jakarta-semibold text-[13px] text-primary">Clear</Text>
             </Pressable>

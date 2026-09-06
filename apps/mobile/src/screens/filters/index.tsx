@@ -7,7 +7,13 @@ import { Icon, type IconName } from "@/components/icon";
 import { NativeDatePicker } from "@/components/native-date-picker";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { countRecordings, type Option, participantOptions, tagOptions } from "@/lib/db";
+import {
+  type Option,
+  useParticipantOptions,
+  useRecordingCount,
+  useTagOptions,
+  useWorkspace,
+} from "@/lib/data";
 import {
   type DatePreset,
   defaultFilters,
@@ -19,10 +25,8 @@ import {
   toQuery,
   useFilterTitle,
 } from "@/lib/filters";
-import { useDb, useLibraryVersion } from "@/lib/library";
 import { useMe } from "@/lib/me";
 import { cn } from "@/lib/utils";
-import { getWorkspace } from "@/lib/workspace";
 import { useColors } from "@/theme";
 
 const SCOPES: { value: Scope; label: string }[] = [
@@ -151,26 +155,23 @@ const nameOf = (list: { id: string; name: string }[], id: string | null) =>
   list.find((o) => o.id === id)?.name ?? null;
 
 export function Filters() {
-  const db = useDb();
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const version = useLibraryVersion();
   const title = useFilterTitle();
   const [draft, setDraft] = useState<SheetFilters>(() => sheetFilters(filters.current()));
   const [more, setMore] = useState<More>(null);
 
-  const workspace = useMemo(() => getWorkspace(db), [db, version]);
-  const people = useMemo(() => participantOptions(db).slice(0, 40), [db, version]);
-  const tags = useMemo(() => tagOptions(db), [db, version]);
+  const workspace = useWorkspace();
+  const people = useParticipantOptions(40);
+  const tags = useTagOptions();
   const recorders = useMemo<Option[]>(
     () => workspace.users.map((u) => ({ id: u.id, name: u.name, count: 0 })),
     [workspace.users],
   );
   const meEmail = useMe()?.email ?? null;
-  const count = useMemo(
-    () => countRecordings(db, toQuery({ ...draft, title }, { meEmail })),
-    [db, draft, title, meEmail, version],
+  const count = useRecordingCount(
+    useMemo(() => toQuery({ ...draft, title }, { meEmail }), [draft, title, meEmail]),
   );
 
   const patch = (p: Partial<SheetFilters>) => setDraft((d) => ({ ...d, ...p }));

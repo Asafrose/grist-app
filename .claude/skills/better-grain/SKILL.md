@@ -74,10 +74,29 @@ non-interactive shells; the `nvm` shell function hangs there.
   (bundled via `babel-plugin-inline-import`; FTS5 virtual tables live in a
   `--custom` migration because Drizzle does not model them) and applied at
   module load in `lib/db/open.ts`. Queries are plain functions in
-  `lib/db/*.ts` taking a `Db`; screens read with `useLiveQuery(recordingsQuery(db, filter))`
-  from `drizzle-orm/expo-sqlite` so the list re-renders when sync writes.
-  Search goes through `searchRecordings` / `searchTranscripts` (FTS5 prefix
-  queries, snippets with segment start times).
+  `lib/db/*.ts` taking a `Db`. Search goes through `searchRecordings` /
+  `searchTranscripts` (FTS5 prefix queries, snippets with segment start times).
+- Data access (`lib/data/`): `Db` never leaves `src/lib`. Screens and
+  components import only from `@/lib/data`, which exports typed hooks per
+  domain (`useRecordings(filter)`, `useRecording(id)`, `useTranscript(id)`,
+  `useClips(filter)`, `useTeams()`, `useSearch(q, segment)`,
+  `useRecentSearches()`, `useWorkspace()`, `useIndexStats()`,
+  `useStorageStats()`, `useRecordingCount(filter)`, option hooks) plus
+  write facades (`recordings.refresh`, `recentSearches.add/clear`,
+  `transcriptIndex.clear`) that resolve the db themselves and bump the
+  library version. Row types are re-exported from there too. Internally
+  `useLive(make, deps)` wraps `useLiveQuery` + `useLibraryVersion`, and
+  `useSnapshot(read, deps)` memoizes a synchronous read on the version.
+  An oxlint `no-restricted-imports` override rejects `@/lib/db`,
+  `drizzle-orm`, `@/lib/workspace`, `@/lib/storage`, `@/lib/sync`,
+  `@/lib/recent-searches` and `useDb` from `src/screens`, `src/components`
+  and `src/app`. To add data access: write the query in `lib/db/*.ts`, wrap
+  it in a hook (or facade) in `lib/data/<domain>.ts`, export from
+  `lib/data/index.ts`, cover it in `lib/data/data.test.tsx`.
+  There is no TanStack Query: the API is synced into SQLite in the
+  background and screens only ever read the database, so a request cache
+  has nothing to cache. Revisit only if a screen needs live API data that
+  is deliberately not stored (today that is just media URL resolution).
 - Sync (`lib/sync.ts`, pure functions over `Db` + the recordings API):
   `after_datetime` incremental with a 2-day overlap on every foreground,
   full reconcile of the 90-day window every 7 days (deletes local rows the
@@ -89,7 +108,8 @@ non-interactive shells; the `nvm` shell function hangs there.
 - Playback: one module-level `expo-video` player in `lib/player.ts`
   (`staysActiveInBackground`, `showNowPlayingNotification`; app.json plugin
   enables background audio + PiP). Screens call the `playback` facade
-  (`load`, `toggle`, `seekBy`, `setRate`, `stop`) and read `usePlayer()`.
+  (`load`, `toggle`, `seekBy`, `setRate`, `stop`) and read atomic hooks
+  (`useNowPlaying`, `usePlaybackPosition`, …).
   Media URLs are resolved per play via `recordings.resolveMediaUrl` (signed
   CloudFront URL); `<PlayerView>` renders the shared `VideoView`.
 - Media streams from the download endpoint; downloads happen only on an

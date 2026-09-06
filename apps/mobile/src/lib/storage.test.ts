@@ -3,7 +3,8 @@ import transcript from "@grist/grain-api/fixtures/transcript.json";
 import { Directory, File } from "expo-file-system";
 import { setTranscript } from "@/lib/db";
 import { seedDemo } from "@/lib/demo";
-import { downloadsDirectory, formatBytes, storageStats } from "@/lib/storage";
+import { formatBytes } from "@/lib/format";
+import { downloadsDirectory, storageStats } from "@/lib/storage";
 import { testDb } from "@/test/db";
 
 jest.mock("@/lib/db/open", () => ({ DB_NAME: "grist.db" }));

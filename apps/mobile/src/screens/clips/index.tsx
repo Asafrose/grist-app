@@ -1,5 +1,4 @@
 import { FlashList } from "@shopify/flash-list";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -7,9 +6,9 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
-import { type ClipRow, highlightsQuery, teamsQuery } from "@/lib/db";
+import { type ClipRow, useClips, useTeams } from "@/lib/data";
 import { formatClock, formatShortDate } from "@/lib/format";
-import { library, useDb, useLibraryVersion, useSyncError, useSyncStatus } from "@/lib/library";
+import { library, useSyncError, useSyncStatus } from "@/lib/library";
 import { useMe, useMeStatus } from "@/lib/me";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
@@ -127,24 +126,17 @@ function Empty({ filter, syncing }: { filter: ClipsFilter; syncing: boolean }) {
 }
 
 export function Clips() {
-  const db = useDb();
   const insets = useSafeAreaInsets();
-  const version = useLibraryVersion();
   const sync = useSyncStatus();
   const error = useSyncError();
   const me = useMe();
   const [filter, setFilter] = useState<ClipsFilter>({ kind: "workspace" });
   const [limit, setLimit] = useState(CLIPS_PAGE);
 
-  const { data: teams } = useLiveQuery(teamsQuery(db), [version]);
+  const teams = useTeams();
   const participantEmail = filter.kind === "mine" ? (me?.email ?? "nobody@") : undefined;
   const teamId = filter.kind === "team" ? filter.id : undefined;
-  const { data } = useLiveQuery(highlightsQuery(db, { limit, teamId, participantEmail }), [
-    version,
-    limit,
-    teamId,
-    participantEmail,
-  ]);
+  const data = useClips({ limit, teamId, participantEmail });
 
   const select = (next: ClipsFilter) => {
     setFilter(next);

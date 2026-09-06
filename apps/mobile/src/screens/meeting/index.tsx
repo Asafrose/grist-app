@@ -3,11 +3,10 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
-import { getRecording, type RecordingDetail } from "@/lib/db";
+import { type RecordingDetail, recordings, useRecording } from "@/lib/data";
 import { useIsDemo } from "@/lib/demo";
 import { formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
-import { useDb, useLibraryVersion } from "@/lib/library";
 import {
   isRecordingStale,
   MEETING_TABS,
@@ -16,7 +15,6 @@ import {
   parseSeekParam,
 } from "@/lib/meeting";
 import { playback } from "@/lib/player";
-import { refreshRecording } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 import { ClipsTab } from "./clips-tab";
@@ -154,30 +152,24 @@ function TabStrip({
 }
 
 export function Meeting({ id }: { id: string }) {
-  const db = useDb();
   const client = useGrainClient();
   const demo = useIsDemo();
-  useLibraryVersion();
   const [refreshFailed, setRefreshFailed] = useState(false);
-  const [, setRefreshedAt] = useState(0);
   const params = useLocalSearchParams<{ tab?: string; t?: string }>();
   const tab = parseMeetingTab(params.tab);
 
-  const rec = getRecording(db, id);
+  const rec = useRecording(id);
   const wantsRefresh = !!rec && !!client && !demo && isRecordingStale(rec.syncedAt);
   const refreshing = wantsRefresh && !refreshFailed;
 
   useEffect(() => {
     if (!wantsRefresh || !client) return;
     let cancelled = false;
-    refreshRecording(db, client.recordings, id).then(
-      () => !cancelled && setRefreshedAt(Date.now()),
-      () => !cancelled && setRefreshFailed(true),
-    );
+    recordings.refresh(id, client.recordings).catch(() => !cancelled && setRefreshFailed(true));
     return () => {
       cancelled = true;
     };
-  }, [client, db, id, wantsRefresh]);
+  }, [client, id, wantsRefresh]);
 
   const seek = (ms: number) => {
     if (!rec || rec.mediaType === "transcript") return;
@@ -187,11 +179,11 @@ export function Meeting({ id }: { id: string }) {
   const seekParam = parseSeekParam(params.t);
   useEffect(() => {
     if (seekParam === null) return;
-    const row = getRecording(db, id);
-    if (row && row.mediaType !== "transcript") {
-      void playback.load(toNowPlaying(row), { at: seekParam });
-    }
-  }, [db, id, seekParam]);
+    if (!rec || rec.mediaType === "transcript") return;
+    void playback.load(toNowPlaying(rec), { at: seekParam });
+    // `rec` identity changes on every live refresh; only its presence matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, seekParam, rec?.id]);
 
   if (!rec) {
     return (

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@/test/render";
 import { clearRecentSearches, getRecentSearches } from "@/lib/recent-searches";
-import { useDb } from "@/lib/library";
+import { libraryStore } from "@/lib/library";
 import { Search } from "./index";
 
 const mockPush = jest.fn();
@@ -9,13 +9,19 @@ jest.mock("@shopify/flash-list", () => ({
   FlashList: jest.requireActual("react-native").FlatList,
 }));
 jest.mock("@/lib/library", () => {
+  const { create } = jest.requireActual("zustand");
   const { testDb } = jest.requireActual("@/test/db");
   const { seedDemo } = jest.requireActual("@/lib/demo");
   const db = testDb();
   seedDemo(db);
+  const store = create(() => ({ db, version: 0 }));
   return {
+    libraryStore: store,
     useDb: () => db,
-    useLibraryVersion: () => 0,
+    useLibraryVersion: () => store((s: { version: number }) => s.version),
+    library: {
+      touch: () => store.setState((s: { version: number }) => ({ version: s.version + 1 })),
+    },
   };
 });
 
@@ -25,7 +31,7 @@ const type = async (text: string) => {
 
 beforeEach(() => {
   mockPush.mockClear();
-  clearRecentSearches(useDb());
+  clearRecentSearches(libraryStore.getState().db!);
 });
 
 describe("Search", () => {
@@ -102,7 +108,7 @@ describe("Search", () => {
     await render(<Search />);
     await type("onboarding");
     await fireEvent(screen.getByTestId("search-input"), "submitEditing");
-    expect(getRecentSearches(useDb())).toEqual(["onboarding"]);
+    expect(getRecentSearches(libraryStore.getState().db!)).toEqual(["onboarding"]);
 
     await fireEvent.press(screen.getByTestId("search-cancel"));
     expect(screen.getByTestId("search-input").props.value).toBe("");
@@ -115,7 +121,7 @@ describe("Search", () => {
 
     await fireEvent.press(screen.getByTestId("search-clear"));
     await fireEvent.press(screen.getByTestId("clear-recent"));
-    expect(getRecentSearches(useDb())).toEqual([]);
+    expect(getRecentSearches(libraryStore.getState().db!)).toEqual([]);
     expect(screen.getByTestId("search-empty")).toBeOnTheScreen();
   });
 });

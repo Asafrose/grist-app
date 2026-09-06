@@ -1,7 +1,7 @@
 import { GRAIN_TOKEN_SETTINGS_URL } from "@grist/grain-api";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
-import { Children, isValidElement, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Children, isValidElement, type ReactNode, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
@@ -9,12 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { auth, useAuthToken } from "@/lib/auth";
-import { clearIndex, type Db } from "@/lib/db";
+import { formatBytes } from "@/lib/format";
+import { transcriptIndex, useStorageStats, useWorkspace } from "@/lib/data";
 import { makeClient, tokenErrorMessage } from "@/lib/grain";
-import { library, useDb, useLibraryVersion } from "@/lib/library";
 import { me as identity, useMe, useMeStatus } from "@/lib/me";
 import { initials } from "@/lib/meeting";
-import { getWorkspace } from "@/lib/workspace";
 import {
   DOWNLOAD_CAPS_BYTES,
   KEEP_DOWNLOADS_DAYS,
@@ -22,7 +21,6 @@ import {
   settings,
   useSetting,
 } from "@/lib/settings";
-import { formatBytes, storageStats } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 
@@ -207,19 +205,11 @@ function PickerRow<T extends string | number>({
   );
 }
 
-function useStorageStats(db: Db) {
-  const [stats, setStats] = useState(() => storageStats(db));
-  useEffect(() => library.onChange(() => setStats(storageStats(db))), [db]);
-  return stats;
-}
-
 function ProfileCard() {
-  const db = useDb();
   const colors = useColors();
-  const version = useLibraryVersion();
   const me = useMe();
   const status = useMeStatus();
-  const users = useMemo(() => getWorkspace(db).users, [db, version]);
+  const users = useWorkspace().users;
   const [picking, setPicking] = useState(false);
 
   const name =
@@ -269,7 +259,7 @@ function ProfileCard() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: me?.email === u.email }}
                 onPress={() => {
-                  identity.choose(db, u);
+                  identity.choose(u);
                   setPicking(false);
                 }}
                 className="flex-row items-center justify-between px-3.5 py-2.5 active:bg-secondary"
@@ -373,17 +363,13 @@ function ReplaceToken({ onDone }: { onDone: () => void }) {
 }
 
 export function Settings() {
-  const db = useDb();
   const insets = useSafeAreaInsets();
   const token = useAuthToken() ?? "";
   const [replacing, setReplacing] = useState(false);
-  const stats = useStorageStats(db);
+  const stats = useStorageStats();
   const appVersion = Constants.expoConfig?.version ?? "dev";
 
-  function clearTranscriptIndex() {
-    clearIndex(db);
-    library.touch();
-  }
+  const clearTranscriptIndex = transcriptIndex.clear;
 
   return (
     <ScrollView

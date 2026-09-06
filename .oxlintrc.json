@@ -55,7 +55,38 @@
         "no-restricted-imports": [
           "error",
           {
+            "paths": [
+              {
+                "name": "@/lib/db",
+                "message": "Screens read data through the hooks in @/lib/data; the query layer stays in src/lib."
+              },
+              {
+                "name": "@/lib/workspace",
+                "message": "Use useWorkspace() from @/lib/data."
+              },
+              {
+                "name": "@/lib/recent-searches",
+                "message": "Use useRecentSearches() and the recentSearches facade from @/lib/data."
+              },
+              {
+                "name": "@/lib/storage",
+                "message": "Use useStorageStats() from @/lib/data."
+              },
+              {
+                "name": "@/lib/sync",
+                "message": "Sync runs behind the library and data facades."
+              },
+              {
+                "name": "@/lib/library",
+                "importNames": ["useDb"],
+                "message": "Screens never hold the SQLite connection; add a hook to @/lib/data."
+              }
+            ],
             "patterns": [
+              {
+                "group": ["@/lib/db/*", "drizzle-orm", "drizzle-orm/*", "@/lib/data/live"],
+                "message": "Screens read data through the hooks in @/lib/data; the query layer stays in src/lib."
+              },
               {
                 "group": ["@/lib/*"],
                 "importNamePattern": "Store$",

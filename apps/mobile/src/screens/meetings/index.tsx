@@ -1,5 +1,4 @@
 import { FlashList } from "@shopify/flash-list";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -16,15 +15,14 @@ import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { meetingCompany } from "@/lib/company";
-import { type RecordingListRow, recordingsQuery } from "@/lib/db";
+import { type RecordingListRow, useRecordings, useWorkspace } from "@/lib/data";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { formatDurationCompact, formatTime } from "@/lib/format";
-import { library, useDb, useLibraryVersion, useSyncError, useSyncStatus } from "@/lib/library";
+import { library, useSyncError, useSyncStatus } from "@/lib/library";
 import { useMe } from "@/lib/me";
 import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
-import { getWorkspace } from "@/lib/workspace";
 import { useColors } from "@/theme";
 
 function Thumbnail({ item }: { item: RecordingListRow }) {
@@ -142,19 +140,17 @@ const sameView = (a: FilterView, b: FilterView) =>
   a.kind === b.kind && (a.kind !== "team" || b.kind !== "team" || a.id === b.id);
 
 export function Meetings() {
-  const db = useDb();
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const version = useLibraryVersion();
   const sync = useSyncStatus();
   const error = useSyncError();
   const state = useFilters();
 
-  const workspace = useMemo(() => getWorkspace(db), [db, version]);
+  const workspace = useWorkspace();
   const meEmail = useMe()?.email ?? null;
   const filter = useMemo(() => toQuery(state, { meEmail }), [state, meEmail]);
-  const { data, updatedAt } = useLiveQuery(recordingsQuery(db, filter), [version, filter]);
+  const { data, updatedAt } = useRecordings(filter);
   const items = useMemo(() => groupByDay(data ?? []), [data]);
   const [pulling, setPulling] = useState(false);
   const pull = async () => {

@@ -72,3 +72,16 @@ export function formatDurationCompact(ms: number): string {
   const m = minutes % 60;
   return m ? `${h}h ${m}m` : `${h}h`;
 }
+
+const UNITS = ["B", "KB", "MB", "GB"];
+
+export function formatBytes(bytes: number): string {
+  let value = Math.max(0, bytes);
+  let unit = 0;
+  while (value >= 1024 && unit < UNITS.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  const text = unit === 0 || value >= 10 ? String(Math.round(value)) : value.toFixed(1);
+  return `${text} ${UNITS[unit]}`;
+}

@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { Icon, type IconName } from "@/components/icon";
 import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/player-view";
 import { Text } from "@/components/ui/text";
-import type { RecordingDetail } from "@/lib/db";
+import type { RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
 import {
   type NowPlaying,

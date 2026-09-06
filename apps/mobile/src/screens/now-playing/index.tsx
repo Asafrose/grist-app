@@ -1,7 +1,6 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,9 +8,8 @@ import { Icon, type IconName } from "@/components/icon";
 import { PlayerView } from "@/components/player-view";
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
-import { recordingQuery, transcriptQuery, type TranscriptSegmentRow } from "@/lib/db";
+import { type TranscriptSegmentRow, useRecording, useTranscript } from "@/lib/data";
 import { formatDuration, formatMeetingDate } from "@/lib/format";
-import { useDb, useLibraryVersion } from "@/lib/library";
 import {
   PLAYBACK_RATES,
   playback,
@@ -112,10 +110,8 @@ function Artwork({ thumbnailUrl, audio }: { thumbnailUrl: string | null; audio: 
 }
 
 export function NowPlaying() {
-  const db = useDb();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const version = useLibraryVersion();
   const current = useNowPlaying();
   const status = usePlaybackStatus();
   const error = usePlaybackError();
@@ -125,8 +121,8 @@ export function NowPlaying() {
   const [pickingRate, setPickingRate] = useState(false);
 
   const id = current?.id ?? "";
-  const { data: rec } = useLiveQuery(recordingQuery(db, id), [db, id, version]);
-  const { data: segments } = useLiveQuery(transcriptQuery(db, id), [db, id, version]);
+  const rec = useRecording(id);
+  const segments = useTranscript(id);
 
   if (!current) {
     return (

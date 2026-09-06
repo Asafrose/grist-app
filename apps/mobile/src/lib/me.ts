@@ -2,6 +2,7 @@ import type { GrainClient, User } from "@grist/grain-api";
 import { create } from "zustand";
 import { type Db, getMeta, setMeta } from "@/lib/db";
 import { DEMO_ME, isDemoToken } from "@/lib/demo";
+import { currentDb } from "@/lib/data/live";
 import { makeClient } from "@/lib/grain";
 
 export const META_ME = "me";
@@ -113,7 +114,7 @@ export async function resolveMe(db: Db, token: string, api?: MeApi): Promise<Me 
   return run;
 }
 
-export function chooseMe(db: Db, user: Pick<User, "id" | "name" | "email">): Me {
+export function chooseMe(user: Pick<User, "id" | "name" | "email">, db = currentDb()): Me {
   const me: Me = { email: user.email, name: user.name, userId: user.id, source: "chosen" };
   remember(db, me);
   return me;

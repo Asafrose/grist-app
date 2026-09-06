@@ -2,7 +2,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/icon";
 import { Markdown, type SeekHandler, TimeTag } from "@/components/markdown";
 import { Text } from "@/components/ui/text";
-import type { ActionItemRow, RecordingDetail } from "@/lib/db";
+import type { ActionItemRow, RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
 import { type AssigneeGroup, groupActionItems, initials } from "@/lib/meeting";
 import { cn } from "@/lib/utils";
