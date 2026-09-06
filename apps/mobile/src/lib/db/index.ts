@@ -7,4 +7,5 @@ export * from "./meta";
 export * from "./recordings";
 export * from "./schema";
 export * from "./search";
+export * from "./storage";
 export * from "./transcripts";

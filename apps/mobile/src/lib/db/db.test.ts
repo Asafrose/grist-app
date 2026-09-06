@@ -5,6 +5,7 @@ import withClips from "@grist/grain-api/fixtures/recording-with-highlights.json"
 import transcript from "@grist/grain-api/fixtures/transcript.json";
 import {
   clearAll,
+  clearIndex,
   countRecordings,
   deleteMeta,
   deleteRecordings,
@@ -12,7 +13,9 @@ import {
   getRecording,
   getTranscript,
   highlightsQuery,
+  indexSize,
   indexStats,
+  listRecorders,
   listRecordings,
   listTeams,
   meetingTypeOptions,
@@ -303,6 +306,30 @@ describe("transcripts", () => {
     );
     expect(searchTranscriptsGrouped(db, "")).toEqual([]);
     expect(searchTranscriptsGrouped(db, "zzzzzz")).toEqual([]);
+  });
+
+  it("reports index size and clears every transcript table", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    expect(indexSize(db)).toEqual({ meetings: 0, segments: 0 });
+    setTranscript(db, recs[0].id, transcript as Transcript, NOW);
+    setTranscript(db, recs[1].id, (transcript as Transcript).slice(0, 3), NOW);
+    expect(indexSize(db)).toEqual({ meetings: 2, segments: transcript.length + 3 });
+    clearIndex(db);
+    expect(indexSize(db)).toEqual({ meetings: 0, segments: 0 });
+    expect(getTranscript(db, recs[0].id)).toEqual([]);
+    expect(searchTranscripts(db, "ingestion")).toEqual([]);
+    expect(listRecordings(db)).toHaveLength(recs.length);
+    expect(recordingsMissingTranscript(db, "2000-01-01T00:00:00Z")).toHaveLength(recs.length);
+  });
+
+  it("lists recorders across all cached recordings", () => {
+    const db = testDb();
+    expect(listRecorders(db)).toEqual([]);
+    upsertRecordings(db, recs, NOW);
+    const all = listRecorders(db);
+    expect(all).toHaveLength(recs.reduce((n, r) => n + r.recorders.length, 0));
+    expect(all[0]).toMatchObject({ id: recs[0].recorders[0].id, name: recs[0].recorders[0].name });
   });
 
   it("replaces a transcript on refetch", () => {

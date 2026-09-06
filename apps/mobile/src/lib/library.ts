@@ -7,6 +7,7 @@ import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 import { playback } from "@/lib/player";
+import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, syncLibrary } from "@/lib/sync";
 import { syncWorkspace } from "@/lib/workspace";
 
@@ -78,15 +79,17 @@ async function clear(): Promise<void> {
   if (!db) return;
   playback.stop();
   clearAll(db);
+  persistSettings();
   lastRunAt = 0;
   useLibrary.setState({ sync: "idle", lastSyncAt: null, error: null });
   bump();
 }
 
-export const library = { refresh, clear };
+export const library = { refresh, clear, touch: bump };
 
 async function hydrate(): Promise<void> {
   const db = await openDb();
+  hydrateSettings(db);
   useLibrary.setState({ db, lastSyncAt: getMeta(db, META_LAST_SYNC) });
 }
 

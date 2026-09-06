@@ -1,8 +1,8 @@
-import { GrainClient } from "@grist/grain-api";
+import { GrainApiError, GrainClient } from "@grist/grain-api";
 import { renderHook } from "@testing-library/react-native";
 import { act } from "react";
 import { useAuth } from "@/lib/auth";
-import { makeClient, useGrainClient } from "@/lib/grain";
+import { makeClient, tokenErrorMessage, useGrainClient } from "@/lib/grain";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -29,5 +29,20 @@ describe("grain client", () => {
 
     await act(async () => useAuth.setState({ status: "signed-in", token: "other" }));
     expect(result.current).not.toBe(first);
+  });
+
+  it("tokenErrorMessage distinguishes rejected tokens, server errors and network failures", () => {
+    expect(tokenErrorMessage(new GrainApiError("no", 401))).toBe(
+      "Grain didn't accept that token. Check it and try again.",
+    );
+    expect(tokenErrorMessage(new GrainApiError("no", 403))).toBe(
+      "Grain didn't accept that token. Check it and try again.",
+    );
+    expect(tokenErrorMessage(new GrainApiError("boom", 500))).toBe(
+      "Grain returned an error (500). Try again in a moment.",
+    );
+    expect(tokenErrorMessage(new TypeError("Network request failed"))).toBe(
+      "Couldn't reach Grain. Check your connection and try again.",
+    );
   });
 });

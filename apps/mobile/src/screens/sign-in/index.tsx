@@ -1,4 +1,4 @@
-import { GRAIN_TOKEN_SETTINGS_URL, GrainApiError } from "@grist/grain-api";
+import { GRAIN_TOKEN_SETTINGS_URL } from "@grist/grain-api";
 import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { auth } from "@/lib/auth";
 import { DEMO_TOKEN } from "@/lib/demo";
-import { makeClient } from "@/lib/grain";
+import { makeClient, tokenErrorMessage } from "@/lib/grain";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 
@@ -41,11 +41,7 @@ export function SignIn() {
       await makeClient(value).recordings.list();
       await auth.signIn(value);
     } catch (e) {
-      if (e instanceof GrainApiError && e.isAuth)
-        setError("Grain didn't accept that token. Check it and try again.");
-      else if (e instanceof GrainApiError)
-        setError(`Grain returned an error (${e.status}). Try again in a moment.`);
-      else setError("Couldn't reach Grain. Check your connection and try again.");
+      setError(tokenErrorMessage(e));
     } finally {
       setBusy(false);
     }

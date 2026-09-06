@@ -3,6 +3,9 @@ import { create } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
+import { PLAYBACK_RATES, type PlaybackRate, settings, useSettings } from "@/lib/settings";
+
+export { PLAYBACK_RATES, type PlaybackRate };
 
 export type NowPlaying = {
   id: string;
@@ -11,9 +14,6 @@ export type NowPlaying = {
   thumbnailUrl: string | null;
   durationMs: number;
 };
-
-export const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2] as const;
-export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
 
 type PlayerState = {
   current: NowPlaying | null;
@@ -31,7 +31,7 @@ const initial: PlayerState = {
   playing: false,
   position: 0,
   duration: 0,
-  rate: 1,
+  rate: useSettings.getState().playbackRate,
   error: null,
 };
 
@@ -114,9 +114,14 @@ function seekBy(seconds: number) {
   seekTo(usePlayer.getState().position + seconds);
 }
 
+useSettings.subscribe((s, prev) => {
+  if (s.playbackRate === prev.playbackRate) return;
+  player.playbackRate = s.playbackRate;
+  usePlayer.setState({ rate: s.playbackRate });
+});
+
 function setRate(rate: PlaybackRate) {
-  player.playbackRate = rate;
-  usePlayer.setState({ rate });
+  settings.set("playbackRate", rate);
 }
 
 function toggle() {

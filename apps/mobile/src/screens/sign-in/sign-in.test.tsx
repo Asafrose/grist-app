@@ -18,7 +18,10 @@ jest.mock("expo-clipboard", () => ({
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
 }));
-jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/grain", () => ({
+  ...jest.requireActual("@/lib/grain"),
+  makeClient: jest.fn(),
+}));
 
 const list = jest.fn();
 (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { list } }));

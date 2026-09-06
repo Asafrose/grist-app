@@ -1,0 +1,68 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "tab-settings"
+- assertVisible: "Settings"
+- assertVisible: "Playback"
+- assertVisible: "Storage"
+- extendedWaitUntil:
+    visible:
+      id: "profile-name"
+    timeout: 10000
+- assertVisible:
+    text: ".*24 meetings.*"
+- takeScreenshot: settings
+- assertVisible:
+    text: ".*Off.*"
+- tapOn:
+    id: "setting-audio-only"
+- assertVisible:
+    text: ".*On.*"
+- assertVisible:
+    text: ".*1×.*"
+- tapOn:
+    id: "setting-rate"
+- tapOn:
+    id: "setting-rate-option-1.5"
+- assertVisible:
+    text: ".*1.5×.*"
+- tapOn:
+    id: "clear-index"
+- assertVisible:
+    text: ".*0 meetings.*"
+- scrollUntilVisible:
+    element:
+      id: "token-masked"
+    direction: DOWN
+- assertVisible:
+    text: ".*demo••••.*"
+- assertVisible: "Account"
+- scrollUntilVisible:
+    element: "Open source · Not affiliated with Grain"
+    direction: DOWN
+- assertVisible: "About"
+- takeScreenshot: settings-bottom
+- tapOn:
+    id: "sign-out"
+- assertVisible: "Personal access token"

@@ -12,6 +12,10 @@ env:
     commands:
       - tapOn:
           id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
       - tapOn:
           id: "sign-out"
 - assertVisible: "Personal access token"

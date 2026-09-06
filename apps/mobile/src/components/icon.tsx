@@ -151,6 +151,27 @@ const paths = {
       <Path d="M8 21h8M12 17v4" />
     </>
   ),
+  drive: (
+    <>
+      <Rect x="3" y="5" width="18" height="6" rx="2" />
+      <Rect x="3" y="13" width="18" height="6" rx="2" />
+      <Circle cx="7" cy="8" r="1" fill="currentColor" stroke="none" />
+      <Circle cx="7" cy="16" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  trash: (
+    <>
+      <Path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+      <Path d="M10 11v6M14 11v6" />
+    </>
+  ),
+  info: (
+    <>
+      <Circle cx="12" cy="12" r="9" />
+      <Path d="M12 11v6" />
+      <Circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
   grist: (
     <>
       <Circle cx="12" cy="12" r="9" />
