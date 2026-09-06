@@ -1,0 +1,65 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+# Shell: pinned player, tab strip, actions button
+- assertVisible:
+    id: "player-start"
+- assertVisible:
+    id: "meeting-tabs"
+- assertVisible:
+    id: "meeting-tab-summary"
+- assertVisible:
+    id: "meeting-tab-transcript"
+- assertVisible:
+    id: "meeting-tab-timeline"
+- assertVisible:
+    id: "meeting-tab-clips"
+- assertVisible:
+    id: "actions"
+- assertVisible: "Action items"
+- takeScreenshot: meeting-summary
+# A timestamp chip seeks the player
+- assertVisible:
+    id: "ts-.*"
+- tapOn:
+    id: "ts-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: meeting-summary-seeked
+# Tab strip switches and comes back
+- tapOn:
+    id: "meeting-tab-transcript"
+- assertVisible: "Transcript coming soon"
+- assertNotVisible: "Action items"
+- takeScreenshot: meeting-transcript-placeholder
+- tapOn:
+    id: "meeting-tab-summary"
+- assertVisible: "Action items"
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"

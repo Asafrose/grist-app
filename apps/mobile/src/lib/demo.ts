@@ -3,6 +3,7 @@ import withClips from "@grist/grain-api/fixtures/recording-with-highlights.json"
 import detail from "@grist/grain-api/fixtures/recording.json";
 import page from "@grist/grain-api/fixtures/recordings.json";
 import transcript from "@grist/grain-api/fixtures/transcript.json";
+import { useAuth } from "@/lib/auth";
 import { type Db, setTranscript, upsertRecordings } from "@/lib/db";
 import { isoSeconds } from "@/lib/sync";
 
@@ -12,6 +13,10 @@ export const DEMO_MEDIA_URL =
 
 export function isDemoToken(token: string | null | undefined): boolean {
   return token === DEMO_TOKEN;
+}
+
+export function useIsDemo(): boolean {
+  return useAuth((s) => isDemoToken(s.token));
 }
 
 const customers = ["Relecloud", "Wingtip", "Fabrikam", "Trey Research", "Contoso", "Adatum"];

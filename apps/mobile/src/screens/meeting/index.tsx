@@ -1,52 +1,197 @@
-import { Stack } from "expo-router";
-import { isPictureInPictureSupported } from "expo-video";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, View } from "react-native";
 import { Icon, type IconName } from "@/components/icon";
-import { PlayerView } from "@/components/player-view";
 import { Text } from "@/components/ui/text";
-import { getRecording } from "@/lib/db";
-import { formatClock, formatDuration, formatMeetingDate } from "@/lib/format";
-import { useDb } from "@/lib/library";
-import { PLAYBACK_RATES, playback, usePlayer } from "@/lib/player";
+import { getRecording, type RecordingDetail } from "@/lib/db";
+import { useIsDemo } from "@/lib/demo";
+import { formatShortDate } from "@/lib/format";
+import { useGrainClient } from "@/lib/grain";
+import { useDb, useLibrary } from "@/lib/library";
+import {
+  isRecordingStale,
+  MEETING_TABS,
+  type MeetingTab,
+  parseMeetingTab,
+  parseSeekParam,
+} from "@/lib/meeting";
+import { playback } from "@/lib/player";
+import { refreshRecording } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
+import { ClipsTab } from "./clips-tab";
+import { PlayerCard, toNowPlaying } from "./player-card";
+import { SummaryTab } from "./summary-tab";
+import { TimelineTab } from "./timeline-tab";
+import { TranscriptTab } from "./transcript-tab";
 
-function Transport({
-  icon,
-  label,
-  onPress,
-  testID,
-  primary,
-}: {
-  icon: IconName;
-  label: string;
-  onPress: () => void;
-  testID: string;
-  primary?: boolean;
-}) {
-  const colors = useColors();
+const TAB_LABELS: Record<MeetingTab, string> = {
+  summary: "Summary",
+  transcript: "Transcript",
+  timeline: "Timeline",
+  clips: "Clips",
+};
+
+function HeaderActions() {
   return (
     <Pressable
-      testID={testID}
+      testID="actions"
       accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
+      accessibilityLabel="Actions"
       hitSlop={8}
+      onPress={() => {}}
+      className="h-11 w-11 items-center justify-center active:opacity-60"
+    >
+      <Icon name="more" size={24} />
+    </Pressable>
+  );
+}
+
+function MetaTag({
+  icon,
+  label,
+  tone = "plain",
+}: {
+  icon?: IconName;
+  label: string;
+  tone?: "plain" | "external" | "internal";
+}) {
+  const colors = useColors();
+  const iconColor =
+    tone === "external" ? colors.ext : tone === "internal" ? colors.accent : colors.ink2;
+  return (
+    <View
       className={cn(
-        "items-center justify-center rounded-full active:opacity-70",
-        primary ? "h-16 w-16 bg-primary" : "h-12 w-12 bg-card",
+        "h-[22px] flex-row items-center gap-1 rounded-[6px] px-2",
+        tone === "external"
+          ? "bg-external-soft"
+          : tone === "internal"
+            ? "bg-accent"
+            : "bg-secondary",
       )}
     >
-      <Icon name={icon} size={primary ? 30 : 24} color={primary ? colors.onAccent : colors.ink} />
-    </Pressable>
+      {icon ? <Icon name={icon} size={14} color={iconColor} /> : null}
+      <Text
+        className={cn(
+          "font-jakarta-semibold text-[12px]",
+          tone === "external"
+            ? "text-external"
+            : tone === "internal"
+              ? "text-accent-foreground"
+              : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function MetaChips({ rec }: { rec: RecordingDetail }) {
+  const people = rec.participants;
+  const lead = people.find((p) => p.confirmedAttendee)?.name ?? people[0]?.name;
+  return (
+    <View className="flex-row flex-wrap gap-1.5">
+      <MetaTag icon="calendar" label={formatShortDate(rec.startDatetime)} />
+      {rec.meetingType?.name ? <MetaTag label={rec.meetingType.name} /> : null}
+      {rec.externalCount > 0 ? (
+        <MetaTag label="External" tone="external" />
+      ) : (
+        <MetaTag label="Internal" tone="internal" />
+      )}
+      {lead ? (
+        <MetaTag icon="people" label={people.length > 1 ? `${lead} +${people.length - 1}` : lead} />
+      ) : null}
+    </View>
+  );
+}
+
+function TabStrip({
+  tab,
+  onChange,
+  clipCount,
+}: {
+  tab: MeetingTab;
+  onChange: (tab: MeetingTab) => void;
+  clipCount: number;
+}) {
+  return (
+    <View testID="meeting-tabs" className="flex-row gap-[22px] border-b border-border px-5">
+      {MEETING_TABS.map((t) => {
+        const on = t === tab;
+        return (
+          <Pressable
+            key={t}
+            testID={`meeting-tab-${t}`}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(t)}
+            className={cn(
+              "-mb-px h-11 flex-row items-center gap-1.5 border-b-2",
+              on ? "border-foreground" : "border-transparent",
+            )}
+          >
+            <Text
+              className={cn(
+                "font-jakarta-bold text-[14px]",
+                on ? "text-foreground" : "text-subtle-foreground",
+              )}
+            >
+              {TAB_LABELS[t]}
+            </Text>
+            {t === "clips" && clipCount > 0 ? (
+              <View className="h-[18px] justify-center rounded-[6px] bg-secondary px-1.5">
+                <Text className="font-jakarta-semibold text-[12px] text-muted-foreground">
+                  {clipCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
 export function Meeting({ id }: { id: string }) {
   const db = useDb();
+  const client = useGrainClient();
+  const demo = useIsDemo();
+  useLibrary((s) => s.version);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [, setRefreshedAt] = useState(0);
+  const params = useLocalSearchParams<{ tab?: string; t?: string }>();
+  const tab = parseMeetingTab(params.tab);
+
   const rec = getRecording(db, id);
-  const state = usePlayer();
-  const isCurrent = state.current?.id === id;
+  const wantsRefresh = !!rec && !!client && !demo && isRecordingStale(rec.syncedAt);
+  const refreshing = wantsRefresh && !refreshFailed;
+
+  useEffect(() => {
+    if (!wantsRefresh || !client) return;
+    let cancelled = false;
+    refreshRecording(db, client.recordings, id).then(
+      () => !cancelled && setRefreshedAt(Date.now()),
+      () => !cancelled && setRefreshFailed(true),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [client, db, id, wantsRefresh]);
+
+  const seek = (ms: number) => {
+    if (!rec || rec.mediaType === "transcript") return;
+    void playback.load(toNowPlaying(rec), { at: ms / 1000 });
+  };
+
+  const seekParam = parseSeekParam(params.t);
+  useEffect(() => {
+    if (seekParam === null) return;
+    const row = getRecording(db, id);
+    if (row && row.mediaType !== "transcript") {
+      void playback.load(toNowPlaying(row), { at: seekParam });
+    }
+  }, [db, id, seekParam]);
 
   if (!rec) {
     return (
@@ -59,148 +204,42 @@ export function Meeting({ id }: { id: string }) {
     );
   }
 
-  const nowPlaying = {
-    id: rec.id,
-    title: rec.title,
-    mediaType: rec.mediaType,
-    thumbnailUrl: rec.thumbnailUrl,
-    durationMs: rec.durationMs,
-  };
-  const position = isCurrent ? state.position : 0;
-  const duration = isCurrent && state.duration ? state.duration : rec.durationMs / 1000;
-  const playing = isCurrent && state.playing;
-  const loading = isCurrent && state.status === "loading";
+  const tabProps = { rec, onSeek: seek };
+  const body =
+    tab === "transcript" ? (
+      <TranscriptTab {...tabProps} />
+    ) : tab === "timeline" ? (
+      <TimelineTab {...tabProps} />
+    ) : tab === "clips" ? (
+      <ClipsTab {...tabProps} />
+    ) : (
+      <SummaryTab {...tabProps} refreshing={refreshing} />
+    );
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      className="bg-background"
-      contentContainerClassName="gap-5 px-5 pt-3 pb-10"
-    >
-      <Stack.Screen options={{ title: "" }} />
-      <View className="gap-1">
+    <View className="flex-1 bg-background">
+      <Stack.Screen options={{ title: "", headerRight: HeaderActions }} />
+      <View className="px-5 pt-1">
+        <PlayerCard rec={rec} />
+      </View>
+      <View className="gap-2.5 px-5 pt-3.5">
         <Text
           role="heading"
-          className="font-jakarta-extrabold text-[22px] leading-7 tracking-tight"
+          numberOfLines={2}
+          className="font-jakarta-bold text-[20px] leading-[25px] tracking-tight"
         >
           {rec.title}
         </Text>
-        <Text className="text-[13px] text-muted-foreground">
-          {formatMeetingDate(rec.startDatetime)} · {formatDuration(rec.durationMs)} ·{" "}
-          {rec.participantCount} people
-        </Text>
+        <MetaChips rec={rec} />
       </View>
-
-      {isCurrent ? (
-        <PlayerView />
-      ) : (
-        <Pressable
-          testID="player-start"
-          accessibilityRole="button"
-          accessibilityLabel="Play"
-          onPress={() => playback.load(nowPlaying)}
-          className="aspect-video items-center justify-center rounded-lg bg-foreground active:opacity-90"
-        >
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <Icon name="play" size={30} color="#FFFFFF" />
-          </View>
-        </Pressable>
-      )}
-
-      <View className="gap-3">
-        <View className="h-1.5 overflow-hidden rounded-full bg-card">
-          <View
-            className="h-full rounded-full bg-primary"
-            style={{ width: `${duration ? Math.min(100, (position / duration) * 100) : 0}%` }}
-          />
-        </View>
-        <View className="flex-row justify-between">
-          <Text className="font-mono text-[12px] text-muted-foreground">
-            {formatClock(position)}
-          </Text>
-          <Text className="font-mono text-[12px] text-muted-foreground">
-            {formatClock(duration)}
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row items-center justify-center gap-6">
-        <Transport
-          testID="seek-back"
-          icon="back10"
-          label="Back 10 seconds"
-          onPress={() => (isCurrent ? playback.seekBy(-10) : playback.load(nowPlaying, { at: 0 }))}
-        />
-        {loading ? (
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <ActivityIndicator color="#FFFFFF" />
-          </View>
-        ) : (
-          <Transport
-            testID="play-pause"
-            icon={playing ? "pause" : "play"}
-            label={playing ? "Pause" : "Play"}
-            primary
-            onPress={() => (isCurrent ? playback.toggle() : playback.load(nowPlaying))}
-          />
-        )}
-        <Transport
-          testID="seek-forward"
-          icon="fwd10"
-          label="Forward 10 seconds"
-          onPress={() => (isCurrent ? playback.seekBy(10) : playback.load(nowPlaying, { at: 10 }))}
+      <View className="pt-2.5">
+        <TabStrip
+          tab={tab}
+          clipCount={rec.highlights.length}
+          onChange={(next) => router.setParams({ tab: next })}
         />
       </View>
-
-      <View className="flex-row items-center justify-center gap-2">
-        {isCurrent && rec.mediaType === "video" && isPictureInPictureSupported() ? (
-          <Pressable
-            testID="pip"
-            accessibilityRole="button"
-            accessibilityLabel="Picture in picture"
-            onPress={() => playback.startPictureInPicture()}
-            className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
-          >
-            <Icon name="pip" size={16} />
-          </Pressable>
-        ) : null}
-        {PLAYBACK_RATES.map((rate) => (
-          <Pressable
-            key={rate}
-            testID={`rate-${rate}`}
-            accessibilityRole="button"
-            onPress={() => playback.setRate(rate)}
-            className={cn(
-              "rounded-full border px-3 py-1.5",
-              state.rate === rate ? "border-primary bg-primary" : "border-border bg-card",
-            )}
-          >
-            <Text
-              className={cn(
-                "font-jakarta-semibold text-[12px]",
-                state.rate === rate ? "text-primary-foreground" : "text-foreground",
-              )}
-            >
-              {rate}×
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {isCurrent && state.status === "error" ? (
-        <Text className="text-center text-[13px] text-destructive">{state.error}</Text>
-      ) : null}
-
-      {rec.sections.length ? (
-        <View className="gap-4 pt-2">
-          {rec.sections.map((s) => (
-            <View key={s.position} className="gap-1">
-              <Text className="font-jakarta-bold text-[15px]">{s.title}</Text>
-              <Text className="text-[14px] leading-5 text-foreground">{s.markdown}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-    </ScrollView>
+      <View className="flex-1">{body}</View>
+    </View>
   );
 }

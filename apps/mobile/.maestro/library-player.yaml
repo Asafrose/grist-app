@@ -40,6 +40,8 @@ env:
     timeout: 30000
 - takeScreenshot: meeting-playing
 - tapOn:
+    id: "rate"
+- tapOn:
     id: "rate-1.5"
 - tapOn:
     id: "seek-forward"

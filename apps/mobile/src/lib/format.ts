@@ -35,3 +35,12 @@ export function formatMeetingDate(iso: string, now = new Date()): string {
   });
   return `${day} · ${time}`;
 }
+
+export function formatShortDate(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  });
+}

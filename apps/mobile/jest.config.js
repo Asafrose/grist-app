@@ -6,6 +6,9 @@ const extraTransformed = [
   "nativewind",
   "react-native-css-interop",
   "lucide-react-native",
+  "react-native-marked",
+  "marked",
+  "github-slugger",
 ];
 
 module.exports = {

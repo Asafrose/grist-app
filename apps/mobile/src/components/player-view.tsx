@@ -4,15 +4,19 @@ import { View } from "react-native";
 import { Icon } from "@/components/icon";
 import { player, setVideoView, usePlayer } from "@/lib/player";
 import { cn } from "@/lib/utils";
-import { useColors } from "@/theme";
+
+export const PLAYER_SURFACE = "#23282D";
+export const PLAYER_ON_SURFACE = "#FFFFFF";
 
 export function PlayerView({ className }: { className?: string }) {
-  const colors = useColors();
   const current = usePlayer((s) => s.current);
   const isVideo = current?.mediaType === "video";
 
   return (
-    <View className={cn("aspect-video overflow-hidden rounded-lg bg-foreground", className)}>
+    <View
+      className={cn("aspect-video overflow-hidden rounded-lg", className)}
+      style={{ backgroundColor: PLAYER_SURFACE }}
+    >
       {isVideo ? (
         <VideoView
           ref={setVideoView}
@@ -32,7 +36,7 @@ export function PlayerView({ className }: { className?: string }) {
               contentFit="cover"
             />
           ) : (
-            <Icon name="mic" size={40} color={colors.bg} />
+            <Icon name="mic" size={40} color="rgba(255,255,255,0.55)" />
           )}
         </View>
       )}

@@ -1,4 +1,4 @@
-import { formatClock, formatDuration, formatMeetingDate } from "@/lib/format";
+import { formatClock, formatDuration, formatMeetingDate, formatShortDate } from "@/lib/format";
 
 describe("formatClock", () => {
   it.each([
@@ -52,5 +52,18 @@ describe("formatMeetingDate", () => {
     expect(a).not.toContain("2026");
     expect(b).toContain("2025");
     expect(b.endsWith(time(lastYear))).toBe(true);
+  });
+});
+
+describe("formatShortDate", () => {
+  const now = new Date(2026, 8, 6, 15, 30);
+
+  it("shows month and day, adding the year only when it differs", () => {
+    const a = formatShortDate(new Date(2026, 8, 5, 20, 1).toISOString(), now);
+    const b = formatShortDate(new Date(2025, 11, 24, 9, 0).toISOString(), now);
+    expect(a).toMatch(/Sep.* 5/);
+    expect(a).not.toContain("2026");
+    expect(b).toMatch(/Dec.* 24/);
+    expect(b).toContain("2025");
   });
 });
