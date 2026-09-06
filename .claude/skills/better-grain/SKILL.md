@@ -93,10 +93,13 @@ non-interactive shells; the `nvm` shell function hangs there.
   and `src/app`. To add data access: write the query in `lib/db/*.ts`, wrap
   it in a hook (or facade) in `lib/data/<domain>.ts`, export from
   `lib/data/index.ts`, cover it in `lib/data/data.test.tsx`.
-  There is no TanStack Query: the API is synced into SQLite in the
-  background and screens only ever read the database, so a request cache
-  has nothing to cache. Revisit only if a screen needs live API data that
-  is deliberately not stored (today that is just media URL resolution).
+  SQLite stays the store: screens only ever read the database, so a
+  request cache is not a data layer here. TanStack Query is the planned
+  network layer (dedupe, retry, foreground refetch) for the direct API
+  calls (media URL, single-recording refresh, identity, workspace) and,
+  later, as the scheduler behind `library.refresh`. Adopt it with
+  downloads, not before (#35). TanStack DB was evaluated and rejected:
+  in-memory collections and no FTS.
 - Sync (`lib/sync.ts`, pure functions over `Db` + the recordings API):
   `after_datetime` incremental with a 2-day overlap on every foreground,
   full reconcile of the 90-day window every 7 days (deletes local rows the
