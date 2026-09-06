@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "@/components/placeholder-screen";
+import { Search } from "@/screens/search";
 
 export default function SearchRoute() {
-  return <PlaceholderScreen title="Search" note="Title and on-device transcript search." />;
+  return <Search />;
 }

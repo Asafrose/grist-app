@@ -12,20 +12,24 @@ import {
   getRecording,
   getTranscript,
   highlightsQuery,
+  indexStats,
   listRecordings,
   meetingTypeOptions,
   participantOptions,
   pruneRecordingsBefore,
   recorderOptions,
   recordingsMissingTranscript,
+  searchHighlights,
   searchRecordings,
   searchTranscripts,
+  searchTranscriptsGrouped,
   setMeta,
   setTranscript,
   tagOptions,
   teamOptions,
   upsertRecordings,
 } from "@/lib/db";
+import { seedDemo } from "@/lib/demo";
 import { testDb } from "@/test/db";
 
 const recs = page.recordings as Recording[];
@@ -223,6 +227,42 @@ describe("transcripts", () => {
     expect(searchTranscripts(db, "ingestion", { recordingId: "nope" })).toEqual([]);
   });
 
+  it("counts indexed recordings against the window", () => {
+    const db = testDb();
+    expect(indexStats(db)).toEqual({ indexed: 0, total: 0 });
+    upsertRecordings(db, recs, NOW);
+    expect(indexStats(db)).toEqual({ indexed: 0, total: recs.length });
+    setTranscript(db, recs[0].id, transcript as Transcript, NOW);
+    setTranscript(db, recs[1].id, transcript as Transcript, NOW);
+    expect(indexStats(db)).toEqual({ indexed: 2, total: recs.length });
+    const newest = listRecordings(db)[0];
+    expect(indexStats(db, newest.startDatetime).total).toBe(1);
+    expect(indexStats(db, "2999-01-01T00:00:00Z")).toEqual({ indexed: 0, total: 0 });
+  });
+
+  it("groups transcript hits per recording in rank order, sorted by time within", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    setTranscript(db, recs[0].id, transcript as Transcript, NOW);
+    setTranscript(db, recs[1].id, (transcript as Transcript).slice(0, 5), NOW);
+    const groups = searchTranscriptsGrouped(db, "ingestion");
+    expect(groups.map((g) => g.recording.id).toSorted()).toEqual(
+      [recs[0].id, recs[1].id].toSorted(),
+    );
+    for (const g of groups) {
+      expect(g.hits.every((h) => h.recordingId === g.recording.id)).toBe(true);
+      expect(g.hits.map((h) => h.start)).toEqual(
+        g.hits.map((h) => h.start).toSorted((a, b) => a - b),
+      );
+      expect(g.hits[0].snippet).toContain("[ingestion]");
+    }
+    expect(groups.reduce((n, g) => n + g.hits.length, 0)).toBe(
+      searchTranscripts(db, "ingestion", { limit: 100 }).length,
+    );
+    expect(searchTranscriptsGrouped(db, "")).toEqual([]);
+    expect(searchTranscriptsGrouped(db, "zzzzzz")).toEqual([]);
+  });
+
   it("replaces a transcript on refetch", () => {
     const db = testDb();
     upsertRecordings(db, [first], NOW);
@@ -243,5 +283,40 @@ describe("search", () => {
     expect(searchRecordings(db, name).map((r) => r.id)).toContain(recs[0].id);
     expect(searchRecordings(db, '"; drop table')).toEqual([]);
     expect(searchRecordings(db, "   ")).toEqual([]);
+  });
+
+  it("matches titles, participants and tags but not summaries, titles first", () => {
+    const db = testDb();
+    seedDemo(db);
+    const titles = searchRecordings(db, "pricing").map((r) => r.title);
+    expect(titles).toHaveLength(3);
+    expect(titles.every((t) => /Pricing review/.test(t))).toBe(true);
+    const byPerson = searchRecordings(db, "Zara").map((r) => r.title);
+    expect(byPerson.length).toBeGreaterThan(0);
+    expect(byPerson.some((t) => /Zara/.test(t))).toBe(false);
+  });
+
+  it("finds clips by highlight text or transcript with a marked snippet", () => {
+    const db = testDb();
+    upsertRecordings(db, [clips, first], NOW);
+    const h = clips.highlights![0];
+    const word = h.text.split(" ").find((w) => w.length > 5)!;
+    const byText = searchHighlights(db, word.slice(0, 4).toUpperCase());
+    expect(byText).toHaveLength(1);
+    expect(byText[0].highlight.id).toBe(h.id);
+    expect(byText[0].recording.id).toBe(clips.id);
+    expect(byText[0].snippet).toContain(`[${word}]`);
+
+    const fromTranscript = h
+      .transcript!.split(" ")
+      .find((w) => w.length > 6 && !h.text.includes(w))!;
+    const byTranscript = searchHighlights(db, fromTranscript);
+    expect(byTranscript).toHaveLength(1);
+    expect(byTranscript[0].snippet).toContain(`[${fromTranscript}`);
+
+    expect(searchHighlights(db, `${word} zzzz`)).toEqual([]);
+    expect(searchHighlights(db, "%")).toEqual([]);
+    expect(searchHighlights(db, "_")).toEqual([]);
+    expect(searchHighlights(db, "")).toEqual([]);
   });
 });

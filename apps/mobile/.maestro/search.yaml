@@ -1,0 +1,50 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "tab-search"
+- assertVisible:
+    id: "search-input"
+- assertVisible: ".*of .* meetings indexed on this device.*"
+- takeScreenshot: search-empty
+- tapOn:
+    id: "search-input"
+- inputText: "pricing"
+- extendedWaitUntil:
+    visible: ".*Pricing review.*"
+    timeout: 5000
+- assertVisible: ".*matches.*"
+- takeScreenshot: search-titles
+- tapOn:
+    id: "segment-transcripts"
+- extendedWaitUntil:
+    visible: ".*we do not price.*"
+    timeout: 5000
+- takeScreenshot: search-transcripts
+- hideKeyboard
+# Tap by the unique time chip: after the list re-renders, Maestro's element positions
+# for recycled FlashList cells go stale on iOS and id-based taps miss.
+- tapOn: ".*0:04"
+- extendedWaitUntil:
+    visible:
+      id: "player-start"
+    timeout: 10000
+- assertNotVisible:
+    id: "search-input"
+- takeScreenshot: search-opened-meeting

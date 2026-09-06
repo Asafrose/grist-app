@@ -1,5 +1,5 @@
 import type { Transcript } from "@grist/grain-api";
-import { asc, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { recordings, transcriptSegments, transcripts } from "./schema";
 
@@ -57,6 +57,19 @@ export function getTranscript(db: Db, recordingId: string) {
 
 export function hasTranscript(db: Db, recordingId: string): boolean {
   return !!db.select().from(transcripts).where(eq(transcripts.recordingId, recordingId)).get();
+}
+
+export type IndexStats = { indexed: number; total: number };
+
+export function indexStats(db: Db, after?: string): IndexStats {
+  return (
+    db
+      .select({ indexed: count(transcripts.recordingId), total: count() })
+      .from(recordings)
+      .leftJoin(transcripts, eq(transcripts.recordingId, recordings.id))
+      .where(after ? gte(recordings.startDatetime, after) : undefined)
+      .get() ?? { indexed: 0, total: 0 }
+  );
 }
 
 export function recordingsMissingTranscript(db: Db, after: string, limit = 50): string[] {
