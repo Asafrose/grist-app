@@ -20,6 +20,7 @@ import {
   useFilterTitle,
 } from "@/lib/filters";
 import { useDb, useLibraryVersion } from "@/lib/library";
+import { useMe } from "@/lib/me";
 import { cn } from "@/lib/utils";
 import { getWorkspace } from "@/lib/workspace";
 import { useColors } from "@/theme";
@@ -166,9 +167,10 @@ export function Filters() {
     () => workspace.users.map((u) => ({ id: u.id, name: u.name, count: 0 })),
     [workspace.users],
   );
+  const meEmail = useMe()?.email ?? null;
   const count = useMemo(
-    () => countRecordings(db, toQuery({ ...draft, title }, { meId: workspace.meId })),
-    [db, draft, title, workspace.meId, version],
+    () => countRecordings(db, toQuery({ ...draft, title }, { meEmail })),
+    [db, draft, title, meEmail, version],
   );
 
   const patch = (p: Partial<SheetFilters>) => setDraft((d) => ({ ...d, ...p }));

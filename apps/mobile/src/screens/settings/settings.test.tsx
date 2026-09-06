@@ -78,7 +78,7 @@ describe("Settings", () => {
       expect(screen.getByText(title)).toBeOnTheScreen();
     }
     expect(await screen.findByText("Marcus Kowalski")).toBeOnTheScreen();
-    expect(screen.getByText(/marcus\.kowalski@treyresearch\.example · 6 people/)).toBeOnTheScreen();
+    expect(screen.getByText(/marcus\.kowalski@treyresearch\.example/)).toBeOnTheScreen();
     expect(screen.getByTestId("index-size")).toHaveTextContent("24 meetings · 0 B");
     expect(screen.getByTestId("downloads-size")).toHaveTextContent("0 meetings · 0 B");
     expect(screen.getByTestId("token-masked")).toHaveTextContent("demo••••");

@@ -214,6 +214,25 @@ describe("recordings", () => {
     expect(types.reduce((n, t) => n + t.count, 0)).toBe(recs.filter((r) => r.meeting_type).length);
   });
 
+  it("filters recordings and highlights by an attendee email, case-insensitively", () => {
+    const db = testDb();
+    upsertRecordings(db, [...recs, clips], NOW);
+    const email = recs[0].participants![0].email!;
+    const mine = listRecordings(db, { participantEmail: email.toUpperCase() });
+    expect(mine.length).toBeGreaterThan(0);
+    for (const r of mine) {
+      const detail = getRecording(db, r.id)!;
+      expect(detail.participants.some((p) => p.email?.toLowerCase() === email.toLowerCase())).toBe(
+        true,
+      );
+    }
+    expect(listRecordings(db, { participantEmail: "nobody@nowhere.example" })).toEqual([]);
+    const clipEmail = clips.participants![0].email!;
+    const hits = highlightsQuery(db, { participantEmail: clipEmail }).all();
+    expect(hits.length).toBe(clips.highlights!.length);
+    expect(highlightsQuery(db, { participantEmail: "nobody@nowhere.example" }).all()).toEqual([]);
+  });
+
   it("deletes and prunes with children and search rows", () => {
     const db = testDb();
     upsertRecordings(db, recs, NOW);

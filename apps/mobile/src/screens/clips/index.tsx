@@ -10,7 +10,7 @@ import { Text } from "@/components/ui/text";
 import { type ClipRow, highlightsQuery, teamsQuery } from "@/lib/db";
 import { formatClock, formatShortDate } from "@/lib/format";
 import { library, useDb, useLibraryVersion, useSyncError, useSyncStatus } from "@/lib/library";
-import { type Me, useMe } from "@/lib/me";
+import { useMe, useMeStatus } from "@/lib/me";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 
@@ -104,14 +104,16 @@ function ClipCard({ item }: { item: ClipRow }) {
   );
 }
 
-function Empty({ filter, me, syncing }: { filter: ClipsFilter; me: Me; syncing: boolean }) {
+function Empty({ filter, syncing }: { filter: ClipsFilter; syncing: boolean }) {
+  const me = useMe();
+  const status = useMeStatus();
   const title = syncing
     ? "Syncing your clips…"
     : filter.kind !== "mine"
       ? "No clips yet"
-      : me.status === "loading"
+      : status === "loading" || status === "idle"
         ? "Finding your meetings…"
-        : me.id
+        : me
           ? "No clips from your meetings yet"
           : "Couldn't tell which meetings are yours";
   return (
@@ -135,13 +137,13 @@ export function Clips() {
   const [limit, setLimit] = useState(CLIPS_PAGE);
 
   const { data: teams } = useLiveQuery(teamsQuery(db), [version]);
-  const recorderId = filter.kind === "mine" ? (me.id ?? "none") : undefined;
+  const participantEmail = filter.kind === "mine" ? (me?.email ?? "nobody@") : undefined;
   const teamId = filter.kind === "team" ? filter.id : undefined;
-  const { data } = useLiveQuery(highlightsQuery(db, { limit, teamId, recorderId }), [
+  const { data } = useLiveQuery(highlightsQuery(db, { limit, teamId, participantEmail }), [
     version,
     limit,
     teamId,
-    recorderId,
+    participantEmail,
   ]);
 
   const select = (next: ClipsFilter) => {
@@ -205,7 +207,7 @@ export function Clips() {
         refreshControl={
           <RefreshControl refreshing={sync === "syncing"} onRefresh={() => library.refresh(true)} />
         }
-        ListEmptyComponent={<Empty filter={filter} me={me} syncing={sync === "syncing"} />}
+        ListEmptyComponent={<Empty filter={filter} syncing={sync === "syncing"} />}
       />
     </View>
   );

@@ -1,7 +1,7 @@
 import { GRAIN_TOKEN_SETTINGS_URL } from "@grist/grain-api";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
-import { Children, isValidElement, type ReactNode, useEffect, useState } from "react";
+import { Children, isValidElement, type ReactNode, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
@@ -11,8 +11,10 @@ import { Text } from "@/components/ui/text";
 import { auth, useAuthToken } from "@/lib/auth";
 import { clearIndex, type Db } from "@/lib/db";
 import { makeClient, tokenErrorMessage } from "@/lib/grain";
-import { library, useDb } from "@/lib/library";
-import { initials, loadProfile, type Profile } from "@/lib/profile";
+import { library, useDb, useLibraryVersion } from "@/lib/library";
+import { me as identity, useMe, useMeStatus } from "@/lib/me";
+import { initials } from "@/lib/meeting";
+import { getWorkspace } from "@/lib/workspace";
 import {
   DOWNLOAD_CAPS_BYTES,
   KEEP_DOWNLOADS_DAYS,
@@ -211,57 +213,79 @@ function useStorageStats(db: Db) {
   return stats;
 }
 
-function ProfileCard({ token }: { token: string }) {
+function ProfileCard() {
   const db = useDb();
   const colors = useColors();
-  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  const version = useLibraryVersion();
+  const me = useMe();
+  const status = useMeStatus();
+  const users = useMemo(() => getWorkspace(db).users, [db, version]);
+  const [picking, setPicking] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = () =>
-      loadProfile(db, token)
-        .then((p) => {
-          if (!cancelled) setProfile(p);
-        })
-        .catch(() => {
-          if (!cancelled) setProfile(null);
-        });
-    load();
-    const unsubscribe = library.onChange(load);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [db, token]);
-
-  const name = profile?.name ?? (profile === undefined ? "Loading profile…" : "Grain workspace");
-  const detail = profile
-    ? [profile.email, `${profile.userCount} people`].filter(Boolean).join(" · ")
-    : profile === undefined
+  const name =
+    me?.name ?? (status === "loading" || status === "idle" ? "Finding you…" : "Who are you?");
+  const detail = me
+    ? [me.email, users.length ? `${users.length} people` : null].filter(Boolean).join(" · ")
+    : status === "loading" || status === "idle"
       ? " "
-      : "Profile unavailable right now";
+      : "Tap to pick yourself from the workspace";
 
   return (
-    <View
-      testID="profile-card"
-      className="flex-row items-center gap-3.5 rounded-lg border border-border bg-card p-3.5"
-    >
-      <View
-        className="h-12 w-12 items-center justify-center rounded-full"
-        style={{ backgroundColor: colors.speakers[3] }}
+    <View className="gap-2">
+      <Pressable
+        testID="profile-card"
+        accessibilityRole="button"
+        onPress={() => setPicking((p) => !p)}
+        className="flex-row items-center gap-3.5 rounded-lg border border-border bg-card p-3.5 active:opacity-80"
       >
-        <Text className="font-jakarta-bold text-base text-white">
-          {profile ? initials(profile.name) : "·"}
-        </Text>
-      </View>
-      <View className="flex-1">
-        <Text testID="profile-name" className="font-jakarta-bold text-base" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text className="text-[13px] text-muted-foreground" numberOfLines={1}>
-          {detail}
-        </Text>
-      </View>
+        <View
+          className="h-12 w-12 items-center justify-center rounded-full"
+          style={{ backgroundColor: colors.speakers[3] }}
+        >
+          <Text className="font-jakarta-bold text-base text-white">
+            {me ? initials(me.name) : "·"}
+          </Text>
+        </View>
+        <View className="flex-1">
+          <Text testID="profile-name" className="font-jakarta-bold text-base" numberOfLines={1}>
+            {name}
+          </Text>
+          <Text className="text-[13px] text-muted-foreground" numberOfLines={1}>
+            {detail}
+          </Text>
+        </View>
+        <Icon name={picking ? "chevronDown" : "chevronRight"} size={16} color={colors.ink3} />
+      </Pressable>
+      {picking ? (
+        <View className="rounded-lg border border-border bg-card">
+          <Text className="px-3.5 pt-3 pb-1 font-jakarta-semibold text-[12px] uppercase tracking-[0.5px] text-subtle-foreground">
+            This is me
+          </Text>
+          <ScrollView nestedScrollEnabled style={{ maxHeight: 280 }}>
+            {users.map((u) => (
+              <Pressable
+                key={u.id}
+                testID={`me-option-${u.id}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: me?.email === u.email }}
+                onPress={() => {
+                  identity.choose(db, u);
+                  setPicking(false);
+                }}
+                className="flex-row items-center justify-between px-3.5 py-2.5 active:bg-secondary"
+              >
+                <View className="flex-1">
+                  <Text className="text-[15px]">{u.name}</Text>
+                  <Text className="text-[12px] text-muted-foreground">{u.email}</Text>
+                </View>
+                {me?.email === u.email ? (
+                  <Icon name="check" size={16} color={colors.accent} />
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -378,7 +402,7 @@ export function Settings() {
         </Text>
       </View>
 
-      <ProfileCard token={token} />
+      <ProfileCard />
 
       <Section title="Playback">
         <PickerRow

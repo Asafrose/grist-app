@@ -3,6 +3,7 @@ import { authStore } from "@/lib/auth";
 import { countRecordings, participantOptions } from "@/lib/db";
 import { defaultFilters, filters, sheetFilters, filtersStore } from "@/lib/filters";
 import { library, libraryReady, libraryStore } from "@/lib/library";
+import { DEMO_ME, resolveMe } from "@/lib/me";
 import { getWorkspace } from "@/lib/workspace";
 import { Filters } from "./index";
 
@@ -50,23 +51,24 @@ beforeAll(async () => {
   await library.refresh(true);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   mockBack.mockClear();
   filters.reset();
+  await resolveMe(db(), "demo");
 });
 
 const db = () => libraryStore.getState().db!;
-const me = () => getWorkspace(db()).meId!;
+const me = () => DEMO_ME.email;
 
 describe("Filters sheet", () => {
   it("shows a live count that follows the draft and applies on the button", async () => {
     await render(<Filters />);
-    const all = countRecordings(db(), { recorderId: me() });
+    const all = countRecordings(db(), { participantEmail: me() });
     expect(screen.getByText(`Show ${all} meetings`)).toBeOnTheScreen();
     expect(screen.getByTestId("scope-all")).toBeSelected();
 
     await fireEvent.press(screen.getByTestId("scope-external"));
-    const external = countRecordings(db(), { recorderId: me(), scope: "external" });
+    const external = countRecordings(db(), { participantEmail: me(), scope: "external" });
     expect(external).toBeLessThan(all);
     expect(screen.getByText(`Show ${external} meetings`)).toBeOnTheScreen();
     expect(filtersStore.getState().scope).toBe("all");

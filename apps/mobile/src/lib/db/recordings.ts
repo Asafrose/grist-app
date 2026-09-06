@@ -31,6 +31,7 @@ export type RecordingsFilter = {
   meetingTypeId?: string;
   title?: string;
   participant?: string;
+  participantEmail?: string;
   tag?: string;
   recorderId?: string;
   workspace?: boolean;
@@ -227,9 +228,13 @@ function filterClauses(f: RecordingsFilter): (SQL | undefined)[] {
     f.recorderId
       ? sql`EXISTS (SELECT 1 FROM json_each(${recordings.recorders}) WHERE json_extract(value, '$.id') = ${f.recorderId})`
       : undefined,
+    f.participantEmail ? attendedBy(f.participantEmail) : undefined,
     f.workspace ? eq(recordings.workspaceShared, true) : undefined,
   ];
 }
+
+const attendedBy = (email: string) =>
+  sql`EXISTS (SELECT 1 FROM ${participants} WHERE ${participants.recordingId} = ${recordings.id} AND lower(${participants.email}) = ${email.toLowerCase()})`;
 
 const externalEmails = sql<string>`(SELECT json_group_array(p.email) FROM participants p
   WHERE p.recording_id = recordings.id AND p.scope = 'external' AND p.email IS NOT NULL)`.as(
@@ -338,6 +343,7 @@ export type RecordingDetail = NonNullable<ReturnType<typeof getRecording>>;
 export type HighlightsFilter = {
   teamId?: string;
   recorderId?: string;
+  participantEmail?: string;
   limit?: number;
 };
 
@@ -348,6 +354,7 @@ export function highlightsQuery(db: Db, f: HighlightsFilter = {}) {
   const clauses: (SQL | undefined)[] = [
     f.teamId ? jsonHasId(recordings.teams, f.teamId) : undefined,
     f.recorderId ? jsonHasId(recordings.recorders, f.recorderId) : undefined,
+    f.participantEmail ? attendedBy(f.participantEmail) : undefined,
   ];
   return db
     .select({

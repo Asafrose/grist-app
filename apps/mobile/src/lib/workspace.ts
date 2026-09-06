@@ -11,13 +11,11 @@ import {
 export const META_USERS = "workspace_users";
 export const META_TEAMS = "workspace_teams";
 export const META_MEETING_TYPES = "workspace_meeting_types";
-export const META_ME = "me_user_id";
 
 export type Workspace = {
   users: User[];
   teams: Team[];
   meetingTypes: MeetingType[];
-  meId: string | null;
 };
 
 export type WorkspaceApi = Pick<GrainClient, "users" | "teams" | "meetingTypes">;
@@ -44,14 +42,6 @@ function cached<T>(db: Db, key: string): T[] | null {
   }
 }
 
-export function inferMe(db: Db): string | null {
-  return recorderOptions(db)[0]?.id ?? null;
-}
-
-export function setMe(db: Db, id: string): void {
-  setMeta(db, META_ME, id);
-}
-
 export function getWorkspace(db: Db): Workspace {
   return {
     users:
@@ -61,6 +51,5 @@ export function getWorkspace(db: Db): Workspace {
     meetingTypes:
       cached<MeetingType>(db, META_MEETING_TYPES) ??
       meetingTypeOptions(db).map(({ id, name, scope }) => ({ id, name, scope })),
-    meId: getMeta(db, META_ME) ?? inferMe(db),
   };
 }

@@ -1,13 +1,22 @@
-import type { Recording } from "@grist/grain-api";
+import type { Recording, RecordingsPage } from "@grist/grain-api";
 import page from "@grist/grain-api/fixtures/recordings.json";
 import users from "@grist/grain-api/fixtures/users.json";
-import { act, renderHook, waitFor } from "@testing-library/react-native";
+import { waitFor } from "@testing-library/react-native";
 import { authStore } from "@/lib/auth";
-import { getMeta, setMeta } from "@/lib/db";
-import { demoRecordings } from "@/lib/demo";
-import { makeClient } from "@/lib/grain";
-import { library, libraryReady, libraryStore } from "@/lib/library";
-import { demoMeId, lookupMe, META_ME, type MeApi, resolveMe, useMe } from "@/lib/me";
+import { getMeta } from "@/lib/db";
+import { libraryReady } from "@/lib/library";
+import {
+  cachedMe,
+  chooseMe,
+  DEMO_ME,
+  detectMe,
+  lookupMe,
+  type MeApi,
+  META_ME,
+  resetMe,
+  resolveMe,
+  meStore,
+} from "@/lib/me";
 import { testDb } from "@/test/db";
 
 jest.mock("expo-secure-store", () => ({
@@ -16,6 +25,7 @@ jest.mock("expo-secure-store", () => ({
   setItemAsync: jest.fn(async () => {}),
   deleteItemAsync: jest.fn(async () => {}),
 }));
+jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video", () => ({
   createVideoPlayer: jest.fn(() => ({
     addListener: jest.fn(),
@@ -24,111 +34,174 @@ jest.mock("expo-video", () => ({
 }));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
-  getNetworkStateAsync: jest.fn(async () => ({ type: "CELLULAR" })),
+  getNetworkStateAsync: jest.fn(async () => ({ type: "WIFI" })),
 }));
 jest.mock("@/lib/db/open", () => ({
   openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
 }));
-jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
-jest.mock("drizzle-orm/expo-sqlite", () => ({
-  useLiveQuery: (query: { all: () => unknown[] }, deps: unknown[]) => ({
-    data: jest.requireActual("react").useMemo(() => query.all(), deps),
-  }),
-}));
 
 const recs = page.recordings as Recording[];
-const hostedBy = (id: string) => recs.filter((r) => r.recorders.some((rec) => rec.id === id));
-const marcus = recs[0].recorders[0].id;
 
-function fakeApi(hosted: Recording[], userList = users.users): MeApi {
+function attendedBy(email: string, count = 3): Recording[] {
+  return recs.slice(0, count).map((r, i) => ({
+    ...r,
+    id: `att-${i}`,
+    participants: [
+      ...(r.participants ?? []).slice(0, 2),
+      { id: `me-${i}`, name: "Asaf R", email, scope: "internal", confirmed_attendee: true },
+    ],
+  }));
+}
+
+function fakeApi(attended: Recording[], workspaceUsers = users.users) {
+  const iterate = jest.fn(async function* () {
+    const half = Math.ceil(attended.length / 2);
+    yield { cursor: "c", recordings: attended.slice(0, half) } as RecordingsPage;
+    yield { cursor: null, recordings: attended.slice(half) } as RecordingsPage;
+  });
+  const list = jest.fn(async () => ({ users: workspaceUsers }));
   return {
-    recordings: { list: jest.fn(async () => ({ cursor: null, recordings: hosted })) },
-    users: { list: jest.fn(async () => ({ users: userList })) },
-  } as unknown as MeApi;
+    api: { recordings: { iterate }, users: { list } } as unknown as MeApi,
+    iterate,
+    list,
+  };
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  (makeClient as jest.Mock).mockImplementation(() => fakeApi(hostedBy(marcus)));
+  resetMe();
+  authStore.setState({ status: "signed-in", token: "pat" });
+});
+
+describe("detectMe", () => {
+  it("returns the one address present in every attended meeting", () => {
+    expect(
+      detectMe([
+        ["a@x.io", "Me@X.io", "c@x.io"],
+        ["me@x.io", "d@y.io"],
+        ["", "me@x.io ", "a@x.io"],
+      ]),
+    ).toBe("me@x.io");
+  });
+
+  it("gives up when nobody or more than one person is in every meeting", () => {
+    expect(detectMe([])).toBeNull();
+    expect(detectMe([["a@x.io"], ["b@x.io"]])).toBeNull();
+    expect(
+      detectMe([
+        ["a@x.io", "b@x.io"],
+        ["a@x.io", "b@x.io"],
+      ]),
+    ).toBeNull();
+    expect(detectMe([[], []])).toBeNull();
+  });
 });
 
 describe("lookupMe", () => {
-  it("picks the most frequent recorder of the recordings the user hosted", async () => {
-    const api = fakeApi(recs);
-    expect(await lookupMe(api)).toBe(marcus);
-    expect(api.recordings.list).toHaveBeenCalledWith({ filter: { attendance: "hosted" } });
-    expect(api.users.list).not.toHaveBeenCalled();
+  it("intersects attended participants and enriches from the users list", async () => {
+    const target = users.users[0];
+    const { api, iterate, list } = fakeApi(attendedBy(target.email));
+    const me = await lookupMe(api);
+    expect(me).toEqual({
+      email: target.email,
+      name: target.name,
+      userId: target.id,
+      source: "detected",
+    });
+    expect(iterate).toHaveBeenCalledWith({
+      filter: { attendance: "attended" },
+      include: { participants: true },
+    });
+    expect(list).toHaveBeenCalled();
   });
 
-  it("falls back to the only workspace user when nothing was hosted", async () => {
-    expect(await lookupMe(fakeApi([], users.users.slice(0, 1)))).toBe(users.users[0].id);
-    expect(await lookupMe(fakeApi([]))).toBeNull();
+  it("falls back to the participant name when the user list does not know the address", async () => {
+    const { api } = fakeApi(attendedBy("someone@else.example"), []);
+    expect(await lookupMe(api)).toEqual({
+      email: "someone@else.example",
+      name: "Asaf R",
+      userId: null,
+      source: "detected",
+    });
+  });
+
+  it("returns null when no single attendee is common", async () => {
+    const { api } = fakeApi(recs.slice(0, 3));
+    expect(await lookupMe(api)).toBeNull();
   });
 });
 
 describe("resolveMe", () => {
-  it("uses the first seeded recorder for the demo account and caches it", async () => {
+  it("caches the detected identity in meta and in the store", async () => {
     const db = testDb();
-    const id = await resolveMe(db, "demo");
-    expect(id).toBe(demoRecordings()[0].recorders[0].id);
-    expect(id).toBe(demoMeId());
-    expect(getMeta(db, META_ME)).toBe(id);
-    expect(makeClient).not.toHaveBeenCalled();
+    const target = users.users[1];
+    const { api, iterate } = fakeApi(attendedBy(target.email));
+    const me = await resolveMe(db, "pat", api);
+    expect(me?.email).toBe(target.email);
+    expect(cachedMe(db)).toEqual(me);
+    expect(meStore.getState()).toEqual({ me, status: "ready" });
+
+    resetMe();
+    expect(await resolveMe(db, "pat", api)).toEqual(me);
+    expect(iterate).toHaveBeenCalledTimes(1);
   });
 
-  it("returns the cached id without touching the API", async () => {
+  it("uses the fixture identity in demo mode without calling the API", async () => {
     const db = testDb();
-    setMeta(db, META_ME, "cached");
-    const api = fakeApi(recs);
-    expect(await resolveMe(db, "pat", api)).toBe("cached");
-    expect(api.recordings.list).not.toHaveBeenCalled();
+    const { api, iterate } = fakeApi([]);
+    expect(await resolveMe(db, "demo", api)).toEqual(DEMO_ME);
+    expect(iterate).not.toHaveBeenCalled();
+    expect(JSON.parse(getMeta(db, META_ME)!)).toEqual(DEMO_ME);
   });
 
-  it("looks the id up for a real token and does not cache a miss", async () => {
+  it("records an error state when the lookup throws and null when it finds nobody", async () => {
     const db = testDb();
-    expect(await resolveMe(db, "pat", fakeApi([]))).toBeNull();
-    expect(getMeta(db, META_ME)).toBeNull();
-    expect(await resolveMe(db, "pat")).toBe(marcus);
-    expect(makeClient).toHaveBeenCalledWith("pat");
-    expect(getMeta(db, META_ME)).toBe(marcus);
+    const failing = {
+      recordings: {
+        iterate: async function* () {
+          yield* [];
+          throw new Error("offline");
+        },
+      },
+      users: { list: async () => ({ users: [] }) },
+    } as unknown as MeApi;
+    expect(await resolveMe(db, "pat", failing)).toBeNull();
+    expect(meStore.getState().status).toBe("error");
+
+    resetMe();
+    const { api } = fakeApi(recs.slice(0, 3));
+    expect(await resolveMe(db, "pat", api)).toBeNull();
+    expect(meStore.getState()).toEqual({ me: null, status: "ready" });
+    expect(cachedMe(db)).toBeNull();
+  });
+
+  it("ignores a corrupt cache entry", () => {
+    const db = testDb();
+    const { setMeta } = jest.requireActual("@/lib/db");
+    setMeta(db, META_ME, "{nope");
+    expect(cachedMe(db)).toBeNull();
+    setMeta(db, META_ME, JSON.stringify({ email: 1 }));
+    expect(cachedMe(db)).toBeNull();
   });
 });
 
-describe("useMe", () => {
-  it("resolves once the library is open and follows the signed-in token", async () => {
-    await libraryReady;
-    authStore.setState({ status: "signed-out", token: null });
-    const { result } = await renderHook(() => useMe());
-    await waitFor(() => expect(result.current).toEqual({ id: null, status: "ready" }));
-
-    await act(async () => authStore.setState({ status: "signed-in", token: "pat" }));
-    await waitFor(() => expect(result.current).toEqual({ id: marcus, status: "ready" }));
-    expect(getMeta(libraryStore.getState().db!, META_ME)).toBe(marcus);
+describe("chooseMe", () => {
+  it("overrides the detected identity and survives a store reset", async () => {
+    const db = testDb();
+    const picked = chooseMe(db, users.users[2]);
+    expect(picked.source).toBe("chosen");
+    expect(meStore.getState().me).toEqual(picked);
+    resetMe();
+    const { api, iterate } = fakeApi(attendedBy("other@x.io"));
+    expect(await resolveMe(db, "pat", api)).toEqual(picked);
+    expect(iterate).not.toHaveBeenCalled();
   });
+});
 
-  it("reads a cached id straight from the database and drops it when the library is cleared", async () => {
+describe("library refresh", () => {
+  it("resolves the identity as part of signing in", async () => {
     await libraryReady;
-    await library.clear();
-    setMeta(libraryStore.getState().db!, META_ME, "cached-me");
-    authStore.setState({ status: "signed-in", token: "pat" });
-    const { result } = await renderHook(() => useMe());
-    expect(result.current).toEqual({ id: "cached-me", status: "ready" });
-    expect(makeClient).not.toHaveBeenCalled();
-
-    await act(() => library.clear());
-    await waitFor(() => expect(result.current).toEqual({ id: marcus, status: "ready" }));
-  });
-
-  it("reports an error when the lookup fails", async () => {
-    await libraryReady;
-    await library.clear();
-    (makeClient as jest.Mock).mockImplementation(() => ({
-      recordings: { list: jest.fn(async () => Promise.reject(new Error("offline"))) },
-      users: { list: jest.fn() },
-    }));
-    authStore.setState({ status: "signed-in", token: "pat2" });
-    const { result } = await renderHook(() => useMe());
-    await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.id).toBeNull();
+    authStore.setState({ status: "signed-in", token: "demo" });
+    await waitFor(() => expect(meStore.getState().status).toBe("ready"));
+    expect(meStore.getState().me).toEqual(DEMO_ME);
   });
 });

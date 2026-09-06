@@ -20,6 +20,7 @@ import { type RecordingListRow, recordingsQuery } from "@/lib/db";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { formatDurationCompact, formatTime } from "@/lib/format";
 import { library, useDb, useLibraryVersion, useSyncError, useSyncStatus } from "@/lib/library";
+import { useMe } from "@/lib/me";
 import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
@@ -151,7 +152,8 @@ export function Meetings() {
   const state = useFilters();
 
   const workspace = useMemo(() => getWorkspace(db), [db, version]);
-  const filter = useMemo(() => toQuery(state, { meId: workspace.meId }), [state, workspace.meId]);
+  const meEmail = useMe()?.email ?? null;
+  const filter = useMemo(() => toQuery(state, { meEmail }), [state, meEmail]);
   const { data, updatedAt } = useLiveQuery(recordingsQuery(db, filter), [version, filter]);
   const items = useMemo(() => groupByDay(data ?? []), [data]);
   const [pulling, setPulling] = useState(false);

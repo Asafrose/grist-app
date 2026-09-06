@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { authStore } from "@/lib/auth";
 import { countRecordings, listRecordings } from "@/lib/db";
 import { formatDayLabel } from "@/lib/format";
+import { DEMO_ME, resolveMe } from "@/lib/me";
 import { defaultFilters, filters, filtersStore } from "@/lib/filters";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { getWorkspace } from "@/lib/workspace";
@@ -48,10 +49,10 @@ beforeEach(() => {
 const db = () => libraryStore.getState().db!;
 
 describe("Meetings", () => {
-  it("groups the signed-in recorder's meetings by day with row details", async () => {
+  it("groups the signed-in user's meetings by day with row details", async () => {
+    await resolveMe(db(), "demo");
     await render(<Meetings />);
-    const me = getWorkspace(db()).meId!;
-    const mine = listRecordings(db(), { recorderId: me });
+    const mine = listRecordings(db(), { participantEmail: DEMO_ME.email });
     expect(mine.length).toBeGreaterThan(0);
     const labels = new Set(mine.map((r) => formatDayLabel(r.startDatetime).toUpperCase()));
     for (const label of labels) expect(screen.getAllByText(label).length).toBeGreaterThan(0);
@@ -101,7 +102,7 @@ describe("Meetings", () => {
     await fireEvent.press(screen.getByTestId("open-filters"));
     expect(mockPush).toHaveBeenCalledTimes(2);
     expect(
-      countRecordings(db(), { scope: "external", recorderId: getWorkspace(db()).meId! }),
+      countRecordings(db(), { scope: "external", participantEmail: DEMO_ME.email }),
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("External").length).toBeGreaterThan(1);
     expect(screen.queryByText("Internal")).toBeNull();

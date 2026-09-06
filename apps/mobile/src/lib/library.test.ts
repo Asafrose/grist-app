@@ -28,6 +28,7 @@ jest.mock("@/lib/db/open", () => ({
   openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/me", () => ({ me: { resolve: jest.fn(async () => null), reset: jest.fn() } }));
 
 const recs = (page.recordings as Recording[]).slice(0, 2);
 const iterate = jest.fn(async function* () {

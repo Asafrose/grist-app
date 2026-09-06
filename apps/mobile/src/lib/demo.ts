@@ -11,6 +11,13 @@ export const DEMO_TOKEN = "demo";
 export const DEMO_MEDIA_URL =
   "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8";
 
+export const DEMO_ME = {
+  email: "marcus.kowalski@treyresearch.example",
+  name: "Marcus Kowalski",
+  userId: "08b3f69b-b374-41b5-a3bc-b7fef590fc0f" as string | null,
+  source: "detected" as const,
+};
+
 export function isDemoToken(token: string | null | undefined): boolean {
   return token === DEMO_TOKEN;
 }
@@ -49,9 +56,25 @@ export function demoRecordings(now = Date.now()): Recording[] {
     const title = isInternal
       ? `${internal[i % internal.length]}`
       : `${customers[i % customers.length]} / Northwind: ${topics[i % topics.length]}`;
-    const participants = (base.participants ?? []).map((p) =>
-      isInternal ? { ...p, scope: "internal" } : p,
-    );
+    const attendsAsMe = i % 5 !== 4;
+    const baseParticipants = base.participants ?? [];
+    const hasMe = baseParticipants.some((p) => p.email === DEMO_ME.email);
+    const withMe =
+      attendsAsMe && !hasMe
+        ? [
+            ...baseParticipants,
+            {
+              id: DEMO_ME.userId ?? "demo-me",
+              name: DEMO_ME.name,
+              email: DEMO_ME.email,
+              scope: "internal",
+              confirmed_attendee: true,
+            },
+          ]
+        : attendsAsMe
+          ? baseParticipants
+          : baseParticipants.filter((p) => p.email !== DEMO_ME.email);
+    const participants = withMe.map((p) => (isInternal ? { ...p, scope: "internal" } : p));
     const durationMs = base.duration_ms;
     return {
       ...base,

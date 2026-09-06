@@ -54,18 +54,24 @@ describe("filters store", () => {
 describe("toQuery", () => {
   const base: FilterState = { ...defaultFilters };
 
-  it("maps Mine to the signed-in recorder and drops it when unknown", () => {
-    expect(toQuery(base, { meId: "me", now: NOW })).toEqual({ recorderId: "me" });
-    expect(toQuery(base, { meId: null, now: NOW })).toEqual({});
-    expect(toQuery({ ...base, recorderId: "r2" }, { meId: "me", now: NOW }).recorderId).toBe("r2");
+  it("maps Mine to meetings the signed-in user attended and drops it when unknown", () => {
+    expect(toQuery(base, { meEmail: "me@x.io", now: NOW })).toEqual({
+      participantEmail: "me@x.io",
+    });
+    expect(toQuery(base, { meEmail: null, now: NOW })).toEqual({});
+    expect(
+      toQuery({ ...base, recorderId: "r2" }, { meEmail: "me@x.io", now: NOW }).recorderId,
+    ).toBe("r2");
   });
 
   it("maps Workspace and team views", () => {
-    expect(toQuery({ ...base, view: { kind: "workspace" } }, { meId: "me", now: NOW })).toEqual({
+    expect(
+      toQuery({ ...base, view: { kind: "workspace" } }, { meEmail: "me@x.io", now: NOW }),
+    ).toEqual({
       workspace: true,
     });
     expect(
-      toQuery({ ...base, view: { kind: "team", id: "t1" } }, { meId: "me", now: NOW }),
+      toQuery({ ...base, view: { kind: "team", id: "t1" } }, { meEmail: "me@x.io", now: NOW }),
     ).toEqual({ teamId: "t1" });
   });
 
@@ -81,7 +87,7 @@ describe("toQuery", () => {
         meetingTypeId: "mt1",
         recorderId: "r1",
       },
-      { meId: "me", now: NOW },
+      { meEmail: "me@x.io", now: NOW },
     );
     expect(q).toEqual({
       workspace: true,
@@ -92,7 +98,7 @@ describe("toQuery", () => {
       meetingTypeId: "mt1",
       recorderId: "r1",
     });
-    expect(toQuery({ ...base, title: "   " }, { meId: null, now: NOW }).title).toBeUndefined();
+    expect(toQuery({ ...base, title: "   " }, { meEmail: null, now: NOW }).title).toBeUndefined();
   });
 
   it("turns presets into an after bound and custom ranges into day bounds", () => {
@@ -111,7 +117,7 @@ describe("toQuery", () => {
       after: undefined,
       before: undefined,
     });
-    expect(toQuery({ ...base, date: { preset: "90d" } }, { meId: null, now: NOW }).after).toBe(
+    expect(toQuery({ ...base, date: { preset: "90d" } }, { meEmail: null, now: NOW }).after).toBe(
       new Date(NOW - 90 * DAY).toISOString(),
     );
   });

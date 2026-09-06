@@ -85,7 +85,7 @@ export function dateBounds(
 
 export function toQuery(
   f: FilterState,
-  ctx: { meId: string | null; now?: number },
+  ctx: { meEmail: string | null; now?: number },
 ): RecordingsFilter {
   const q: RecordingsFilter = {
     ...dateBounds(f.date, ctx.now ?? Date.now()),
@@ -98,7 +98,7 @@ export function toQuery(
   };
   if (f.view.kind === "team") q.teamId = f.view.id;
   if (f.view.kind === "workspace") q.workspace = true;
-  if (f.view.kind === "mine" && ctx.meId) q.recorderId = f.recorderId ?? ctx.meId;
+  if (f.view.kind === "mine" && ctx.meEmail) q.participantEmail = ctx.meEmail;
   return q;
 }
 

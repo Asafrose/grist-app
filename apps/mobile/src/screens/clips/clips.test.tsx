@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { authStore } from "@/lib/auth";
-import { highlightsQuery, listTeams } from "@/lib/db";
+import { highlightsQuery, listTeams, listRecordings } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
 import { library, libraryReady, libraryStore } from "@/lib/library";
-import { demoMeId } from "@/lib/me";
+import { DEMO_ME, resolveMe } from "@/lib/me";
 import { fireEvent, render, screen, waitFor, within } from "@/test/render";
 import { Clips, clipHref } from "./index";
 
@@ -78,19 +78,20 @@ describe("Clips", () => {
     for (const t of teams) expect(screen.getByText(t.name)).toBeOnTheScreen();
   });
 
-  it("Mine keeps only clips whose recording was recorded by the signed-in user", async () => {
+  it("Mine keeps only clips from meetings the signed-in user attended", async () => {
+    await resolveMe(db(), "demo");
     await render(<Clips />);
-    const me = demoMeId()!;
     await waitFor(() => expect(screen.getByTestId("chip-mine")).toBeOnTheScreen());
     await fireEvent.press(screen.getByTestId("chip-mine"));
     expect(screen.getByTestId("chip-mine")).toBeSelected();
 
-    const mine = highlightsQuery(db(), { recorderId: me }).all();
+    const mine = highlightsQuery(db(), { participantEmail: DEMO_ME.email }).all();
     expect(mine.length).toBeGreaterThan(0);
     await waitFor(() => expect(screen.getAllByTestId(/^clip-/)).toHaveLength(mine.length));
-    for (const c of mine) {
-      expect(c.recorders.some((r) => r.id === me)).toBe(true);
-    }
+    const attended = new Set(
+      listRecordings(db(), { participantEmail: DEMO_ME.email }).map((r) => r.id),
+    );
+    for (const c of mine) expect(attended.has(c.highlight.recordingId)).toBe(true);
 
     await fireEvent.press(screen.getByTestId("chip-workspace"));
     await waitFor(() =>

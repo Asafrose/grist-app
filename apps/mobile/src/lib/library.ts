@@ -6,6 +6,7 @@ import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
+import { me } from "@/lib/me";
 import { playback } from "@/lib/player";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, type RecordingsApi, syncLibrary } from "@/lib/sync";
@@ -55,11 +56,13 @@ async function refresh(force = false): Promise<void> {
   inflight = (async () => {
     try {
       if (isDemoToken(token)) {
+        void me.resolve(db, token);
         seedDemo(db);
         bump({ sync: "idle", lastSyncAt: new Date().toISOString() });
         return;
       }
       const client = makeClient(token);
+      void me.resolve(db, token, client);
       const api = client.recordings;
       await syncLibrary(db, api, { onPage: () => bump() });
       await syncWorkspace(db, client).catch(() => undefined);
@@ -113,6 +116,7 @@ async function clear(): Promise<void> {
   if (!db) return;
   playback.stop();
   thumbnails.clear();
+  me.reset();
   clearAll(db);
   persistSettings();
   lastRunAt = 0;
