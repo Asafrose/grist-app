@@ -57,7 +57,7 @@ async function refresh(force = false): Promise<void> {
       }
       const client = makeClient(token);
       const api = client.recordings;
-      await syncLibrary(db, api);
+      await syncLibrary(db, api, { onPage: bump });
       await syncWorkspace(db, client).catch(() => undefined);
       useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
       const net = await Network.getNetworkStateAsync();

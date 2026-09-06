@@ -116,6 +116,26 @@ describe("syncLibrary", () => {
   });
 });
 
+describe("progressive sync", () => {
+  it("writes each page as it arrives so the newest meetings show first", async () => {
+    const db = testDb();
+    const remote = [at(1, "a"), at(2, "b"), at(3, "c"), at(4, "d")];
+    const api = fakeApi(() => remote);
+    const counts: number[] = [];
+    const visible: number[] = [];
+    await syncLibrary(db, api, {
+      now: NOW,
+      onPage: (n) => {
+        counts.push(n);
+        visible.push(listRecordings(db).length);
+      },
+    });
+    expect(counts).toEqual([2, 4]);
+    expect(visible).toEqual([2, 4]);
+    expect(listRecordings(db).map((r) => r.id)).toEqual(["a", "b", "c", "d"]);
+  });
+});
+
 describe("refreshRecording", () => {
   it("fetches one recording with includes and upserts it", async () => {
     const db = testDb();

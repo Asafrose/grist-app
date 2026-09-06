@@ -161,9 +161,10 @@ describe("library store", () => {
     const start = useLibrary.getState().version;
     useAuth.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
-    expect(useLibrary.getState().version).toBe(start + 1);
+    const afterSync = useLibrary.getState().version;
+    expect(afterSync).toBeGreaterThan(start);
     await library.clear();
-    expect(useLibrary.getState().version).toBe(start + 2);
+    expect(useLibrary.getState().version).toBe(afterSync + 1);
   });
 
   it("wipes the database on sign-out", async () => {

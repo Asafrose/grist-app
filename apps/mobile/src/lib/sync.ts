@@ -1,4 +1,4 @@
-import type { GrainClient, Recording, RecordingInclude } from "@grist/grain-api";
+import type { GrainClient, RecordingInclude } from "@grist/grain-api";
 import {
   type Db,
   deleteRecordings,
@@ -36,11 +36,14 @@ export function isoSeconds(ms: number): string {
   return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
+export type SyncOptions = { now?: number; onPage?: (upserted: number) => void };
+
 export async function syncLibrary(
   db: Db,
   api: RecordingsApi,
-  now = Date.now(),
+  opts: SyncOptions | number = {},
 ): Promise<SyncResult> {
+  const { now = Date.now(), onPage } = typeof opts === "number" ? { now: opts } : opts;
   const windowStart = now - WINDOW_MS;
   const lastSync = getMeta(db, META_LAST_SYNC);
   const lastReconcile = getMeta(db, META_LAST_RECONCILE);
@@ -49,20 +52,20 @@ export async function syncLibrary(
     ? windowStart
     : Math.max(windowStart, Date.parse(lastSync) - INCREMENTAL_OVERLAP_MS);
 
-  const fetched: Recording[] = [];
+  const stamp = isoSeconds(now);
+  const seen = new Set<string>();
   for await (const page of api.iterate({
     filter: { after_datetime: isoSeconds(after) },
     include: SYNC_INCLUDE,
   })) {
-    fetched.push(...page.recordings);
+    upsertRecordings(db, page.recordings, stamp);
+    for (const r of page.recordings) seen.add(r.id);
+    onPage?.(seen.size);
   }
 
-  const stamp = isoSeconds(now);
-  upsertRecordings(db, fetched, stamp);
   let removed = pruneRecordingsBefore(db, isoSeconds(windowStart)).length;
 
   if (full) {
-    const seen = new Set(fetched.map((r) => r.id));
     const stale = recordingIds(db, isoSeconds(windowStart)).filter((id) => !seen.has(id));
     deleteRecordings(db, stale);
     removed += stale.length;
@@ -70,7 +73,7 @@ export async function syncLibrary(
   }
   setMeta(db, META_LAST_SYNC, stamp);
 
-  return { mode: full ? "full" : "incremental", upserted: fetched.length, removed };
+  return { mode: full ? "full" : "incremental", upserted: seen.size, removed };
 }
 
 export async function refreshRecording(db: Db, api: RecordingsApi, id: string, now = Date.now()) {
