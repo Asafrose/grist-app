@@ -3,10 +3,12 @@ import { authStore } from "@/lib/auth";
 import { listRecordings, listTeams, recordingsQuery, upsertRecordings } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
 import { library, libraryReady, libraryStore } from "@/lib/library";
+import { meStore } from "@/lib/me";
 import { getRecentSearches, RECENT_SEARCHES_MAX } from "@/lib/recent-searches";
 import { isoSeconds } from "@/lib/sync";
 import { currentDb, useLive, useSnapshot } from "./live";
 import {
+  identity,
   recentSearches,
   recordings,
   transcriptIndex,
@@ -354,6 +356,13 @@ describe("workspace and storage", () => {
     const { result } = await renderHook(() => useStorageStats());
     expect(result.current.index.meetings).toBe(all().length);
     expect(result.current.downloads).toEqual({ count: 0, bytes: 0 });
+  });
+});
+
+describe("identity", () => {
+  it("choose writes the picked user through the library db", async () => {
+    const picked = identity.choose({ id: "u9", name: "Pat", email: "pat@x.io" });
+    expect(meStore.getState().me).toEqual(picked);
   });
 });
 

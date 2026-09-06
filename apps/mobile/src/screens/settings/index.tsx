@@ -10,9 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { auth, useAuthToken } from "@/lib/auth";
 import { formatBytes } from "@/lib/format";
-import { transcriptIndex, useStorageStats, useWorkspace } from "@/lib/data";
+import { identity, transcriptIndex, useStorageStats, useWorkspace } from "@/lib/data";
 import { makeClient, tokenErrorMessage } from "@/lib/grain";
-import { me as identity, useMe, useMeStatus } from "@/lib/me";
+import { useMe, useMeStatus } from "@/lib/me";
 import { initials } from "@/lib/meeting";
 import {
   DOWNLOAD_CAPS_BYTES,

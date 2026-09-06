@@ -1,8 +1,7 @@
 import type { GrainClient, User } from "@grist/grain-api";
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import { type Db, getMeta, setMeta } from "@/lib/db";
 import { DEMO_ME, isDemoToken } from "@/lib/demo";
-import { currentDb } from "@/lib/data/live";
 import { makeClient } from "@/lib/grain";
 
 export const META_ME = "me";
@@ -23,8 +22,8 @@ type MeState = { me: Me | null; status: "idle" | "loading" | "ready" | "error" }
 
 export const meStore = create<MeState>(() => ({ me: null, status: "idle" }));
 
-export const useMe = () => meStore((s) => s.me);
-export const useMeStatus = () => meStore((s) => s.status);
+export const useMe = () => useStore(meStore, (s) => s.me);
+export const useMeStatus = () => useStore(meStore, (s) => s.status);
 
 export function detectMe(participantEmails: string[][]): string | null {
   const sets = participantEmails
@@ -114,7 +113,7 @@ export async function resolveMe(db: Db, token: string, api?: MeApi): Promise<Me 
   return run;
 }
 
-export function chooseMe(user: Pick<User, "id" | "name" | "email">, db = currentDb()): Me {
+export function chooseMe(db: Db, user: Pick<User, "id" | "name" | "email">): Me {
   const me: Me = { email: user.email, name: user.name, userId: user.id, source: "chosen" };
   remember(db, me);
   return me;

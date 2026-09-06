@@ -1,6 +1,6 @@
 import * as Network from "expo-network";
 import { AppState } from "react-native";
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import { auth, authStore } from "@/lib/auth";
 import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
@@ -147,12 +147,12 @@ AppState.addEventListener("change", (state) => {
   if (state === "active") void refresh();
 });
 
-export const useLibraryVersion = () => libraryStore((s) => s.version);
-export const useSyncStatus = () => libraryStore((s) => s.sync);
-export const useSyncError = () => libraryStore((s) => s.error);
+export const useLibraryVersion = () => useStore(libraryStore, (s) => s.version);
+export const useSyncStatus = () => useStore(libraryStore, (s) => s.sync);
+export const useSyncError = () => useStore(libraryStore, (s) => s.error);
 
 export function useDb(): Db {
-  const db = libraryStore((s) => s.db);
+  const db = useStore(libraryStore, (s) => s.db);
   if (!db) throw new Error("useDb called before libraryReady resolved");
   return db;
 }

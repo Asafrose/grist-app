@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import type { RecordingsFilter } from "@/lib/db";
 
 export type View = { kind: "mine" } | { kind: "workspace" } | { kind: "team"; id: string };
@@ -33,8 +33,8 @@ export const defaultFilters: FilterState = {
 
 export const filtersStore = create<FilterState>(() => defaultFilters);
 
-export const useFilters = () => filtersStore();
-export const useFilterTitle = () => filtersStore((s) => s.title);
+export const useFilters = () => useStore(filtersStore);
+export const useFilterTitle = () => useStore(filtersStore, (s) => s.title);
 
 export const filters = {
   setTitle: (title: string) => filtersStore.setState({ title }),

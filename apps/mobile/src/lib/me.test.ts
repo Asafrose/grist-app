@@ -187,7 +187,7 @@ describe("resolveMe", () => {
 describe("chooseMe", () => {
   it("overrides the detected identity and survives a store reset", async () => {
     const db = testDb();
-    const picked = chooseMe(users.users[2], db);
+    const picked = chooseMe(db, users.users[2]);
     expect(picked.source).toBe("chosen");
     expect(meStore.getState().me).toEqual(picked);
     resetMe();

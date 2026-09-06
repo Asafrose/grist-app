@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 
 export const TOKEN_KEY = "grain_pat";
 
@@ -38,5 +38,5 @@ export const auth = {
   token: () => authStore.getState().token,
 };
 
-export const useAuthToken = () => authStore((s) => s.token);
-export const useSignedIn = () => authStore((s) => s.status === "signed-in");
+export const useAuthToken = () => useStore(authStore, (s) => s.token);
+export const useSignedIn = () => useStore(authStore, (s) => s.status === "signed-in");

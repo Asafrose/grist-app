@@ -1,7 +1,7 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { getThumbnailAsync } from "expo-video-thumbnails";
 import { useEffect } from "react";
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
@@ -122,7 +122,7 @@ function whenIdle(): Promise<void> {
 export const thumbnails = { request, clear, whenIdle, pending: () => queue.length + active };
 
 export function useThumbnail({ id, mediaType, durationMs }: ThumbnailSubject) {
-  const uri = thumbnailsStore((s) => s.byId[id]);
+  const uri = useStore(thumbnailsStore, (s) => s.byId[id]);
   useEffect(() => {
     request({ id, mediaType, durationMs });
   }, [id, mediaType, durationMs]);

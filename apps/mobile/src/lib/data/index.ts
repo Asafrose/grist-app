@@ -18,6 +18,7 @@ export type {
 export type { StorageStats } from "@/lib/storage";
 export type { Workspace } from "@/lib/workspace";
 export * from "./clips";
+export * from "./identity";
 export * from "./recordings";
 export * from "./search";
 export * from "./storage";

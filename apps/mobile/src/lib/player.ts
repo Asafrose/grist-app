@@ -1,5 +1,5 @@
 import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video";
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
@@ -42,13 +42,13 @@ const initial: PlayerState = {
 
 export const playerStore = create<PlayerState>(() => initial);
 
-export const useNowPlaying = () => playerStore((s) => s.current);
-export const useIsCurrent = (id: string) => playerStore((s) => s.current?.id === id);
-export const usePlaybackStatus = () => playerStore((s) => s.status);
-export const usePlaybackError = () => playerStore((s) => s.error);
-export const useIsPlaying = () => playerStore((s) => s.playing);
-export const usePlaybackPosition = () => playerStore((s) => s.position);
-export const usePlaybackDuration = () => playerStore((s) => s.duration);
+export const useNowPlaying = () => useStore(playerStore, (s) => s.current);
+export const useIsCurrent = (id: string) => useStore(playerStore, (s) => s.current?.id === id);
+export const usePlaybackStatus = () => useStore(playerStore, (s) => s.status);
+export const usePlaybackError = () => useStore(playerStore, (s) => s.error);
+export const useIsPlaying = () => useStore(playerStore, (s) => s.playing);
+export const usePlaybackPosition = () => useStore(playerStore, (s) => s.position);
+export const usePlaybackDuration = () => useStore(playerStore, (s) => s.duration);
 export const usePlaybackRate = () => useSetting("playbackRate");
 
 export const player: VideoPlayer = createVideoPlayer(null);

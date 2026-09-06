@@ -121,6 +121,13 @@ non-interactive shells; the `nvm` shell function hangs there.
 - Single account per install (one PAT). OAuth2 PKCE later.
 - App state lives in zustand stores under `apps/mobile/src/lib`, one per domain (auth, library, filters, player, settings, thumbnails). Every store follows the same shape (see the `zustand` skill for the rules behind it):
   - `export const fooStore = create<FooState>(() => initial)` holds **state only**, no functions. It is imported only inside `src/lib` and in tests; an oxlint `no-restricted-imports` override rejects `*Store` imports from `src/screens`, `src/components` and `src/app`.
+  - **React Compiler is on** (`experiments.reactCompiler` in app.json). It only
+    treats `use*`-named calls as hooks, so a hook body must never call the bound
+    store directly (`fooStore((s) => s.x)` gets memoized as a pure call and
+    zustand's internal hooks vanish on re-render, crashing with a hooks-order
+    error). Always read through `useStore(fooStore, selector)` from `zustand`.
+    Jest does not run the compiler, so this class of bug only shows on device:
+    run the app after any change to hooks.
   - Reads go through exported atomic hooks, one value each: `useNowPlaying()`, `usePlaybackPosition()`, `useSyncStatus()`, `useSetting("playbackRate")`. Never `fooStore()` with no selector. The one whole-snapshot hook is `useFilters()`, because every field feeds the same query.
   - Writes go through a plain-object facade (`auth`, `library`, `filters`, `playback`, `settings`, `thumbnails`) usable outside React. Batch related fields in one `setState`; `library` bumps `version` in the same call as the status change.
   - Derived values are not mirrored: playback rate lives in settings and the player subscribes to it.

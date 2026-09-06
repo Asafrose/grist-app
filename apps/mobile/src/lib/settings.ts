@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import { type Db, getMeta, setMeta } from "@/lib/db";
 
 export const PLAYBACK_RATES = [1, 1.2, 1.5, 1.7, 2, 2.2, 2.5] as const;
@@ -77,7 +77,7 @@ export function writeSettings(db: Db, s: Settings): void {
 export const settingsStore = create<Settings>(() => DEFAULT_SETTINGS);
 
 export const useSetting = <K extends keyof Settings>(key: K): Settings[K] =>
-  settingsStore((s) => s[key]);
+  useStore(settingsStore, (s) => s[key]);
 
 let store: Db | null = null;
 
