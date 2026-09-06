@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { auth, useAuth } from "@/lib/auth";
 import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
+import { isDemoToken, seedDemo } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 import { playback } from "@/lib/player";
 import { META_LAST_SYNC, prefetchTranscripts, syncLibrary } from "@/lib/sync";
@@ -15,6 +16,7 @@ type LibraryState = {
   sync: "idle" | "syncing" | "error";
   lastSyncAt: string | null;
   error: string | null;
+  version: number;
 };
 
 export const useLibrary = create<LibraryState>(() => ({
@@ -22,7 +24,12 @@ export const useLibrary = create<LibraryState>(() => ({
   sync: "idle",
   lastSyncAt: null,
   error: null,
+  version: 0,
 }));
+
+function bump() {
+  useLibrary.setState((s) => ({ version: s.version + 1 }));
+}
 
 let inflight: Promise<void> | null = null;
 let lastRunAt = 0;
@@ -32,12 +39,20 @@ async function refresh(force = false): Promise<void> {
   const { db } = useLibrary.getState();
   const token = auth.token();
   if (!db || !token) return;
-  if (inflight) return inflight;
+  if (inflight) {
+    if (!force) return inflight;
+    await inflight;
+  }
   if (!force && Date.now() - lastRunAt < REFRESH_DEBOUNCE_MS) return;
 
   useLibrary.setState({ sync: "syncing", error: null });
   inflight = (async () => {
     try {
+      if (isDemoToken(token)) {
+        seedDemo(db);
+        useLibrary.setState({ sync: "idle", lastSyncAt: new Date().toISOString() });
+        return;
+      }
       const api = makeClient(token).recordings;
       await syncLibrary(db, api);
       useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
@@ -48,6 +63,7 @@ async function refresh(force = false): Promise<void> {
     } finally {
       lastRunAt = Date.now();
       inflight = null;
+      bump();
     }
   })();
   return inflight;
@@ -61,6 +77,7 @@ async function clear(): Promise<void> {
   clearAll(db);
   lastRunAt = 0;
   useLibrary.setState({ sync: "idle", lastSyncAt: null, error: null });
+  bump();
 }
 
 export const library = { refresh, clear };
@@ -75,9 +92,13 @@ export const libraryReady = hydrate().then(() => {
 });
 
 useAuth.subscribe((s, prev) => {
-  if (s.status === prev.status) return;
-  if (s.status === "signed-in") void refresh(true);
-  else if (prev.status === "signed-in") void clear();
+  if (s.token === prev.token) return;
+  const wasSignedIn = prev.status === "signed-in";
+  if (s.status === "signed-in") {
+    void (wasSignedIn ? clear() : Promise.resolve()).then(() => refresh(true));
+  } else if (wasSignedIn) {
+    void clear();
+  }
 });
 
 AppState.addEventListener("change", (state) => {

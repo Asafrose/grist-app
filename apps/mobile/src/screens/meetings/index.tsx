@@ -39,7 +39,8 @@ function Row({ item }: { item: RecordingRow }) {
 export function Meetings() {
   const db = useDb();
   const insets = useSafeAreaInsets();
-  const { data } = useLiveQuery(recordingsQuery(db));
+  const version = useLibrary((s) => s.version);
+  const { data } = useLiveQuery(recordingsQuery(db), [version]);
   const sync = useLibrary((s) => s.sync);
   const error = useLibrary((s) => s.error);
 

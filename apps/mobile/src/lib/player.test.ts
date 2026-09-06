@@ -30,7 +30,10 @@ jest.mock("expo-video", () => {
   return { createVideoPlayer: jest.fn(() => fake) };
 });
 
-type Fake = typeof player & { emit: (name: string, payload: unknown) => void };
+type Fake = typeof player & {
+  emit: (name: string, payload: unknown) => void;
+  replaceAsync: jest.Mock;
+};
 const fake = player as Fake;
 const resolveMediaUrl = jest.fn();
 (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
@@ -49,6 +52,7 @@ beforeEach(() => {
   useAuth.setState({ status: "signed-in", token: "pat" });
   playback.stop();
   playback.setRate(1);
+  fake.replaceAsync.mockClear();
 });
 
 describe("player store", () => {
@@ -90,6 +94,15 @@ describe("player store", () => {
     expect(usePlayer.getState().current?.id).toBe("r2");
   });
 
+  it("plays the public sample stream in demo mode without resolving a media url", async () => {
+    useAuth.setState({ status: "signed-in", token: "demo" });
+    await playback.load(rec);
+    expect(resolveMediaUrl).not.toHaveBeenCalled();
+    expect(fake.replaceAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: expect.stringContaining("devstreaming-cdn.apple.com") }),
+    );
+  });
+
   it("surfaces load failures without touching the player", async () => {
     resolveMediaUrl.mockRejectedValueOnce(new Error("offline"));
     await playback.load(rec);
@@ -121,7 +134,7 @@ describe("player store", () => {
     await playback.load(rec);
     playback.setRate(2);
     playback.stop();
-    expect(fake.replace).toHaveBeenCalledWith(null);
+    expect(fake.replaceAsync).toHaveBeenCalledWith(null);
     expect(usePlayer.getState()).toMatchObject({ current: null, status: "idle", rate: 2 });
   });
 });

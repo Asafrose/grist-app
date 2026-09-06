@@ -1,6 +1,7 @@
 import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video";
 import { create } from "zustand";
 import { auth } from "@/lib/auth";
+import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 
 export type NowPlaying = {
@@ -84,7 +85,9 @@ async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } =
     error: null,
   });
   try {
-    const uri = await makeClient(token).recordings.resolveMediaUrl(rec.id);
+    const uri = isDemoToken(token)
+      ? DEMO_MEDIA_URL
+      : await makeClient(token).recordings.resolveMediaUrl(rec.id);
     if (seq !== loadSeq) return;
     await player.replaceAsync({
       uri,
@@ -123,7 +126,7 @@ function toggle() {
 
 function stop() {
   loadSeq++;
-  player.replace(null);
+  void player.replaceAsync(null);
   usePlayer.setState({ ...initial, rate: usePlayer.getState().rate });
 }
 

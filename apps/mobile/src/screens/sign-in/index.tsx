@@ -15,6 +15,7 @@ import { Icon } from "@/components/icon";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { auth } from "@/lib/auth";
+import { DEMO_TOKEN } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
@@ -151,6 +152,18 @@ export function SignIn() {
         </Pressable>
 
         <View className="flex-1" />
+        {__DEV__ ? (
+          <Pressable
+            testID="demo-sign-in"
+            accessibilityRole="button"
+            onPress={() => auth.signIn(DEMO_TOKEN)}
+            className="self-center rounded-full border border-border px-3 py-1.5 active:opacity-70"
+          >
+            <Text className="font-jakarta-semibold text-xs text-muted-foreground">
+              Use demo data
+            </Text>
+          </Pressable>
+        ) : null}
         <Text className="pt-4 text-center text-xs text-muted-foreground">
           Open source · Not affiliated with Grain
         </Text>

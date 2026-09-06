@@ -1,0 +1,29 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- takeScreenshot: demo-meetings
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "player-start"
+- takeScreenshot: demo-meeting
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"

@@ -1,7 +1,7 @@
 import type { Recording } from "@grist/grain-api";
 import page from "@grist/grain-api/fixtures/recordings.json";
 import * as Network from "expo-network";
-import { renderHook } from "@testing-library/react-native";
+import { renderHook, waitFor } from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { useAuth } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
@@ -15,7 +15,10 @@ jest.mock("expo-secure-store", () => ({
   deleteItemAsync: jest.fn(async () => {}),
 }));
 jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({ addListener: jest.fn(), replace: jest.fn() })),
+  createVideoPlayer: jest.fn(() => ({
+    addListener: jest.fn(),
+    replaceAsync: jest.fn(async () => {}),
+  })),
 }));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
@@ -115,8 +118,51 @@ describe("library store", () => {
     expect(result.current).toBe(useLibrary.getState().db);
   });
 
+  it("seeds fixtures instead of syncing when signed in with the demo token", async () => {
+    await libraryReady;
+    await library.clear();
+    useAuth.setState({ status: "signed-in", token: "demo" });
+    await library.refresh(true);
+    expect(iterate).not.toHaveBeenCalled();
+    expect(listRecordings(useLibrary.getState().db!).length).toBeGreaterThanOrEqual(20);
+    expect(useLibrary.getState().sync).toBe("idle");
+  });
+
+  it("switching accounts wipes the previous account's data before syncing", async () => {
+    await libraryReady;
+    useAuth.setState({ status: "signed-in", token: "demo" });
+    await library.refresh(true);
+    expect(listRecordings(useLibrary.getState().db!).length).toBeGreaterThan(2);
+    useAuth.setState({ status: "signed-in", token: "pat" });
+    await waitFor(() => expect(iterate).toHaveBeenCalled());
+    await waitFor(() => expect(useLibrary.getState().sync).toBe("idle"));
+    expect(listRecordings(useLibrary.getState().db!)).toHaveLength(2);
+  });
+
+  it("a forced refresh during an in-flight sync runs again after it finishes", async () => {
+    await libraryReady;
+    await library.clear();
+    useAuth.setState({ status: "signed-in", token: "pat" });
+    const first = library.refresh(true);
+    const second = library.refresh(true);
+    await Promise.all([first, second]);
+    expect(iterate).toHaveBeenCalledTimes(2);
+  });
+
+  it("bumps version after every sync and clear so live queries re-run", async () => {
+    await libraryReady;
+    await library.clear();
+    const start = useLibrary.getState().version;
+    useAuth.setState({ status: "signed-in", token: "pat" });
+    await library.refresh(true);
+    expect(useLibrary.getState().version).toBe(start + 1);
+    await library.clear();
+    expect(useLibrary.getState().version).toBe(start + 2);
+  });
+
   it("wipes the database on sign-out", async () => {
     await libraryReady;
+    await library.clear();
     useAuth.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
     expect(listRecordings(useLibrary.getState().db!)).toHaveLength(2);

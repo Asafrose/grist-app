@@ -132,8 +132,14 @@ non-interactive shells; the `nvm` shell function hangs there.
   acceptance checks, a simulator screenshot beside the artboard with
   deviations noted in the PR body. Screenshots attached to PRs must never
   show real workspace data (meeting titles, names, summaries): capture them
-  from sign-in, empty states, or a fixture-seeded app, never from the real
-  account. Asaf approves every PR for now. Squash merges only.
+  from sign-in, empty states, or the demo account, never from the real
+  account. Demo account: in dev builds the sign-in screen has a "Use demo
+  data" button (`testID demo-sign-in`) that signs in with the token `demo`;
+  `lib/library.ts` then seeds `lib/demo.ts` fixtures (24 anonymized
+  recordings with transcripts, spread over 90 days) instead of syncing, and
+  the player streams Apple's public sample HLS instead of Grain media. Maestro
+  flows that need data should use it (`.maestro/demo.yaml`) so they run
+  without `GRAIN_PAT`. Asaf approves every PR for now. Squash merges only.
 - Fixtures are recorded from the real workspace with `GRAIN_PAT` from
   `.env.local` and anonymized (names, emails, companies) before commit.
 - Sentry and EAS Update arrive with the first team build, not before.

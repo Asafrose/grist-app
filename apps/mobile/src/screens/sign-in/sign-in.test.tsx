@@ -93,6 +93,14 @@ describe("SignIn", () => {
     expect(screen.getByTestId("continue")).toBeEnabled();
   });
 
+  it("signs in with demo data without calling Grain (dev builds only)", async () => {
+    await render(<SignIn />);
+    await fireEvent.press(screen.getByTestId("demo-sign-in"));
+    await waitFor(() => expect(useAuth.getState().status).toBe("signed-in"));
+    expect(useAuth.getState().token).toBe("demo");
+    expect(makeClient).not.toHaveBeenCalled();
+  });
+
   it("opens Grain's personal API settings from the help card", async () => {
     await render(<SignIn />);
     await fireEvent.press(screen.getByLabelText("Where do I get a token?"));
