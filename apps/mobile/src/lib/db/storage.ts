@@ -2,9 +2,9 @@ import { count, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { recordings, transcriptSegments, transcripts } from "./schema";
 
-export type IndexStats = { meetings: number; segments: number };
+export type IndexSize = { meetings: number; segments: number };
 
-export function indexSize(db: Db): IndexStats {
+export function indexSize(db: Db): IndexSize {
   return {
     meetings: db.select({ n: count() }).from(transcripts).get()!.n,
     segments: db.select({ n: count() }).from(transcriptSegments).get()!.n,

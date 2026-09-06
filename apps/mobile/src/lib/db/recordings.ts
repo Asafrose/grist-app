@@ -312,19 +312,21 @@ export function listRecordings(db: Db, f?: RecordingsFilter) {
   return recordingsQuery(db, f).all();
 }
 
+export function recordingQuery(db: Db, id: string) {
+  return db.query.recordings.findFirst({
+    where: eq(recordings.id, id),
+    with: {
+      participants: true,
+      actionItems: { orderBy: (t, { asc }) => [asc(t.position)] },
+      highlights: { orderBy: (t, { asc }) => [asc(t.timestamp)] },
+      sections: { orderBy: (t, { asc }) => [asc(t.position)] },
+      transcript: true,
+    },
+  });
+}
+
 export function getRecording(db: Db, id: string) {
-  return db.query.recordings
-    .findFirst({
-      where: eq(recordings.id, id),
-      with: {
-        participants: true,
-        actionItems: { orderBy: (t, { asc }) => [asc(t.position)] },
-        highlights: { orderBy: (t, { asc }) => [asc(t.timestamp)] },
-        sections: { orderBy: (t, { asc }) => [asc(t.position)] },
-        transcript: true,
-      },
-    })
-    .sync();
+  return recordingQuery(db, id).sync();
 }
 
 export type RecordingDetail = NonNullable<ReturnType<typeof getRecording>>;

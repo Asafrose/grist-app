@@ -46,13 +46,16 @@ export function setTranscript(
   });
 }
 
-export function getTranscript(db: Db, recordingId: string) {
+export function transcriptQuery(db: Db, recordingId: string) {
   return db
     .select()
     .from(transcriptSegments)
     .where(eq(transcriptSegments.recordingId, recordingId))
-    .orderBy(asc(transcriptSegments.idx))
-    .all();
+    .orderBy(asc(transcriptSegments.idx));
+}
+
+export function getTranscript(db: Db, recordingId: string) {
+  return transcriptQuery(db, recordingId).all();
 }
 
 export function hasTranscript(db: Db, recordingId: string): boolean {

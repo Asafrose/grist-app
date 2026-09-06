@@ -1,0 +1,151 @@
+import { Image } from "expo-image";
+import { usePathname, useRouter } from "expo-router";
+import { ActivityIndicator, Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icon, type IconName } from "@/components/icon";
+import { Text } from "@/components/ui/text";
+import { formatClock } from "@/lib/format";
+import { playback, usePlayer } from "@/lib/player";
+import { useColors } from "@/theme";
+
+export const MINI_PLAYER_HEIGHT = 60;
+export const MINI_PLAYER_GAP = 12;
+const TAB_BAR_HEIGHT = 49;
+const TAB_PATHS = new Set(["/", "/search", "/clips", "/settings"]);
+
+export function useMiniPlayerVisible(): boolean {
+  const current = usePlayer((s) => s.current);
+  const pathname = usePathname();
+  if (!current) return false;
+  if (pathname === "/now-playing") return false;
+  return decodeURIComponent(pathname) !== `/meeting/${current.id}`;
+}
+
+export function useMiniPlayerInset(): number {
+  return useMiniPlayerVisible() ? MINI_PLAYER_HEIGHT + MINI_PLAYER_GAP : 0;
+}
+
+function Control({
+  icon,
+  label,
+  testID,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  testID: string;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
+      onPress={onPress}
+      className="h-10 w-10 items-center justify-center rounded-[12px] active:opacity-60"
+    >
+      <Icon name={icon} size={24} color={colors.bg} />
+    </Pressable>
+  );
+}
+
+export function MiniPlayer() {
+  const colors = useColors();
+  const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+  const visible = useMiniPlayerVisible();
+  const { current, playing, position, duration, status } = usePlayer();
+
+  if (!visible || !current) return null;
+
+  const onTab = TAB_PATHS.has(pathname);
+  const bottom = insets.bottom + (onTab ? TAB_BAR_HEIGHT : 0) + MINI_PLAYER_GAP;
+  const progress = duration ? Math.min(1, position / duration) : 0;
+
+  return (
+    <View pointerEvents="box-none" className="absolute right-3 left-3" style={{ bottom }}>
+      <Pressable
+        testID="mini-player"
+        accessibilityRole="button"
+        accessibilityLabel={`Now playing: ${current.title}`}
+        onPress={() => router.push("/now-playing")}
+        className="flex-row items-center gap-3 overflow-hidden rounded-[14px] pr-1 pl-2.5 active:opacity-90"
+        style={{
+          height: MINI_PLAYER_HEIGHT,
+          backgroundColor: colors.ink,
+          shadowColor: "#000",
+          shadowOpacity: 0.18,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 8,
+        }}
+      >
+        <View
+          className="h-11 w-11 items-center justify-center overflow-hidden rounded-[10px]"
+          style={{ backgroundColor: "#3C444C" }}
+        >
+          {current.thumbnailUrl ? (
+            <Image
+              source={current.thumbnailUrl}
+              style={{ flex: 1, width: "100%" }}
+              contentFit="cover"
+            />
+          ) : (
+            <Icon name="mic" size={20} color="#FFFFFF" />
+          )}
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text
+            numberOfLines={1}
+            className="font-jakarta-bold text-[14px] leading-[18px]"
+            style={{ color: colors.bg }}
+          >
+            {current.title}
+          </Text>
+          <Text
+            className="font-mono text-[12px] leading-4"
+            style={{ color: colors.bg, opacity: 0.7 }}
+          >
+            {formatClock(position)} · {formatClock(duration)}
+          </Text>
+        </View>
+        <Control
+          testID="mini-seek-back"
+          icon="back10"
+          label="Back 10 seconds"
+          onPress={() => playback.seekBy(-10)}
+        />
+        {status === "loading" ? (
+          <View className="h-10 w-10 items-center justify-center">
+            <ActivityIndicator color={colors.bg} />
+          </View>
+        ) : (
+          <Control
+            testID="mini-play-pause"
+            icon={playing ? "pause" : "play"}
+            label={playing ? "Pause" : "Play"}
+            onPress={() => playback.toggle()}
+          />
+        )}
+        <Control
+          testID="mini-seek-forward"
+          icon="fwd10"
+          label="Forward 10 seconds"
+          onPress={() => playback.seekBy(10)}
+        />
+        <View
+          className="absolute right-3.5 bottom-0 left-3.5 h-0.5"
+          style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+        >
+          <View
+            className="h-0.5"
+            style={{ width: `${progress * 100}%`, backgroundColor: colors.accent }}
+          />
+        </View>
+      </Pressable>
+    </View>
+  );
+}

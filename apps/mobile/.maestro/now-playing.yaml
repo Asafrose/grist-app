@@ -1,0 +1,92 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- assertNotVisible:
+    id: "mini-player"
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "player-start"
+- tapOn:
+    id: "player-start"
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+# The meeting screen already pins the player for this recording: no mini player here.
+- assertNotVisible:
+    id: "mini-player"
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"
+- assertVisible:
+    id: "mini-player"
+- takeScreenshot: now-playing-mini
+- tapOn:
+    id: "tab-search"
+- assertVisible:
+    id: "mini-player"
+- tapOn:
+    id: "tab-index"
+- tapOn:
+    id: "mini-player"
+- assertVisible:
+    id: "now-playing"
+- assertVisible:
+    id: "np-play-pause"
+- assertVisible:
+    id: "np-transcript"
+- takeScreenshot: now-playing
+- tapOn:
+    id: "np-rate"
+- tapOn:
+    id: "np-rate-1.5"
+- assertVisible: ".*1.5×.*"
+- tapOn:
+    id: "np-video"
+- takeScreenshot: now-playing-video
+- tapOn:
+    id: "np-close"
+- assertVisible:
+    id: "meetings-list"
+- assertVisible:
+    id: "mini-player"
+# The chosen speed survives a relaunch.
+- stopApp
+- launchApp
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- tapOn:
+    id: "player-start"
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- tapOn: "Meetings"
+- tapOn:
+    id: "mini-player"
+- assertVisible: ".*1.5×.*"
+- tapOn:
+    id: "np-close"

@@ -1,8 +1,12 @@
 import { create } from "zustand";
 import { type Db, getMeta, setMeta } from "@/lib/db";
 
-export const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2] as const;
+export const PLAYBACK_RATES = [1, 1.2, 1.5, 1.7, 2, 2.2, 2.5] as const;
 export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
+
+export function isPlaybackRate(value: unknown): value is PlaybackRate {
+  return (PLAYBACK_RATES as readonly unknown[]).includes(value);
+}
 
 export const KEEP_DOWNLOADS_DAYS = [7, 30, 90] as const;
 export type KeepDownloadsDays = (typeof KEEP_DOWNLOADS_DAYS)[number];

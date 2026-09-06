@@ -9,6 +9,10 @@ appId: com.asafrose.grist
     commands:
       - tapOn:
           id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
       - tapOn:
           id: "sign-out"
 - tapOn:

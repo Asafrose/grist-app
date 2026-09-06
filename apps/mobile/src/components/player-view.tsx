@@ -1,8 +1,9 @@
 import { Image } from "expo-image";
 import { VideoView } from "expo-video";
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Icon } from "@/components/icon";
-import { player, setVideoView, usePlayer } from "@/lib/player";
+import { attachVideoView, player, usePlayer } from "@/lib/player";
 import { cn } from "@/lib/utils";
 
 export const PLAYER_SURFACE = "#23282D";
@@ -11,6 +12,12 @@ export const PLAYER_ON_SURFACE = "#FFFFFF";
 export function PlayerView({ className }: { className?: string }) {
   const current = usePlayer((s) => s.current);
   const isVideo = current?.mediaType === "video";
+  const ref = useRef<VideoView>(null);
+
+  useEffect(() => {
+    if (!isVideo || !ref.current) return;
+    return attachVideoView(ref.current);
+  }, [isVideo]);
 
   return (
     <View
@@ -19,7 +26,7 @@ export function PlayerView({ className }: { className?: string }) {
     >
       {isVideo ? (
         <VideoView
-          ref={setVideoView}
+          ref={ref}
           player={player}
           style={{ flex: 1 }}
           contentFit="contain"

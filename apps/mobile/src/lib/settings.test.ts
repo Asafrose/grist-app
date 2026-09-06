@@ -65,7 +65,7 @@ describe("settings store", () => {
     const db = testDb();
     const custom = {
       ...DEFAULT_SETTINGS,
-      playbackRate: 1.25 as const,
+      playbackRate: 1.2 as const,
       audioOnlyOnCellular: true,
       keepDownloadsDays: 7 as const,
     };
@@ -78,10 +78,10 @@ describe("settings store", () => {
     const unsub = useSettings.subscribe((s, prev) => {
       if (s.playbackRate !== prev.playbackRate) seen.push(s.playbackRate);
     });
-    settings.set("playbackRate", 1.75);
-    settings.set("playbackRate", 1.75);
+    settings.set("playbackRate", 1.7);
+    settings.set("playbackRate", 1.7);
     settings.set("audioOnlyOnCellular", true);
     unsub();
-    expect(seen).toEqual([1.75]);
+    expect(seen).toEqual([1.7]);
   });
 });

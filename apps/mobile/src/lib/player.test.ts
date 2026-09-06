@@ -1,6 +1,16 @@
+import type { VideoView } from "expo-video";
 import { useAuth } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
-import { type NowPlaying, playback, player, usePlayer } from "@/lib/player";
+import {
+  attachVideoView,
+  isPlaybackRate,
+  type NowPlaying,
+  PLAYBACK_RATES,
+  playback,
+  player,
+  usePlayer,
+} from "@/lib/player";
+import { settings, useSettings } from "@/lib/settings";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -136,5 +146,38 @@ describe("player store", () => {
     playback.stop();
     expect(fake.replaceAsync).toHaveBeenCalledWith(null);
     expect(usePlayer.getState()).toMatchObject({ current: null, status: "idle", rate: 2 });
+  });
+
+  it("offers Grain's speed steps and validates them", () => {
+    expect(PLAYBACK_RATES).toEqual([1, 1.2, 1.5, 1.7, 2, 2.2, 2.5]);
+    expect(isPlaybackRate(1.7)).toBe(true);
+    expect(isPlaybackRate(1.25)).toBe(false);
+    expect(isPlaybackRate("2")).toBe(false);
+  });
+
+  it("starts picture in picture on the most recently attached view", async () => {
+    const first = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
+    const second = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
+    await playback.startPictureInPicture();
+    const detachFirst = attachVideoView(first);
+    const detachSecond = attachVideoView(second);
+    await playback.startPictureInPicture();
+    expect(second.startPictureInPicture).toHaveBeenCalledTimes(1);
+    detachSecond();
+    await playback.startPictureInPicture();
+    expect(first.startPictureInPicture).toHaveBeenCalledTimes(1);
+    detachFirst();
+  });
+});
+
+describe("playback rate persistence", () => {
+  it("applies the settings default speed to the player and persists later changes", () => {
+    settings.set("playbackRate", 1.7);
+    expect(usePlayer.getState().rate).toBe(1.7);
+    expect(fake.playbackRate).toBe(1.7);
+
+    playback.setRate(2.2);
+    expect(useSettings.getState().playbackRate).toBe(2.2);
+    expect(usePlayer.getState().rate).toBe(2.2);
   });
 });

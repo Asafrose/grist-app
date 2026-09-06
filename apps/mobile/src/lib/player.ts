@@ -3,9 +3,15 @@ import { create } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
-import { PLAYBACK_RATES, type PlaybackRate, settings, useSettings } from "@/lib/settings";
+import {
+  isPlaybackRate,
+  PLAYBACK_RATES,
+  type PlaybackRate,
+  settings,
+  useSettings,
+} from "@/lib/settings";
 
-export { PLAYBACK_RATES, type PlaybackRate };
+export { isPlaybackRate, PLAYBACK_RATES, type PlaybackRate };
 
 export type NowPlaying = {
   id: string;
@@ -56,14 +62,18 @@ player.addListener("statusChange", ({ status, error }) => {
 });
 
 let loadSeq = 0;
-let videoView: VideoView | null = null;
+const videoViews: VideoView[] = [];
 
-export function setVideoView(view: VideoView | null) {
-  videoView = view;
+export function attachVideoView(view: VideoView): () => void {
+  videoViews.push(view);
+  return () => {
+    const i = videoViews.indexOf(view);
+    if (i >= 0) videoViews.splice(i, 1);
+  };
 }
 
 function startPictureInPicture() {
-  return videoView?.startPictureInPicture() ?? Promise.resolve();
+  return videoViews.at(-1)?.startPictureInPicture() ?? Promise.resolve();
 }
 
 async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } = {}) {

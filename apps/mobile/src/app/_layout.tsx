@@ -5,6 +5,7 @@ import { DarkTheme, DefaultTheme, type Theme, ThemeProvider } from "expo-router"
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { Suspense, use, useEffect } from "react";
+import { MiniPlayer } from "@/components/mini-player";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { authReady, useAuth } from "@/lib/auth";
 import { libraryReady } from "@/lib/library";
@@ -68,11 +69,16 @@ function Root() {
               contentStyle: { backgroundColor: palette[scheme].surface },
             }}
           />
+          <Stack.Screen
+            name="now-playing"
+            options={{ presentation: "modal", contentStyle: { backgroundColor: palette.dark.bg } }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
         </Stack.Protected>
       </Stack>
+      {signedIn ? <MiniPlayer /> : null}
       <PortalHost />
       <HideSplashOnMount />
     </ThemeProvider>
