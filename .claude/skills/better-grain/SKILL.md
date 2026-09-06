@@ -51,7 +51,14 @@ apps/relay           (future) webhooks → push notifications; app never assumes
 Tooling: npm, oxlint + oxfmt (`npm run lint` checks both), TypeScript strict,
 Vitest in `packages/*`; `jest-expo` + React Native Testing Library in `apps/mobile`
 for stores and components (RNTL 14: `await render(...)`, then query via `screen`;
-use `@/test/render` which wraps SafeAreaProvider). GitHub Actions on Ubuntu (lint, typecheck,
+use `@/test/render` which wraps SafeAreaProvider; database and sync tests use
+`testDb()` from `@/test/db`, an in-memory `better-sqlite3` with the same Drizzle
+schema and migrations as the device). Coverage is enforced per file: every
+module under `apps/mobile/src/lib` and `packages/grain-api/src` must reach 80%
+statements/functions/lines and 60% branches or `npm test` fails (thresholds in
+`jest.config.js` and `vitest.config.ts`). A new `lib` module ships with its
+`.test.ts` sibling; screens and components are verified with RNTL where they
+carry logic and with Maestro flows otherwise. GitHub Actions on Ubuntu (lint, typecheck,
 test). Maestro end-to-end flows run on the local iOS simulator, not in CI.
 After `npm install`, run `npm run fix-lock`: the work machine resolves packages through a private proxy and CI cannot reach it (`npm run lint` fails on proxy URLs).
 Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
@@ -59,13 +66,32 @@ non-interactive shells; the `nvm` shell function hangs there.
 
 ## Architecture decisions
 
-- SQLite (`expo-sqlite`, FTS5) is the source of truth. Recordings,
-  participants, action items, summaries, template sections, transcripts.
-  Cold open renders from the database before any network call.
-- Sync: `after_datetime` incremental on foreground, weekly full reconcile of
-  the 90-day window to catch renames and deletions.
-- Transcripts for the last 90 days are prefetched on Wi-Fi with a small
-  concurrency cap and indexed for on-device search.
+- SQLite (`expo-sqlite`, FTS5) is the source of truth, accessed through
+  Drizzle ORM (`drizzle-orm/expo-sqlite`, sync mode). The schema in
+  `apps/mobile/src/lib/db/schema.ts` is the single source of truth for row
+  types (`RecordingRow`, `RecordingDetail`, …). Migrations are generated with
+  `npx drizzle-kit generate` from `apps/mobile` into `apps/mobile/drizzle/`
+  (bundled via `babel-plugin-inline-import`; FTS5 virtual tables live in a
+  `--custom` migration because Drizzle does not model them) and applied at
+  module load in `lib/db/open.ts`. Queries are plain functions in
+  `lib/db/*.ts` taking a `Db`; screens read with `useLiveQuery(recordingsQuery(db, filter))`
+  from `drizzle-orm/expo-sqlite` so the list re-renders when sync writes.
+  Search goes through `searchRecordings` / `searchTranscripts` (FTS5 prefix
+  queries, snippets with segment start times).
+- Sync (`lib/sync.ts`, pure functions over `Db` + the recordings API):
+  `after_datetime` incremental with a 2-day overlap on every foreground,
+  full reconcile of the 90-day window every 7 days (deletes local rows the
+  API no longer returns, prunes rows older than 90 days). `library.refresh()`
+  in `lib/library.ts` orchestrates it, debounced to once a minute unless forced.
+  Sign-out wipes the database.
+- Transcripts for the last 90 days are prefetched on Wi-Fi (`expo-network`)
+  with concurrency 2 after each sync and indexed for on-device search.
+- Playback: one module-level `expo-video` player in `lib/player.ts`
+  (`staysActiveInBackground`, `showNowPlayingNotification`; app.json plugin
+  enables background audio + PiP). Screens call the `playback` facade
+  (`load`, `toggle`, `seekBy`, `setRate`, `stop`) and read `usePlayer()`.
+  Media URLs are resolved per play via `recordings.resolveMediaUrl` (signed
+  CloudFront URL); `<PlayerView>` renders the shared `VideoView`.
 - Media streams from the download endpoint; downloads happen only on an
   explicit "Download for offline" tap. Caps: 2 GB media, 30-day downloads,
   90-day index. All three are Settings rows.
@@ -104,8 +130,10 @@ non-interactive shells; the `nvm` shell function hangs there.
   git worktrees, integrated from the main session.
 - Every PR: CI green, Maestro flow on the simulator for the issue's
   acceptance checks, a simulator screenshot beside the artboard with
-  deviations noted in the PR body. Asaf approves every PR for now. Squash
-  merges only.
+  deviations noted in the PR body. Screenshots attached to PRs must never
+  show real workspace data (meeting titles, names, summaries): capture them
+  from sign-in, empty states, or a fixture-seeded app, never from the real
+  account. Asaf approves every PR for now. Squash merges only.
 - Fixtures are recorded from the real workspace with `GRAIN_PAT` from
   `.env.local` and anonymized (names, emails, companies) before commit.
 - Sentry and EAS Update arrive with the first team build, not before.

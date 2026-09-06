@@ -167,7 +167,7 @@ export function Icon({
   color,
 }: {
   name: IconName;
-  size?: 20 | 24;
+  size?: number;
   color?: ColorValue;
 }) {
   const colors = useColors();

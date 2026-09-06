@@ -1,0 +1,91 @@
+import * as Network from "expo-network";
+import { AppState } from "react-native";
+import { create } from "zustand";
+import { auth, useAuth } from "@/lib/auth";
+import { clearAll, type Db, getMeta } from "@/lib/db";
+import { openDb } from "@/lib/db/open";
+import { makeClient } from "@/lib/grain";
+import { playback } from "@/lib/player";
+import { META_LAST_SYNC, prefetchTranscripts, syncLibrary } from "@/lib/sync";
+
+export const REFRESH_DEBOUNCE_MS = 60_000;
+
+type LibraryState = {
+  db: Db | null;
+  sync: "idle" | "syncing" | "error";
+  lastSyncAt: string | null;
+  error: string | null;
+};
+
+export const useLibrary = create<LibraryState>(() => ({
+  db: null,
+  sync: "idle",
+  lastSyncAt: null,
+  error: null,
+}));
+
+let inflight: Promise<void> | null = null;
+let lastRunAt = 0;
+
+async function refresh(force = false): Promise<void> {
+  await libraryReady;
+  const { db } = useLibrary.getState();
+  const token = auth.token();
+  if (!db || !token) return;
+  if (inflight) return inflight;
+  if (!force && Date.now() - lastRunAt < REFRESH_DEBOUNCE_MS) return;
+
+  useLibrary.setState({ sync: "syncing", error: null });
+  inflight = (async () => {
+    try {
+      const api = makeClient(token).recordings;
+      await syncLibrary(db, api);
+      useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
+      const net = await Network.getNetworkStateAsync();
+      if (net.type === Network.NetworkStateType.WIFI) await prefetchTranscripts(db, api);
+    } catch (e) {
+      useLibrary.setState({ sync: "error", error: e instanceof Error ? e.message : String(e) });
+    } finally {
+      lastRunAt = Date.now();
+      inflight = null;
+    }
+  })();
+  return inflight;
+}
+
+async function clear(): Promise<void> {
+  await libraryReady;
+  const { db } = useLibrary.getState();
+  if (!db) return;
+  playback.stop();
+  clearAll(db);
+  lastRunAt = 0;
+  useLibrary.setState({ sync: "idle", lastSyncAt: null, error: null });
+}
+
+export const library = { refresh, clear };
+
+async function hydrate(): Promise<void> {
+  const db = await openDb();
+  useLibrary.setState({ db, lastSyncAt: getMeta(db, META_LAST_SYNC) });
+}
+
+export const libraryReady = hydrate().then(() => {
+  if (useAuth.getState().status === "signed-in") void refresh();
+});
+
+useAuth.subscribe((s, prev) => {
+  if (s.status === prev.status) return;
+  if (s.status === "signed-in") void refresh(true);
+  else if (prev.status === "signed-in") void clear();
+});
+
+AppState.addEventListener("change", (state) => {
+  if (state === "active") void refresh();
+});
+
+export function useDb(): Db {
+  const db = useLibrary((s) => s.db);
+  if (!db) throw new Error("useDb called before libraryReady resolved");
+  return db;
+}

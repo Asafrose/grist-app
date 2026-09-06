@@ -1,0 +1,63 @@
+appId: com.asafrose.grist
+env:
+  GRAIN_PAT: ${GRAIN_PAT}
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Personal access token"
+    commands:
+      - tapOn:
+          id: "token-input"
+      - inputText: ${GRAIN_PAT}
+      - tapOn:
+          id: "continue"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible:
+      id: "meetings-list"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Syncing your meetings…"
+    timeout: 60000
+- takeScreenshot: meetings-list
+# Kill and relaunch: the list must come from SQLite before any network call.
+- stopApp
+- launchApp
+- assertVisible: "Meetings"
+- assertVisible:
+    id: "meetings-list"
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "player-start"
+- tapOn:
+    id: "player-start"
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- takeScreenshot: meeting-playing
+- tapOn:
+    id: "rate-1.5"
+- tapOn:
+    id: "seek-forward"
+- tapOn:
+    id: "play-pause"
+- assertVisible: "Play"
+- tapOn:
+    id: "play-pause"
+# Background the app: video enters PiP, audio keeps going.
+- pressKey: home
+- takeScreenshot: pip-home
+- swipe:
+    direction: DOWN
+    duration: 100
+- launchApp:
+    stopApp: false
+- assertVisible: "Pause"
+- takeScreenshot: meeting-foreground
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"

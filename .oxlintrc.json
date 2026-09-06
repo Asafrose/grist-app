@@ -41,6 +41,7 @@
     "design-system",
     ".claude",
     "**/*.config.js",
-    "apps/mobile/src/components/ui/**"
+    "apps/mobile/src/components/ui/**",
+    "apps/mobile/drizzle/**"
   ]
 }

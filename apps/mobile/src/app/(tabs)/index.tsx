@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "@/components/placeholder-screen";
+import { Meetings } from "@/screens/meetings";
 
 export default function MeetingsRoute() {
-  return <PlaceholderScreen title="Meetings" note="Meetings list lands in the Meetings issue." />;
+  return <Meetings />;
 }

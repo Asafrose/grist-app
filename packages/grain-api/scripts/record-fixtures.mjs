@@ -295,7 +295,7 @@ function anonHighlight(hl) {
     recording_id: fakeId(hl.recording_id),
     text: pick(BULLETS, `hl:${hl.id}`),
     transcript: hl.transcript ? fakeSentences(`hlt:${hl.id}`, 3) : hl.transcript,
-    speakers: hl.speakers?.map((s) => fakeName(s)),
+    speakers: hl.speakers?.map((s) => ({ name: fakeName(s.name) })),
     url: `https://grain.com/share/highlight/${id}`,
     thumbnail_url: hl.thumbnail_url
       ? `https://media.grain.com/public_thumbnails/highlights/${id}`

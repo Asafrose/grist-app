@@ -142,3 +142,103 @@ describe("GrainClient", () => {
     expect(calls[0].init.method).toBe("DELETE");
   });
 });
+
+describe("resource groups", () => {
+  const ok = () => json({ success: true });
+
+  it("recordings mutations hit the documented verbs and paths", async () => {
+    const { fetchImpl, calls } = mockFetch([ok]);
+    const r = new GrainClient({ token: "tok", fetch: fetchImpl }).recordings;
+    await r.rename("r1", "New title");
+    await r.addTag("r1", "sales");
+    await r.removeTag("r1", "a/b");
+    await r.shareWithUser("r1", "u1");
+    await r.unshareUser("r1", "u1");
+    await r.shareWithTeam("r1", "t1");
+    await r.unshareTeam("r1", "t1");
+    expect(calls.map((c) => [c.init.method, c.url.replace(/^.*\/v2/, "")])).toEqual([
+      ["PATCH", "/recordings/r1"],
+      ["PUT", "/recordings/r1/tags"],
+      ["DELETE", "/recordings/r1/tags/a%2Fb"],
+      ["PUT", "/recordings/r1/users"],
+      ["DELETE", "/recordings/r1/users/u1"],
+      ["PUT", "/recordings/r1/teams"],
+      ["DELETE", "/recordings/r1/teams/t1"],
+    ]);
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({ title: "New title" });
+    expect(JSON.parse(String(calls[1].init.body))).toEqual({ tag: "sales" });
+    expect(JSON.parse(String(calls[3].init.body))).toEqual({ user_id: "u1" });
+    expect(JSON.parse(String(calls[5].init.body))).toEqual({ team_id: "t1" });
+  });
+
+  it("fetches transcripts as JSON and as text formats, and exposes the download url", async () => {
+    const { fetchImpl, calls } = mockFetch([
+      () => json(fixture("transcript.json")),
+      () => new Response("WEBVTT\n", { status: 200 }),
+    ]);
+    const r = new GrainClient({ token: "tok", fetch: fetchImpl }).recordings;
+    const segments = await r.transcript("r1");
+    expect(segments[0]).toMatchObject({ speaker: expect.any(String), start: expect.any(Number) });
+    expect(await r.transcriptText("r1", "vtt")).toBe("WEBVTT\n");
+    expect(calls[1].url).toMatch(/\/recordings\/r1\/transcript\.vtt$/);
+    expect(r.downloadUrl("r1")).toBe(
+      "https://api.grain.com/_/public-api/v2/recordings/r1/download",
+    );
+  });
+
+  it("resolves the media url from the redirect target using a 1-byte range request", async () => {
+    const { fetchImpl, calls } = mockFetch([
+      () => {
+        const res = new Response(new Uint8Array([0]), { status: 206 });
+        Object.defineProperty(res, "url", { value: "https://media.example/r1.mp4?sig=1" });
+        return res;
+      },
+    ]);
+    const r = new GrainClient({ token: "tok", fetch: fetchImpl }).recordings;
+    expect(await r.resolveMediaUrl("r1")).toBe("https://media.example/r1.mp4?sig=1");
+    expect((calls[0].init.headers as Record<string, string>).Range).toBe("bytes=0-0");
+  });
+
+  it("lists, creates and deletes hooks", async () => {
+    const hooks = fixture("hooks.json");
+    const { fetchImpl, calls } = mockFetch([
+      () => json(hooks),
+      () => json(hooks),
+      () => json(hooks.hooks[0]),
+      ok,
+    ]);
+    const h = new GrainClient({ token: "tok", fetch: fetchImpl }).hooks;
+    expect((await h.list()).hooks).toHaveLength(1);
+    expect(calls[0].init.body).toBeUndefined();
+    expect((await h.list({ state: "enabled" })).hooks).toHaveLength(1);
+    expect(JSON.parse(String(calls[1].init.body))).toEqual({ filter: { state: "enabled" } });
+    const created = await h.create({ hook_type: "recording_added", hook_url: "https://x/y" });
+    expect(created.hook_type).toBe("recording_added");
+    await h.delete(created.id);
+    expect(calls[3].init.method).toBe("DELETE");
+    expect(calls[3].url).toMatch(new RegExp(`/hooks/${created.id}$`));
+  });
+
+  it("lists workspace resources and creates upload tickets", async () => {
+    const { fetchImpl, calls } = mockFetch([
+      () => json(fixture("teams.json")),
+      () => json(fixture("meeting_types.json")),
+      () =>
+        json({
+          uuid: "u",
+          url: "https://upload.example",
+          max_duration_sec: 1,
+          max_upload_bytes: 2,
+        }),
+    ]);
+    const c = new GrainClient({ token: "tok", fetch: fetchImpl });
+    expect((await c.teams.list()).teams.length).toBeGreaterThan(0);
+    expect((await c.meetingTypes.list()).meeting_types.length).toBeGreaterThan(0);
+    const ticket = await c.uploads.create("call.mp4", "user-1");
+    expect(ticket.uuid).toBe("u");
+    expect(JSON.parse(String(calls[2].init.body))).toEqual({
+      filename: "call.mp4",
+      user_id: "user-1",
+    });
+  });
+});

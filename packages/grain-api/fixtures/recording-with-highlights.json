@@ -17,7 +17,7 @@
       "recording_id": "2788d7af-7433-400c-a9dc-0818166143cd",
       "transcript": "Yes, I will send that along with the measurement guidance today. What does the timeline look like if we start integration in the middle of the month? Got it. And does the filtering happen on our side or yours?",
       "thumbnail_url": "https://media.grain.com/public_thumbnails/highlights/58e4167fbb50fde2f27684a5092e63ed06021a26",
-      "speakers": ["Ravi Peretz"],
+      "speakers": [{ "name": "Ravi Peretz" }],
       "created_datetime": "2026-08-23T10:58:25Z"
     }
   ],

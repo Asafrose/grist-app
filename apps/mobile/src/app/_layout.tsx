@@ -7,6 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { Suspense, use, useEffect } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { authReady, useAuth } from "@/lib/auth";
+import { libraryReady } from "@/lib/library";
 import { fonts, palette } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -41,8 +42,10 @@ function HideSplashOnMount() {
   return null;
 }
 
+const appReady = Promise.all([authReady, libraryReady]);
+
 function Root() {
-  use(authReady);
+  use(appReady);
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const signedIn = useAuth((s) => s.status === "signed-in");
 
@@ -51,7 +54,10 @@ function Root() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="meeting/[id]" options={{ headerShown: true, title: "" }} />
+          <Stack.Screen
+            name="meeting/[id]"
+            options={{ headerShown: true, title: "", headerBackTitle: "Meetings" }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />

@@ -43,7 +43,7 @@ export const Highlight = z.object({
   recording_id: z.string(),
   text: z.string(),
   transcript: z.string().nullish(),
-  speakers: z.array(z.string()).nullish(),
+  speakers: z.array(z.object({ name: z.string() }).loose()).nullish(),
   timestamp: z.number(),
   duration: z.number(),
   tags: z.array(z.string()),
