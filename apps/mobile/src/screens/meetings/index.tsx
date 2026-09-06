@@ -3,7 +3,14 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
@@ -13,6 +20,7 @@ import { type RecordingListRow, recordingsQuery } from "@/lib/db";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { formatDurationCompact, formatTime } from "@/lib/format";
 import { library, useDb, useLibrary } from "@/lib/library";
+import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
 import { getWorkspace } from "@/lib/workspace";
@@ -20,20 +28,34 @@ import { useColors } from "@/theme";
 
 function Thumbnail({ item }: { item: RecordingListRow }) {
   const colors = useColors();
+  const generated = useThumbnail(item);
+  const uri = generated ?? item.thumbnailUrl ?? item.highlightThumbnailUrl;
   return (
     <View className="h-12 w-[72px] overflow-hidden rounded-[8px] bg-foreground">
-      {item.thumbnailUrl ? (
+      {uri ? (
         <Image
-          source={{ uri: item.thumbnailUrl }}
+          source={{ uri }}
           style={{ width: 72, height: 48 }}
           contentFit="cover"
           transition={150}
         />
+      ) : generated === undefined && item.mediaType === "video" ? (
+        <View testID={`thumb-loading-${item.id}`} className="flex-1 items-center justify-center">
+          <ActivityIndicator size="small" color={colors.ink3} />
+        </View>
       ) : (
         <View className="flex-1 items-center justify-center">
           <Icon name={item.mediaType === "video" ? "video" : "mic"} size={20} color={colors.bg} />
         </View>
       )}
+      <View
+        className="absolute bottom-1 left-1 rounded px-[4px] py-px"
+        style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+      >
+        <Text className="font-mono text-[10px] leading-[14px] text-white">
+          {formatDurationCompact(item.durationMs)}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -58,7 +80,7 @@ function Row({ item, last }: { item: RecordingListRow; last: boolean }) {
             </Text>
             <View className="flex-row items-center gap-2">
               <Text className="font-mono text-[12px] text-muted-foreground">
-                {formatTime(item.startDatetime)} · {formatDurationCompact(item.durationMs)}
+                {formatTime(item.startDatetime)}
               </Text>
               <View
                 className={cn(

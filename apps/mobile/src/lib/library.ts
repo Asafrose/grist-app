@@ -9,9 +9,13 @@ import { makeClient } from "@/lib/grain";
 import { playback } from "@/lib/player";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, syncLibrary } from "@/lib/sync";
+import { thumbnails } from "@/lib/thumbnails";
 import { syncWorkspace } from "@/lib/workspace";
 
 export const REFRESH_DEBOUNCE_MS = 60_000;
+export const PREFETCH_YIELD_MS = 8_000;
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 type LibraryState = {
   db: Db | null;
@@ -61,7 +65,10 @@ async function refresh(force = false): Promise<void> {
       await syncWorkspace(db, client).catch(() => undefined);
       useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
       const net = await Network.getNetworkStateAsync();
-      if (net.type === Network.NetworkStateType.WIFI) await prefetchTranscripts(db, api);
+      if (net.type === Network.NetworkStateType.WIFI) {
+        await Promise.race([thumbnails.whenIdle(), sleep(PREFETCH_YIELD_MS)]);
+        await prefetchTranscripts(db, api);
+      }
     } catch (e) {
       useLibrary.setState({ sync: "error", error: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -78,6 +85,7 @@ async function clear(): Promise<void> {
   const { db } = useLibrary.getState();
   if (!db) return;
   playback.stop();
+  thumbnails.clear();
   clearAll(db);
   persistSettings();
   lastRunAt = 0;
