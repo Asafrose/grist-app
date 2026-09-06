@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@/test/render";
 import { getTranscript } from "@/lib/db";
 import { demoRecordings, seedDemo } from "@/lib/demo";
-import { libraryReady, useLibrary } from "@/lib/library";
-import { type NowPlaying as Loaded, playback, usePlayer } from "@/lib/player";
+import { libraryReady, libraryStore } from "@/lib/library";
+import { type NowPlaying as Loaded, playback, playerStore } from "@/lib/player";
 import { initials, segmentAt } from "@/lib/transcript";
 import { NowPlaying } from "./index";
 
@@ -55,25 +55,24 @@ const video: Loaded = {
 
 beforeAll(async () => {
   await libraryReady;
-  seedDemo(useLibrary.getState().db!);
+  seedDemo(libraryStore.getState().db!);
 });
 
 beforeEach(() => {
   jest.restoreAllMocks();
-  usePlayer.setState({
+  playerStore.setState({
     current: video,
     status: "ready",
     playing: true,
     position: 60,
     duration: demo.duration_ms / 1000,
-    rate: 1,
     error: null,
   });
 });
 
 describe("NowPlaying", () => {
   it("shows an empty state when nothing is loaded", async () => {
-    usePlayer.setState({ current: null });
+    playerStore.setState({ current: null });
     await render(<NowPlaying />);
     expect(screen.getByText("Nothing is playing.")).toBeOnTheScreen();
   });
@@ -85,7 +84,7 @@ describe("NowPlaying", () => {
     expect(screen.getByText("1:00")).toBeOnTheScreen();
     expect(screen.getByText("-43:01")).toBeOnTheScreen();
 
-    const segments = getTranscript(useLibrary.getState().db!, demo.id);
+    const segments = getTranscript(libraryStore.getState().db!, demo.id);
     const line = segmentAt(segments, 60_000)!;
     expect(await screen.findByTestId("np-transcript")).toHaveTextContent(
       `${initials(line.speaker)}${line.speaker} · ${line.text}`,
@@ -131,7 +130,7 @@ describe("NowPlaying", () => {
   });
 
   it("shows audio artwork without a video toggle for audio recordings", async () => {
-    usePlayer.setState({ current: { ...video, mediaType: "audio" } });
+    playerStore.setState({ current: { ...video, mediaType: "audio" } });
     await render(<NowPlaying />);
     expect(screen.getByText("Audio only")).toBeOnTheScreen();
     expect(screen.queryByTestId("np-video")).toBeNull();
@@ -149,7 +148,7 @@ describe("NowPlaying", () => {
   });
 
   it("surfaces playback errors", async () => {
-    usePlayer.setState({ status: "error", error: "Media expired" });
+    playerStore.setState({ status: "error", error: "Media expired" });
     await render(<NowPlaying />);
     expect(screen.getByText("Media expired")).toBeOnTheScreen();
   });

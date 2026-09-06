@@ -1,7 +1,7 @@
 import { getThumbnailAsync } from "expo-video-thumbnails";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
-import { frameTime, THUMBNAIL_RETRY_MS, thumbnails, useThumbnails } from "@/lib/thumbnails";
+import { frameTime, THUMBNAIL_RETRY_MS, thumbnails, thumbnailsStore } from "@/lib/thumbnails";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -54,7 +54,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   files.clear();
   thumbnails.clear();
-  useAuth.setState({ status: "signed-in", token: "pat" });
+  authStore.setState({ status: "signed-in", token: "pat" });
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
   resolveMediaUrl.mockImplementation(async (id: string) => `https://cdn/${id}.mp4`);
   (getThumbnailAsync as jest.Mock).mockImplementation(async (url: string) => {
@@ -83,21 +83,21 @@ describe("thumbnails", () => {
       time: 300_000,
       quality: 0.6,
     });
-    expect(useThumbnails.getState().byId.r1).toBe("cache/thumbnails/r1.jpg");
+    expect(thumbnailsStore.getState().byId.r1).toBe("cache/thumbnails/r1.jpg");
     expect(files.has("cache/thumbnails/r1.jpg")).toBe(true);
   });
 
   it("serves a cached file without touching the network", async () => {
     files.add("cache/thumbnails/r2.jpg");
     thumbnails.request(video("r2"));
-    expect(useThumbnails.getState().byId.r2).toBe("cache/thumbnails/r2.jpg");
+    expect(thumbnailsStore.getState().byId.r2).toBe("cache/thumbnails/r2.jpg");
     await flush();
     expect(resolveMediaUrl).not.toHaveBeenCalled();
   });
 
   it("skips audio and transcript recordings", () => {
     thumbnails.request({ id: "a1", mediaType: "audio", durationMs: 1000 });
-    expect(useThumbnails.getState().byId.a1).toBeNull();
+    expect(thumbnailsStore.getState().byId.a1).toBeNull();
     expect(resolveMediaUrl).not.toHaveBeenCalled();
   });
 
@@ -108,11 +108,11 @@ describe("thumbnails", () => {
       thumbnails.request(video("r3"));
       await new Promise((r) => setImmediate(r));
       await new Promise((r) => setImmediate(r));
-      expect(useThumbnails.getState().byId.r3).toBeNull();
+      expect(thumbnailsStore.getState().byId.r3).toBeNull();
       thumbnails.request(video("r3"));
       expect(resolveMediaUrl).toHaveBeenCalledTimes(1);
       jest.advanceTimersByTime(THUMBNAIL_RETRY_MS);
-      expect(useThumbnails.getState().byId).not.toHaveProperty("r3");
+      expect(thumbnailsStore.getState().byId).not.toHaveProperty("r3");
       thumbnails.request(video("r3"));
       expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
     } finally {
@@ -138,7 +138,7 @@ describe("thumbnails", () => {
     await new Promise((r) => setTimeout(r, 60));
     expect(peak).toBe(6);
     expect(getThumbnailAsync).toHaveBeenCalledTimes(ids.length);
-    expect(Object.keys(useThumbnails.getState().byId).toSorted()).toEqual(ids);
+    expect(Object.keys(thumbnailsStore.getState().byId).toSorted()).toEqual(ids);
   });
 
   it("whenIdle resolves immediately when nothing is queued and after the queue drains", async () => {
@@ -148,12 +148,12 @@ describe("thumbnails", () => {
     expect(thumbnails.pending()).toBe(2);
     await thumbnails.whenIdle();
     expect(thumbnails.pending()).toBe(0);
-    expect(useThumbnails.getState().byId.w1).toBe("cache/thumbnails/w1.jpg");
-    expect(useThumbnails.getState().byId.w2).toBe("cache/thumbnails/w2.jpg");
+    expect(thumbnailsStore.getState().byId.w1).toBe("cache/thumbnails/w1.jpg");
+    expect(thumbnailsStore.getState().byId.w2).toBe("cache/thumbnails/w2.jpg");
   });
 
   it("uses the sample stream in demo mode", async () => {
-    useAuth.setState({ status: "signed-in", token: "demo" });
+    authStore.setState({ status: "signed-in", token: "demo" });
     thumbnails.request(video("demo-1"));
     await flush();
     await flush();
@@ -170,6 +170,6 @@ describe("thumbnails", () => {
     expect(files.has("cache/thumbnails/r4.jpg")).toBe(true);
     thumbnails.clear();
     expect(files.size).toBe(0);
-    expect(useThumbnails.getState().byId).toEqual({});
+    expect(thumbnailsStore.getState().byId).toEqual({});
   });
 });

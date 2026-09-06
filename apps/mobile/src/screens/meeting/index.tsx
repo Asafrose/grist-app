@@ -7,7 +7,7 @@ import { getRecording, type RecordingDetail } from "@/lib/db";
 import { useIsDemo } from "@/lib/demo";
 import { formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
-import { useDb, useLibrary } from "@/lib/library";
+import { useDb, useLibraryVersion } from "@/lib/library";
 import {
   isRecordingStale,
   MEETING_TABS,
@@ -157,7 +157,7 @@ export function Meeting({ id }: { id: string }) {
   const db = useDb();
   const client = useGrainClient();
   const demo = useIsDemo();
-  useLibrary((s) => s.version);
+  useLibraryVersion();
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [, setRefreshedAt] = useState(0);
   const params = useLocalSearchParams<{ tab?: string; t?: string }>();

@@ -7,7 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { Suspense, use, useEffect } from "react";
 import { MiniPlayer } from "@/components/mini-player";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { authReady, useAuth } from "@/lib/auth";
+import { authReady, useSignedIn } from "@/lib/auth";
 import { libraryReady } from "@/lib/library";
 import { fonts, palette } from "@/theme";
 
@@ -48,7 +48,7 @@ const appReady = Promise.all([authReady, libraryReady]);
 function Root() {
   use(appReady);
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const signedIn = useAuth((s) => s.status === "signed-in");
+  const signedIn = useSignedIn();
 
   return (
     <ThemeProvider value={navTheme(scheme)}>

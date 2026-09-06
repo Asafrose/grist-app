@@ -1,8 +1,8 @@
 import { router } from "expo-router";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { highlightsQuery, listTeams } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
-import { library, libraryReady, useLibrary } from "@/lib/library";
+import { library, libraryReady, libraryStore } from "@/lib/library";
 import { demoMeId } from "@/lib/me";
 import { fireEvent, render, screen, waitFor, within } from "@/test/render";
 import { Clips, clipHref } from "./index";
@@ -39,7 +39,7 @@ const NOW = Date.parse("2026-09-06T10:00:00Z");
 
 beforeAll(async () => {
   await libraryReady;
-  useAuth.setState({ status: "signed-in", token: "demo" });
+  authStore.setState({ status: "signed-in", token: "demo" });
   await library.refresh(true);
 });
 
@@ -47,7 +47,7 @@ beforeEach(() => {
   (router.push as jest.Mock).mockClear();
 });
 
-const db = () => useLibrary.getState().db!;
+const db = () => libraryStore.getState().db!;
 
 describe("Clips", () => {
   it("lists every workspace clip with title, date, creator, source meeting and duration", async () => {
@@ -121,7 +121,7 @@ describe("Clips", () => {
     const seeded = demoRecordings(NOW);
     expect(seeded.some((r) => r.highlights?.length)).toBe(true);
     await library.clear();
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     await render(<Clips />);
     expect(screen.getByText("No clips yet")).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId("chip-mine"));

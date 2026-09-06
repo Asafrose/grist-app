@@ -7,7 +7,7 @@ import {
   type FilterState,
   sheetFilters,
   toQuery,
-  useFilters,
+  filtersStore,
 } from "@/lib/filters";
 
 const NOW = Date.parse("2026-09-06T10:00:00Z");
@@ -17,19 +17,19 @@ beforeEach(() => filters.reset());
 
 describe("filters store", () => {
   it("starts on Mine with nothing else active", () => {
-    expect(useFilters.getState()).toEqual(defaultFilters);
-    expect(activeChips(useFilters.getState())).toEqual([]);
+    expect(filtersStore.getState()).toEqual(defaultFilters);
+    expect(activeChips(filtersStore.getState())).toEqual([]);
   });
 
   it("updates title and view independently of the sheet", () => {
     filters.setTitle("Fabrikam");
     filters.setView({ kind: "team", id: "t1" });
-    expect(useFilters.getState()).toMatchObject({
+    expect(filtersStore.getState()).toMatchObject({
       title: "Fabrikam",
       view: { kind: "team", id: "t1" },
     });
-    filters.apply({ ...sheetFilters(useFilters.getState()), scope: "external", tag: "vip" });
-    expect(useFilters.getState()).toMatchObject({
+    filters.apply({ ...sheetFilters(filtersStore.getState()), scope: "external", tag: "vip" });
+    expect(filtersStore.getState()).toMatchObject({
       title: "Fabrikam",
       scope: "external",
       tag: "vip",
@@ -40,14 +40,14 @@ describe("filters store", () => {
     filters.apply({ ...sheetFilters(defaultFilters), scope: "internal", participant: "Zara Lind" });
     filters.setView({ kind: "workspace" });
     filters.clear("scope");
-    expect(useFilters.getState().scope).toBe("all");
+    expect(filtersStore.getState().scope).toBe("all");
     filters.clear("participant");
-    expect(useFilters.getState().participant).toBeNull();
+    expect(filtersStore.getState().participant).toBeNull();
     filters.clear("view");
-    expect(useFilters.getState().view).toEqual({ kind: "mine" });
+    expect(filtersStore.getState().view).toEqual({ kind: "mine" });
     filters.setTitle("x");
     filters.reset();
-    expect(useFilters.getState()).toEqual(defaultFilters);
+    expect(filtersStore.getState()).toEqual(defaultFilters);
   });
 });
 

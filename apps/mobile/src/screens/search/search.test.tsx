@@ -15,7 +15,7 @@ jest.mock("@/lib/library", () => {
   seedDemo(db);
   return {
     useDb: () => db,
-    useLibrary: (selector: (s: { version: number }) => unknown) => selector({ version: 0 }),
+    useLibraryVersion: () => 0,
   };
 });
 

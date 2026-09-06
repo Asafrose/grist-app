@@ -7,7 +7,18 @@ import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/play
 import { Text } from "@/components/ui/text";
 import type { RecordingDetail } from "@/lib/db";
 import { formatClock } from "@/lib/format";
-import { type NowPlaying, PLAYBACK_RATES, playback, usePlayer } from "@/lib/player";
+import {
+  type NowPlaying,
+  PLAYBACK_RATES,
+  playback,
+  useIsCurrent,
+  useIsPlaying,
+  usePlaybackDuration,
+  usePlaybackError,
+  usePlaybackPosition,
+  usePlaybackRate,
+  usePlaybackStatus,
+} from "@/lib/player";
 import { cn } from "@/lib/utils";
 
 const TAG_BG = "rgba(255,255,255,0.14)";
@@ -109,18 +120,53 @@ function Scrubber({ progress, onSeek }: { progress: number; onSeek: (fraction: n
   );
 }
 
+function Progress({
+  isCurrent,
+  fallbackDuration,
+  onSeek,
+}: {
+  isCurrent: boolean;
+  fallbackDuration: number;
+  onSeek: (seconds: number) => void;
+}) {
+  const livePosition = usePlaybackPosition();
+  const liveDuration = usePlaybackDuration();
+  const position = isCurrent ? livePosition : 0;
+  const duration = isCurrent && liveDuration ? liveDuration : fallbackDuration;
+  const progress = duration ? position / duration : 0;
+  return (
+    <View className="absolute bottom-3.5 left-3.5 right-3.5 gap-2">
+      <Scrubber progress={progress} onSeek={(f) => onSeek(f * duration)} />
+      <View className="flex-row justify-between">
+        <Text
+          testID="position"
+          className="font-mono text-[11px]"
+          style={{ color: PLAYER_ON_SURFACE, opacity: 0.85 }}
+        >
+          {formatClock(position)}
+        </Text>
+        <Text
+          testID="duration"
+          className="font-mono text-[11px]"
+          style={{ color: PLAYER_ON_SURFACE, opacity: 0.85 }}
+        >
+          {formatClock(duration)}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export function PlayerCard({ rec }: { rec: RecordingDetail }) {
-  const state = usePlayer();
+  const isCurrent = useIsCurrent(rec.id);
+  const playing = useIsPlaying() && isCurrent;
+  const status = usePlaybackStatus();
+  const error = usePlaybackError();
+  const loading = status === "loading" && isCurrent;
+  const rate = usePlaybackRate();
   const [ratesOpen, setRatesOpen] = useState(false);
-  const isCurrent = state.current?.id === rec.id;
   const hasMedia = rec.mediaType !== "transcript";
   const nowPlaying = toNowPlaying(rec);
-
-  const position = isCurrent ? state.position : 0;
-  const duration = isCurrent && state.duration ? state.duration : rec.durationMs / 1000;
-  const playing = isCurrent && state.playing;
-  const loading = isCurrent && state.status === "loading";
-  const progress = duration ? position / duration : 0;
 
   const seekTo = (seconds: number) =>
     isCurrent ? playback.seekTo(seconds) : void playback.load(nowPlaying, { at: seconds });
@@ -154,18 +200,18 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                   className="font-jakarta-semibold text-[12px]"
                   style={{ color: ratesOpen ? PLAYER_SURFACE : PLAYER_ON_SURFACE }}
                 >
-                  {state.rate}×
+                  {rate}×
                 </Text>
               </Pressable>
               {ratesOpen
-                ? PLAYBACK_RATES.filter((r) => r !== state.rate).map((rate) => (
+                ? PLAYBACK_RATES.filter((r) => r !== rate).map((r) => (
                     <Pressable
-                      key={rate}
-                      testID={`rate-${rate}`}
+                      key={r}
+                      testID={`rate-${r}`}
                       accessibilityRole="button"
-                      accessibilityLabel={`${rate} times speed`}
+                      accessibilityLabel={`${r} times speed`}
                       onPress={() => {
-                        playback.setRate(rate);
+                        playback.setRate(r);
                         setRatesOpen(false);
                       }}
                       className="h-[22px] justify-center rounded-[6px] px-2 active:opacity-70"
@@ -175,7 +221,7 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                         className="font-jakarta-semibold text-[12px]"
                         style={{ color: PLAYER_ON_SURFACE }}
                       >
-                        {rate}×
+                        {r}×
                       </Text>
                     </Pressable>
                   ))
@@ -236,25 +282,11 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
             />
           </View>
 
-          <View className="absolute bottom-3.5 left-3.5 right-3.5 gap-2">
-            <Scrubber progress={progress} onSeek={(f) => seekTo(f * duration)} />
-            <View className="flex-row justify-between">
-              <Text
-                testID="position"
-                className="font-mono text-[11px]"
-                style={{ color: PLAYER_ON_SURFACE, opacity: 0.85 }}
-              >
-                {formatClock(position)}
-              </Text>
-              <Text
-                testID="duration"
-                className="font-mono text-[11px]"
-                style={{ color: PLAYER_ON_SURFACE, opacity: 0.85 }}
-              >
-                {formatClock(duration)}
-              </Text>
-            </View>
-          </View>
+          <Progress
+            isCurrent={isCurrent}
+            fallbackDuration={rec.durationMs / 1000}
+            onSeek={seekTo}
+          />
         </>
       ) : (
         <View className="absolute bottom-3.5 left-3.5">
@@ -262,13 +294,13 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
         </View>
       )}
 
-      {isCurrent && state.status === "error" ? (
+      {isCurrent && status === "error" ? (
         <View
           className={cn("absolute right-3.5 left-3.5 bottom-12 rounded-md px-3 py-2")}
           style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
         >
           <Text className="text-center text-[12px]" style={{ color: PLAYER_ON_SURFACE }}>
-            {state.error ?? "Playback failed"}
+            {error ?? "Playback failed"}
           </Text>
         </View>
       ) : null}

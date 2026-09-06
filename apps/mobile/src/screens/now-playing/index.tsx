@@ -9,10 +9,20 @@ import { Icon, type IconName } from "@/components/icon";
 import { PlayerView } from "@/components/player-view";
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
-import { recordingQuery, transcriptQuery } from "@/lib/db";
+import { recordingQuery, transcriptQuery, type TranscriptSegmentRow } from "@/lib/db";
 import { formatDuration, formatMeetingDate } from "@/lib/format";
-import { useDb, useLibrary } from "@/lib/library";
-import { PLAYBACK_RATES, playback, usePlayer } from "@/lib/player";
+import { useDb, useLibraryVersion } from "@/lib/library";
+import {
+  PLAYBACK_RATES,
+  playback,
+  useIsPlaying,
+  useNowPlaying,
+  usePlaybackDuration,
+  usePlaybackError,
+  usePlaybackPosition,
+  usePlaybackRate,
+  usePlaybackStatus,
+} from "@/lib/player";
 import { initials, segmentAt, speakers } from "@/lib/transcript";
 import { palette } from "@/theme";
 
@@ -105,19 +115,18 @@ export function NowPlaying() {
   const db = useDb();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const version = useLibrary((s) => s.version);
-  const state = usePlayer();
-  const current = state.current;
+  const version = useLibraryVersion();
+  const current = useNowPlaying();
+  const status = usePlaybackStatus();
+  const error = usePlaybackError();
+  const playing = useIsPlaying();
+  const rate = usePlaybackRate();
   const [showVideo, setShowVideo] = useState(false);
   const [pickingRate, setPickingRate] = useState(false);
 
   const id = current?.id ?? "";
   const { data: rec } = useLiveQuery(recordingQuery(db, id), [db, id, version]);
   const { data: segments } = useLiveQuery(transcriptQuery(db, id), [db, id, version]);
-
-  const names = speakers(segments);
-  const line = segmentAt(segments, state.position * 1000);
-  const speakerColor = line ? d.speakers[names.indexOf(line.speaker) % d.speakers.length] : d.ink;
 
   if (!current) {
     return (
@@ -135,7 +144,6 @@ export function NowPlaying() {
   }
 
   const isVideo = current.mediaType === "video";
-  const duration = state.duration || current.durationMs / 1000;
 
   return (
     <View
@@ -200,22 +208,14 @@ export function NowPlaying() {
         </Text>
 
         <View className="mt-[30px] w-full">
-          <Scrubber
-            testID="np-scrubber"
-            position={state.position}
-            duration={duration}
-            onSeek={playback.seekTo}
-            trackColor={d.line}
-            fillColor={d.accent}
-            labelColor={d.ink2}
-          />
+          <LiveScrubber fallbackDuration={current.durationMs / 1000} />
         </View>
 
         <View className="mt-4 flex-row items-center" style={{ gap: 30 }}>
           <Pressable
             testID="np-rate"
             accessibilityRole="button"
-            accessibilityLabel={`Speed ${state.rate}×`}
+            accessibilityLabel={`Speed ${rate}×`}
             hitSlop={8}
             onPress={() => setPickingRate((v) => !v)}
             className="h-11 w-11 items-center justify-center rounded-[12px] active:opacity-60"
@@ -224,7 +224,7 @@ export function NowPlaying() {
               className="font-mono-medium text-[13px]"
               style={{ color: pickingRate ? d.accent : d.ink }}
             >
-              {state.rate}×
+              {rate}×
             </Text>
           </Pressable>
           <Transport
@@ -233,7 +233,7 @@ export function NowPlaying() {
             label="Back 10 seconds"
             onPress={() => playback.seekBy(-10)}
           />
-          {state.status === "loading" ? (
+          {status === "loading" ? (
             <View
               className="items-center justify-center rounded-full"
               style={{ height: 72, width: 72, backgroundColor: d.ink }}
@@ -243,8 +243,8 @@ export function NowPlaying() {
           ) : (
             <Transport
               testID="np-play-pause"
-              icon={state.playing ? "pause" : "play"}
-              label={state.playing ? "Pause" : "Play"}
+              icon={playing ? "pause" : "play"}
+              label={playing ? "Pause" : "Play"}
               primary
               onPress={() => playback.toggle()}
             />
@@ -274,16 +274,16 @@ export function NowPlaying() {
 
         {pickingRate ? (
           <View testID="np-rates" className="mt-5 flex-row flex-wrap justify-center gap-2">
-            {PLAYBACK_RATES.map((rate) => {
-              const on = state.rate === rate;
+            {PLAYBACK_RATES.map((r) => {
+              const on = rate === r;
               return (
                 <Pressable
-                  key={rate}
-                  testID={`np-rate-${rate}`}
+                  key={r}
+                  testID={`np-rate-${r}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: on }}
                   onPress={() => {
-                    playback.setRate(rate);
+                    playback.setRate(r);
                     setPickingRate(false);
                   }}
                   className="h-8 items-center justify-center rounded-full border px-3"
@@ -296,7 +296,7 @@ export function NowPlaying() {
                     className="font-mono-medium text-[13px]"
                     style={{ color: on ? d.bg : d.ink2 }}
                   >
-                    {rate}×
+                    {r}×
                   </Text>
                 </Pressable>
               );
@@ -304,36 +304,61 @@ export function NowPlaying() {
           </View>
         ) : null}
 
-        {state.status === "error" ? (
+        {status === "error" ? (
           <Text className="mt-4 text-center text-[13px]" style={{ color: d.danger }}>
-            {state.error}
+            {error}
           </Text>
         ) : null}
 
-        {line ? (
-          <View
-            testID="np-transcript"
-            className="mt-8 w-full flex-row items-center gap-3 rounded-[16px] px-3.5 py-3"
-            style={{ backgroundColor: d.accentSoft }}
-          >
-            <View
-              className="h-7 w-7 items-center justify-center rounded-full"
-              style={{ backgroundColor: speakerColor }}
-            >
-              <Text className="font-jakarta-bold text-[11px]" style={{ color: "#FFFFFF" }}>
-                {initials(line.speaker)}
-              </Text>
-            </View>
-            <Text className="flex-1 text-[14px] leading-5" style={{ color: d.ink }}>
-              <Text className="font-jakarta-bold text-[14px]" style={{ color: speakerColor }}>
-                {line.speaker}
-              </Text>
-              {" · "}
-              {line.text}
-            </Text>
-          </View>
-        ) : null}
+        <CurrentLine segments={segments} />
       </ScrollView>
+    </View>
+  );
+}
+
+function LiveScrubber({ fallbackDuration }: { fallbackDuration: number }) {
+  const position = usePlaybackPosition();
+  const duration = usePlaybackDuration() || fallbackDuration;
+  return (
+    <Scrubber
+      testID="np-scrubber"
+      position={position}
+      duration={duration}
+      onSeek={playback.seekTo}
+      trackColor={d.line}
+      fillColor={d.accent}
+      labelColor={d.ink2}
+    />
+  );
+}
+
+function CurrentLine({ segments }: { segments: TranscriptSegmentRow[] }) {
+  const position = usePlaybackPosition();
+  const names = speakers(segments);
+  const line = segmentAt(segments, position * 1000);
+  if (!line) return null;
+  const speakerColor = d.speakers[names.indexOf(line.speaker) % d.speakers.length];
+  return (
+    <View
+      testID="np-transcript"
+      className="mt-8 w-full flex-row items-center gap-3 rounded-[16px] px-3.5 py-3"
+      style={{ backgroundColor: d.accentSoft }}
+    >
+      <View
+        className="h-7 w-7 items-center justify-center rounded-full"
+        style={{ backgroundColor: speakerColor }}
+      >
+        <Text className="font-jakarta-bold text-[11px]" style={{ color: "#FFFFFF" }}>
+          {initials(line.speaker)}
+        </Text>
+      </View>
+      <Text className="flex-1 text-[14px] leading-5" style={{ color: d.ink }}>
+        <Text className="font-jakarta-bold text-[14px]" style={{ color: speakerColor }}>
+          {line.speaker}
+        </Text>
+        {" · "}
+        {line.text}
+      </Text>
     </View>
   );
 }

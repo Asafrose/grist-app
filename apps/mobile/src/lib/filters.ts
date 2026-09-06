@@ -31,17 +31,21 @@ export const defaultFilters: FilterState = {
   recorderId: null,
 };
 
-export const useFilters = create<FilterState>(() => defaultFilters);
+export const filtersStore = create<FilterState>(() => defaultFilters);
+
+export const useFilters = () => filtersStore();
+export const useFilterTitle = () => filtersStore((s) => s.title);
 
 export const filters = {
-  setTitle: (title: string) => useFilters.setState({ title }),
-  setView: (view: View) => useFilters.setState({ view }),
-  apply: (sheet: SheetFilters) => useFilters.setState(sheet),
+  setTitle: (title: string) => filtersStore.setState({ title }),
+  setView: (view: View) => filtersStore.setState({ view }),
+  apply: (sheet: SheetFilters) => filtersStore.setState(sheet),
   clear: (key: keyof SheetFilters) =>
-    useFilters.setState({
+    filtersStore.setState({
       [key]: key === "view" ? defaultFilters.view : key === "scope" ? "all" : null,
     }),
-  reset: () => useFilters.setState(defaultFilters),
+  reset: () => filtersStore.setState(defaultFilters),
+  current: () => filtersStore.getState(),
 };
 
 export function sheetFilters(f: FilterState): SheetFilters {

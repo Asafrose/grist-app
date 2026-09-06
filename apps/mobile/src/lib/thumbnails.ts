@@ -10,7 +10,7 @@ export type ThumbnailSubject = { id: string; mediaType: string; durationMs: numb
 
 type ThumbnailsState = { byId: Record<string, string | null> };
 
-export const useThumbnails = create<ThumbnailsState>(() => ({ byId: {} }));
+export const thumbnailsStore = create<ThumbnailsState>(() => ({ byId: {} }));
 
 export const THUMBNAIL_CONCURRENCY = 6;
 export const THUMBNAIL_MIN_OFFSET_MS = 30_000;
@@ -33,11 +33,11 @@ const queued = new Set<string>();
 let active = 0;
 
 function set(id: string, uri: string | null) {
-  useThumbnails.setState((s) => ({ byId: { ...s.byId, [id]: uri } }));
+  thumbnailsStore.setState((s) => ({ byId: { ...s.byId, [id]: uri } }));
 }
 
 function forget(id: string) {
-  useThumbnails.setState((s) => {
+  thumbnailsStore.setState((s) => {
     const { [id]: _dropped, ...rest } = s.byId;
     return { byId: rest };
   });
@@ -84,7 +84,7 @@ async function drain(): Promise<void> {
 }
 
 function request(subject: ThumbnailSubject): void {
-  const { byId } = useThumbnails.getState();
+  const { byId } = thumbnailsStore.getState();
   if (subject.id in byId || queued.has(subject.id)) return;
   if (subject.mediaType !== "video") {
     set(subject.id, null);
@@ -109,7 +109,7 @@ function clear(): void {
   } catch {
     // a generation in flight can hold a file open; the next clear or overwrite handles it
   }
-  useThumbnails.setState({ byId: {} });
+  thumbnailsStore.setState({ byId: {} });
 }
 
 const idleWaiters: (() => void)[] = [];
@@ -122,7 +122,7 @@ function whenIdle(): Promise<void> {
 export const thumbnails = { request, clear, whenIdle, pending: () => queue.length + active };
 
 export function useThumbnail({ id, mediaType, durationMs }: ThumbnailSubject) {
-  const uri = useThumbnails((s) => s.byId[id]);
+  const uri = thumbnailsStore((s) => s.byId[id]);
   useEffect(() => {
     request({ id, mediaType, durationMs });
   }, [id, mediaType, durationMs]);

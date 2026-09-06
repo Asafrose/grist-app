@@ -2,7 +2,7 @@ import { GrainApiError } from "@grist/grain-api";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
-import { auth, useAuth } from "@/lib/auth";
+import { auth, authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
 import { SignIn } from "./index";
 
@@ -29,7 +29,7 @@ const list = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks();
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { list } }));
-  useAuth.setState({ status: "signed-out", token: null });
+  authStore.setState({ status: "signed-out", token: null });
 });
 
 describe("SignIn", () => {
@@ -54,7 +54,7 @@ describe("SignIn", () => {
       await screen.findByText("Grain didn't accept that token. Check it and try again."),
     ).toBeOnTheScreen();
     expect(makeClient).toHaveBeenCalledWith("bad-token");
-    expect(useAuth.getState().status).toBe("signed-out");
+    expect(authStore.getState().status).toBe("signed-out");
   });
 
   it("distinguishes server errors from network failures", async () => {
@@ -83,7 +83,7 @@ describe("SignIn", () => {
 
     await waitFor(() => expect(signIn).toHaveBeenCalledWith("grain_pat_ok"));
     expect(makeClient).toHaveBeenCalledWith("grain_pat_ok");
-    expect(useAuth.getState()).toMatchObject({ status: "signed-in", token: "grain_pat_ok" });
+    expect(authStore.getState()).toMatchObject({ status: "signed-in", token: "grain_pat_ok" });
   });
 
   it("pastes the clipboard into the field, trimmed", async () => {
@@ -99,8 +99,8 @@ describe("SignIn", () => {
   it("signs in with demo data without calling Grain (dev builds only)", async () => {
     await render(<SignIn />);
     await fireEvent.press(screen.getByTestId("demo-sign-in"));
-    await waitFor(() => expect(useAuth.getState().status).toBe("signed-in"));
-    expect(useAuth.getState().token).toBe("demo");
+    await waitFor(() => expect(authStore.getState().status).toBe("signed-in"));
+    expect(authStore.getState().token).toBe("demo");
     expect(makeClient).not.toHaveBeenCalled();
   });
 

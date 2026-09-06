@@ -8,17 +8,17 @@ import { Icon, type IconName } from "@/components/icon";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
-import { auth, useAuth } from "@/lib/auth";
+import { auth, useAuthToken } from "@/lib/auth";
 import { clearIndex, type Db } from "@/lib/db";
 import { makeClient, tokenErrorMessage } from "@/lib/grain";
-import { library, useDb, useLibrary } from "@/lib/library";
+import { library, useDb } from "@/lib/library";
 import { initials, loadProfile, type Profile } from "@/lib/profile";
 import {
   DOWNLOAD_CAPS_BYTES,
   KEEP_DOWNLOADS_DAYS,
   PLAYBACK_RATES,
   settings,
-  useSettings,
+  useSetting,
 } from "@/lib/settings";
 import { formatBytes, storageStats } from "@/lib/storage";
 import { cn } from "@/lib/utils";
@@ -205,15 +205,9 @@ function PickerRow<T extends string | number>({
   );
 }
 
-function onLibraryChange(fn: () => void) {
-  return useLibrary.subscribe((s, prev) => {
-    if (s.version !== prev.version) fn();
-  });
-}
-
 function useStorageStats(db: Db) {
   const [stats, setStats] = useState(() => storageStats(db));
-  useEffect(() => onLibraryChange(() => setStats(storageStats(db))), [db]);
+  useEffect(() => library.onChange(() => setStats(storageStats(db))), [db]);
   return stats;
 }
 
@@ -233,7 +227,7 @@ function ProfileCard({ token }: { token: string }) {
           if (!cancelled) setProfile(null);
         });
     load();
-    const unsubscribe = onLibraryChange(load);
+    const unsubscribe = library.onChange(load);
     return () => {
       cancelled = true;
       unsubscribe();
@@ -357,8 +351,7 @@ function ReplaceToken({ onDone }: { onDone: () => void }) {
 export function Settings() {
   const db = useDb();
   const insets = useSafeAreaInsets();
-  const token = useAuth((s) => s.token) ?? "";
-  const prefs = useSettings();
+  const token = useAuthToken() ?? "";
   const [replacing, setReplacing] = useState(false);
   const stats = useStorageStats(db);
   const appVersion = Constants.expoConfig?.version ?? "dev";
@@ -392,7 +385,7 @@ export function Settings() {
           icon="speed"
           label="Default speed"
           options={PLAYBACK_RATES}
-          value={prefs.playbackRate}
+          value={useSetting("playbackRate")}
           format={(r) => `${r}×`}
           onSelect={(r) => settings.set("playbackRate", r)}
           testID="setting-rate"
@@ -400,14 +393,14 @@ export function Settings() {
         <ToggleRow
           icon="wifi"
           label="Audio only on cellular"
-          checked={prefs.audioOnlyOnCellular}
+          checked={useSetting("audioOnlyOnCellular")}
           onChange={(v) => settings.set("audioOnlyOnCellular", v)}
           testID="setting-audio-only"
         />
         <ToggleRow
           icon="pip"
           label="Picture in picture"
-          checked={prefs.pictureInPicture}
+          checked={useSetting("pictureInPicture")}
           onChange={(v) => settings.set("pictureInPicture", v)}
           testID="setting-pip"
         />
@@ -430,7 +423,7 @@ export function Settings() {
           icon="clock"
           label="Keep downloads for"
           options={KEEP_DOWNLOADS_DAYS}
-          value={prefs.keepDownloadsDays}
+          value={useSetting("keepDownloadsDays")}
           format={(d) => `${d} days`}
           onSelect={(d) => settings.set("keepDownloadsDays", d)}
           testID="setting-keep"
@@ -439,7 +432,7 @@ export function Settings() {
           icon="drive"
           label="Download cap"
           options={DOWNLOAD_CAPS_BYTES}
-          value={prefs.downloadCapBytes}
+          value={useSetting("downloadCapBytes")}
           format={(b) => `${Math.round(b / 1024 ** 3)} GB`}
           onSelect={(b) => settings.set("downloadCapBytes", b)}
           testID="setting-cap"

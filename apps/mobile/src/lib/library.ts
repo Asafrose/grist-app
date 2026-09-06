@@ -1,7 +1,7 @@
 import * as Network from "expo-network";
 import { AppState } from "react-native";
 import { create } from "zustand";
-import { auth, useAuth } from "@/lib/auth";
+import { auth, authStore } from "@/lib/auth";
 import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
@@ -25,7 +25,7 @@ type LibraryState = {
   version: number;
 };
 
-export const useLibrary = create<LibraryState>(() => ({
+export const libraryStore = create<LibraryState>(() => ({
   db: null,
   sync: "idle",
   lastSyncAt: null,
@@ -33,8 +33,8 @@ export const useLibrary = create<LibraryState>(() => ({
   version: 0,
 }));
 
-function bump() {
-  useLibrary.setState((s) => ({ version: s.version + 1 }));
+function bump(patch: Partial<LibraryState> = {}) {
+  libraryStore.setState((s) => ({ ...patch, version: s.version + 1 }));
 }
 
 let inflight: Promise<void> | null = null;
@@ -42,7 +42,7 @@ let lastRunAt = 0;
 
 async function refresh(force = false): Promise<void> {
   await libraryReady;
-  const { db } = useLibrary.getState();
+  const { db } = libraryStore.getState();
   const token = auth.token();
   if (!db || !token) return;
   if (inflight) {
@@ -51,26 +51,25 @@ async function refresh(force = false): Promise<void> {
   }
   if (!force && Date.now() - lastRunAt < REFRESH_DEBOUNCE_MS) return;
 
-  useLibrary.setState({ sync: "syncing", error: null });
+  libraryStore.setState({ sync: "syncing", error: null });
   inflight = (async () => {
     try {
       if (isDemoToken(token)) {
         seedDemo(db);
-        useLibrary.setState({ sync: "idle", lastSyncAt: new Date().toISOString() });
+        bump({ sync: "idle", lastSyncAt: new Date().toISOString() });
         return;
       }
       const client = makeClient(token);
       const api = client.recordings;
-      await syncLibrary(db, api, { onPage: bump });
+      await syncLibrary(db, api, { onPage: () => bump() });
       await syncWorkspace(db, client).catch(() => undefined);
-      useLibrary.setState({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
+      bump({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
       void prefetchInBackground(db, api, token);
     } catch (e) {
-      useLibrary.setState({ sync: "error", error: e instanceof Error ? e.message : String(e) });
+      bump({ sync: "error", error: e instanceof Error ? e.message : String(e) });
     } finally {
       lastRunAt = Date.now();
       inflight = null;
-      bump();
     }
   })();
   return inflight;
@@ -100,34 +99,37 @@ function prefetchInBackground(db: Db, api: RecordingsApi, token: string): Promis
 export const library = {
   refresh,
   clear,
-  touch: bump,
+  touch: () => bump(),
+  onChange: (fn: () => void) =>
+    libraryStore.subscribe((s, prev) => {
+      if (s.version !== prev.version) fn();
+    }),
   prefetchDone: () => prefetching ?? Promise.resolve(),
 };
 
 async function clear(): Promise<void> {
   await libraryReady;
-  const { db } = useLibrary.getState();
+  const { db } = libraryStore.getState();
   if (!db) return;
   playback.stop();
   thumbnails.clear();
   clearAll(db);
   persistSettings();
   lastRunAt = 0;
-  useLibrary.setState({ sync: "idle", lastSyncAt: null, error: null });
-  bump();
+  bump({ sync: "idle", lastSyncAt: null, error: null });
 }
 
 async function hydrate(): Promise<void> {
   const db = await openDb();
   hydrateSettings(db);
-  useLibrary.setState({ db, lastSyncAt: getMeta(db, META_LAST_SYNC) });
+  libraryStore.setState({ db, lastSyncAt: getMeta(db, META_LAST_SYNC) });
 }
 
 export const libraryReady = hydrate().then(() => {
-  if (useAuth.getState().status === "signed-in") void refresh();
+  if (authStore.getState().status === "signed-in") void refresh();
 });
 
-useAuth.subscribe((s, prev) => {
+authStore.subscribe((s, prev) => {
   if (s.token === prev.token) return;
   const wasSignedIn = prev.status === "signed-in";
   if (s.status === "signed-in") {
@@ -141,8 +143,12 @@ AppState.addEventListener("change", (state) => {
   if (state === "active") void refresh();
 });
 
+export const useLibraryVersion = () => libraryStore((s) => s.version);
+export const useSyncStatus = () => libraryStore((s) => s.sync);
+export const useSyncError = () => libraryStore((s) => s.error);
+
 export function useDb(): Db {
-  const db = useLibrary((s) => s.db);
+  const db = libraryStore((s) => s.db);
   if (!db) throw new Error("useDb called before libraryReady resolved");
   return db;
 }

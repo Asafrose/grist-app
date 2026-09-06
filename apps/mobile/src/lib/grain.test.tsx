@@ -1,7 +1,7 @@
 import { GrainApiError, GrainClient } from "@grist/grain-api";
 import { renderHook } from "@testing-library/react-native";
 import { act } from "react";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { makeClient, tokenErrorMessage, useGrainClient } from "@/lib/grain";
 
 jest.mock("expo-secure-store", () => ({
@@ -17,17 +17,17 @@ describe("grain client", () => {
   });
 
   it("useGrainClient is null when signed out and stable while the token is unchanged", async () => {
-    useAuth.setState({ status: "signed-out", token: null });
+    authStore.setState({ status: "signed-out", token: null });
     const { result, rerender } = await renderHook(() => useGrainClient());
     expect(result.current).toBeNull();
 
-    await act(async () => useAuth.setState({ status: "signed-in", token: "pat" }));
+    await act(async () => authStore.setState({ status: "signed-in", token: "pat" }));
     const first = result.current;
     expect(first).toBeInstanceOf(GrainClient);
     await rerender(undefined);
     expect(result.current).toBe(first);
 
-    await act(async () => useAuth.setState({ status: "signed-in", token: "other" }));
+    await act(async () => authStore.setState({ status: "signed-in", token: "other" }));
     expect(result.current).not.toBe(first);
   });
 

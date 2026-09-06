@@ -8,31 +8,23 @@ type AuthState =
   | { status: "signed-out"; token: null }
   | { status: "signed-in"; token: string };
 
-type AuthActions = {
-  signIn: (token: string) => Promise<void>;
-  signOut: () => Promise<void>;
-};
+export const authStore = create<AuthState>(() => ({ status: "loading", token: null }));
 
-export const useAuth = create<AuthState & AuthActions>((set) => ({
-  status: "loading",
-  token: null,
+async function signIn(token: string): Promise<void> {
+  await SecureStore.setItemAsync(TOKEN_KEY, token, {
+    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+  });
+  authStore.setState({ status: "signed-in", token });
+}
 
-  async signIn(token) {
-    await SecureStore.setItemAsync(TOKEN_KEY, token, {
-      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
-    });
-    set({ status: "signed-in", token });
-  },
-
-  async signOut() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    set({ status: "signed-out", token: null });
-  },
-}));
+async function signOut(): Promise<void> {
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  authStore.setState({ status: "signed-out", token: null });
+}
 
 export function hydrateAuth(): Promise<void> {
   return SecureStore.getItemAsync(TOKEN_KEY).then((token) => {
-    useAuth.setState(
+    authStore.setState(
       token ? { status: "signed-in", token } : { status: "signed-out", token: null },
     );
   });
@@ -41,7 +33,10 @@ export function hydrateAuth(): Promise<void> {
 export const authReady = hydrateAuth();
 
 export const auth = {
-  signIn: (token: string) => useAuth.getState().signIn(token),
-  signOut: () => useAuth.getState().signOut(),
-  token: () => useAuth.getState().token,
+  signIn,
+  signOut,
+  token: () => authStore.getState().token,
 };
+
+export const useAuthToken = () => authStore((s) => s.token);
+export const useSignedIn = () => authStore((s) => s.status === "signed-in");

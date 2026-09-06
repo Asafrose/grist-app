@@ -8,7 +8,8 @@ import {
   PLAYBACK_RATES,
   type PlaybackRate,
   settings,
-  useSettings,
+  settingsStore,
+  useSetting,
 } from "@/lib/settings";
 
 export { isPlaybackRate, PLAYBACK_RATES, type PlaybackRate };
@@ -27,7 +28,6 @@ type PlayerState = {
   playing: boolean;
   position: number;
   duration: number;
-  rate: PlaybackRate;
   error: string | null;
 };
 
@@ -37,25 +37,35 @@ const initial: PlayerState = {
   playing: false,
   position: 0,
   duration: 0,
-  rate: useSettings.getState().playbackRate,
   error: null,
 };
 
-export const usePlayer = create<PlayerState>(() => initial);
+export const playerStore = create<PlayerState>(() => initial);
+
+export const useNowPlaying = () => playerStore((s) => s.current);
+export const useIsCurrent = (id: string) => playerStore((s) => s.current?.id === id);
+export const usePlaybackStatus = () => playerStore((s) => s.status);
+export const usePlaybackError = () => playerStore((s) => s.error);
+export const useIsPlaying = () => playerStore((s) => s.playing);
+export const usePlaybackPosition = () => playerStore((s) => s.position);
+export const usePlaybackDuration = () => playerStore((s) => s.duration);
+export const usePlaybackRate = () => useSetting("playbackRate");
 
 export const player: VideoPlayer = createVideoPlayer(null);
 player.staysActiveInBackground = true;
 player.showNowPlayingNotification = true;
 player.timeUpdateEventInterval = 0.5;
 
-player.addListener("playingChange", ({ isPlaying }) => usePlayer.setState({ playing: isPlaying }));
-player.addListener("timeUpdate", ({ currentTime }) =>
-  usePlayer.setState({ position: currentTime }),
+player.addListener("playingChange", ({ isPlaying }) =>
+  playerStore.setState({ playing: isPlaying }),
 );
-player.addListener("sourceLoad", ({ duration }) => usePlayer.setState({ duration }));
+player.addListener("timeUpdate", ({ currentTime }) =>
+  playerStore.setState({ position: currentTime }),
+);
+player.addListener("sourceLoad", ({ duration }) => playerStore.setState({ duration }));
 player.addListener("statusChange", ({ status, error }) => {
-  if (usePlayer.getState().status === "idle") return;
-  usePlayer.setState({
+  if (playerStore.getState().status === "idle") return;
+  playerStore.setState({
     status: status === "readyToPlay" ? "ready" : status === "error" ? "error" : "loading",
     error: error?.message ?? null,
   });
@@ -77,7 +87,7 @@ function startPictureInPicture() {
 }
 
 async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } = {}) {
-  const { current } = usePlayer.getState();
+  const { current } = playerStore.getState();
   if (current?.id === rec.id) {
     if (opts.at !== undefined) seekTo(opts.at);
     if (opts.autoplay ?? true) player.play();
@@ -86,7 +96,7 @@ async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } =
   const seq = ++loadSeq;
   const token = auth.token();
   if (!token) throw new Error("Not signed in");
-  usePlayer.setState({
+  playerStore.setState({
     current: rec,
     status: "loading",
     playing: false,
@@ -104,30 +114,28 @@ async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } =
       metadata: { title: rec.title, artist: "Grain", artwork: rec.thumbnailUrl ?? undefined },
     });
     if (seq !== loadSeq) return;
-    player.playbackRate = usePlayer.getState().rate;
+    player.playbackRate = settings.get().playbackRate;
     if (opts.at) player.currentTime = opts.at;
     if (opts.autoplay ?? true) player.play();
   } catch (e) {
     if (seq !== loadSeq) return;
-    usePlayer.setState({ status: "error", error: e instanceof Error ? e.message : String(e) });
+    playerStore.setState({ status: "error", error: e instanceof Error ? e.message : String(e) });
   }
 }
 
 function seekTo(seconds: number) {
-  const { duration } = usePlayer.getState();
+  const { duration } = playerStore.getState();
   const clamped = Math.max(0, duration ? Math.min(seconds, duration) : seconds);
   player.currentTime = clamped;
-  usePlayer.setState({ position: clamped });
+  playerStore.setState({ position: clamped });
 }
 
 function seekBy(seconds: number) {
-  seekTo(usePlayer.getState().position + seconds);
+  seekTo(playerStore.getState().position + seconds);
 }
 
-useSettings.subscribe((s, prev) => {
-  if (s.playbackRate === prev.playbackRate) return;
-  player.playbackRate = s.playbackRate;
-  usePlayer.setState({ rate: s.playbackRate });
+settingsStore.subscribe((s, prev) => {
+  if (s.playbackRate !== prev.playbackRate) player.playbackRate = s.playbackRate;
 });
 
 function setRate(rate: PlaybackRate) {
@@ -135,14 +143,14 @@ function setRate(rate: PlaybackRate) {
 }
 
 function toggle() {
-  if (usePlayer.getState().playing) player.pause();
+  if (playerStore.getState().playing) player.pause();
   else player.play();
 }
 
 function stop() {
   loadSeq++;
   void player.replaceAsync(null);
-  usePlayer.setState({ ...initial, rate: usePlayer.getState().rate });
+  playerStore.setState(initial);
 }
 
 export const playback = {

@@ -6,18 +6,18 @@ import {
   readSettings,
   SETTINGS_META_KEYS,
   settings,
-  useSettings,
+  settingsStore,
   writeSettings,
 } from "@/lib/settings";
 import { testDb } from "@/test/db";
 
 beforeEach(() => {
-  useSettings.setState(DEFAULT_SETTINGS);
+  settingsStore.setState(DEFAULT_SETTINGS);
 });
 
 describe("settings store", () => {
   it("starts with defaults and reads defaults from an empty database", () => {
-    expect(useSettings.getState()).toEqual(DEFAULT_SETTINGS);
+    expect(settingsStore.getState()).toEqual(DEFAULT_SETTINGS);
     expect(readSettings(testDb())).toEqual(DEFAULT_SETTINGS);
   });
 
@@ -28,7 +28,7 @@ describe("settings store", () => {
     setMeta(db, SETTINGS_META_KEYS.keepDownloadsDays, "45");
     setMeta(db, SETTINGS_META_KEYS.downloadCapBytes, "not json");
     hydrateSettings(db);
-    expect(useSettings.getState()).toEqual({
+    expect(settingsStore.getState()).toEqual({
       ...DEFAULT_SETTINGS,
       playbackRate: 1.5,
       audioOnlyOnCellular: true,
@@ -75,7 +75,7 @@ describe("settings store", () => {
 
   it("notifies subscribers when a value changes", () => {
     const seen: number[] = [];
-    const unsub = useSettings.subscribe((s, prev) => {
+    const unsub = settingsStore.subscribe((s, prev) => {
       if (s.playbackRate !== prev.playbackRate) seen.push(s.playbackRate);
     });
     settings.set("playbackRate", 1.7);

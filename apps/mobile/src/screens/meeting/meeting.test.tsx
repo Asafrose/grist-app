@@ -2,11 +2,11 @@ import type { Recording } from "@grist/grain-api";
 import detail from "@grist/grain-api/fixtures/recording.json";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import { router } from "expo-router";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { getRecording, listRecordings, upsertRecordings } from "@/lib/db";
 import { makeClient, useGrainClient } from "@/lib/grain";
-import { library, libraryReady, useLibrary } from "@/lib/library";
-import { usePlayer } from "@/lib/player";
+import { library, libraryReady, libraryStore } from "@/lib/library";
+import { playerStore } from "@/lib/player";
 import { isoSeconds } from "@/lib/sync";
 import { Meeting } from "./index";
 
@@ -75,19 +75,19 @@ const api = { recordings: { iterate, transcript, get } };
 beforeEach(() => {
   jest.clearAllMocks();
   (makeClient as jest.Mock).mockImplementation(() => api);
-  (useGrainClient as jest.Mock).mockImplementation(() => (useAuth.getState().token ? api : null));
+  (useGrainClient as jest.Mock).mockImplementation(() => (authStore.getState().token ? api : null));
   setParams({});
 });
 
 describe("Meeting shell with a real token", () => {
   beforeAll(async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
   });
 
   it("refreshes a stale recording in the background and re-renders the result", async () => {
-    const db = useLibrary.getState().db!;
+    const db = libraryStore.getState().db!;
     upsertRecordings(db, [fixture], isoSeconds(Date.now() - 3_600_000));
     await render(<Meeting id={fixture.id} />);
     expect(await screen.findByText("Refreshed title")).toBeOnTheScreen();
@@ -96,7 +96,7 @@ describe("Meeting shell with a real token", () => {
   });
 
   it("leaves a fresh recording alone", async () => {
-    const db = useLibrary.getState().db!;
+    const db = libraryStore.getState().db!;
     upsertRecordings(db, [fixture], isoSeconds(Date.now()));
     await render(<Meeting id={fixture.id} />);
     await new Promise((r) => setTimeout(r, 0));
@@ -112,16 +112,16 @@ describe("Meeting shell with a real token", () => {
 describe("Meeting shell in demo mode", () => {
   beforeAll(async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "demo" });
+    authStore.setState({ status: "signed-in", token: "demo" });
     await new Promise((r) => setTimeout(r, 0));
     await library.refresh(true);
     await waitFor(() =>
-      expect(listRecordings(useLibrary.getState().db!).length).toBeGreaterThan(20),
+      expect(listRecordings(libraryStore.getState().db!).length).toBeGreaterThan(20),
     );
   });
 
   it("renders the pinned player, title, meta chips and tab strip without refreshing", async () => {
-    const db = useLibrary.getState().db!;
+    const db = libraryStore.getState().db!;
     const rec = getRecording(db, "demo-0")!;
     await render(<Meeting id="demo-0" />);
 
@@ -165,8 +165,8 @@ describe("Meeting shell in demo mode", () => {
   it("a seek chip loads the recording at that position and shows it in the transport", async () => {
     await render(<Meeting id="demo-0" />);
     await fireEvent.press(screen.getAllByTestId("ts-88000")[0]);
-    await waitFor(() => expect(usePlayer.getState().current?.id).toBe("demo-0"));
-    expect(usePlayer.getState().position).toBe(88);
+    await waitFor(() => expect(playerStore.getState().current?.id).toBe("demo-0"));
+    expect(playerStore.getState().position).toBe(88);
     await waitFor(() => expect(screen.queryByTestId("player-start")).toBeNull());
     expect(screen.getByTestId("position")).toHaveTextContent("1:28");
   });
@@ -174,13 +174,13 @@ describe("Meeting shell in demo mode", () => {
   it("seeks to the t param on open", async () => {
     setParams({ t: "125" });
     await render(<Meeting id="demo-1" />);
-    await waitFor(() => expect(usePlayer.getState().current?.id).toBe("demo-1"));
-    expect(usePlayer.getState().position).toBe(125);
+    await waitFor(() => expect(playerStore.getState().current?.id).toBe("demo-1"));
+    expect(playerStore.getState().position).toBe(125);
     expect(screen.getByTestId("position")).toHaveTextContent("2:05");
   });
 
   it("shows an audio-only surface without a video view", async () => {
-    const db = useLibrary.getState().db!;
+    const db = libraryStore.getState().db!;
     const audio = listRecordings(db).find((r) => r.mediaType === "audio")!;
     await render(<Meeting id={audio.id} />);
     expect(screen.getByText("Audio only")).toBeOnTheScreen();
@@ -188,7 +188,7 @@ describe("Meeting shell in demo mode", () => {
   });
 
   it("hides the transport for transcript-only recordings", async () => {
-    const db = useLibrary.getState().db!;
+    const db = libraryStore.getState().db!;
     upsertRecordings(
       db,
       [{ ...fixture, id: "transcript-only", media_type: "transcript" }],
@@ -198,8 +198,8 @@ describe("Meeting shell in demo mode", () => {
     expect(screen.getByText("Transcript only")).toBeOnTheScreen();
     expect(screen.queryByTestId("player-start")).toBeNull();
     expect(screen.queryByTestId("position")).toBeNull();
-    const before = usePlayer.getState().current?.id;
+    const before = playerStore.getState().current?.id;
     await fireEvent.press(screen.getAllByTestId("ts-88000")[0]);
-    expect(usePlayer.getState().current?.id).toBe(before);
+    expect(playerStore.getState().current?.id).toBe(before);
   });
 });

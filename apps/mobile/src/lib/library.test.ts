@@ -3,10 +3,10 @@ import page from "@grist/grain-api/fixtures/recordings.json";
 import * as Network from "expo-network";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { AppState } from "react-native";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
-import { library, libraryReady, useDb, useLibrary } from "@/lib/library";
+import { library, libraryReady, useDb, libraryStore } from "@/lib/library";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -54,7 +54,7 @@ beforeEach(() => {
 describe("library store", () => {
   it("opens the database before anything else and starts idle", async () => {
     await libraryReady;
-    const s = useLibrary.getState();
+    const s = libraryStore.getState();
     expect(s.db).not.toBeNull();
     expect(s.sync).toBe("idle");
     expect(listRecordings(s.db!)).toEqual([]);
@@ -63,10 +63,10 @@ describe("library store", () => {
 
   it("syncs when the user signs in and prefetches transcripts on Wi-Fi", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     await new Promise((r) => setTimeout(r, 0));
     await library.refresh();
-    const s = useLibrary.getState();
+    const s = libraryStore.getState();
     expect(listRecordings(s.db!)).toHaveLength(2);
     expect(s.sync).toBe("idle");
     expect(s.lastSyncAt).not.toBeNull();
@@ -76,7 +76,7 @@ describe("library store", () => {
 
   it("debounces foreground refreshes but honours force", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
     iterate.mockClear();
     await library.refresh();
@@ -87,7 +87,7 @@ describe("library store", () => {
 
   it("skips transcript prefetch off Wi-Fi", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     (Network.getNetworkStateAsync as jest.Mock).mockResolvedValueOnce({ type: "CELLULAR" });
     transcript.mockClear();
     await library.refresh(true);
@@ -97,18 +97,18 @@ describe("library store", () => {
 
   it("records sync failures without throwing", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     iterate.mockImplementationOnce(async function* () {
       yield* [];
       throw new Error("rate limited");
     });
     await library.refresh(true);
-    expect(useLibrary.getState()).toMatchObject({ sync: "error", error: "rate limited" });
+    expect(libraryStore.getState()).toMatchObject({ sync: "error", error: "rate limited" });
   });
 
   it("refreshes when the app returns to the foreground", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
     await library.clear();
     iterate.mockClear();
@@ -123,34 +123,34 @@ describe("library store", () => {
   it("useDb hands screens the open database", async () => {
     await libraryReady;
     const { result } = await renderHook(() => useDb());
-    expect(result.current).toBe(useLibrary.getState().db);
+    expect(result.current).toBe(libraryStore.getState().db);
   });
 
   it("seeds fixtures instead of syncing when signed in with the demo token", async () => {
     await libraryReady;
     await library.clear();
-    useAuth.setState({ status: "signed-in", token: "demo" });
+    authStore.setState({ status: "signed-in", token: "demo" });
     await library.refresh(true);
     expect(iterate).not.toHaveBeenCalled();
-    expect(listRecordings(useLibrary.getState().db!).length).toBeGreaterThanOrEqual(20);
-    expect(useLibrary.getState().sync).toBe("idle");
+    expect(listRecordings(libraryStore.getState().db!).length).toBeGreaterThanOrEqual(20);
+    expect(libraryStore.getState().sync).toBe("idle");
   });
 
   it("switching accounts wipes the previous account's data before syncing", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-in", token: "demo" });
+    authStore.setState({ status: "signed-in", token: "demo" });
     await library.refresh(true);
-    expect(listRecordings(useLibrary.getState().db!).length).toBeGreaterThan(2);
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    expect(listRecordings(libraryStore.getState().db!).length).toBeGreaterThan(2);
+    authStore.setState({ status: "signed-in", token: "pat" });
     await waitFor(() => expect(iterate).toHaveBeenCalled());
-    await waitFor(() => expect(useLibrary.getState().sync).toBe("idle"));
-    expect(listRecordings(useLibrary.getState().db!)).toHaveLength(2);
+    await waitFor(() => expect(libraryStore.getState().sync).toBe("idle"));
+    expect(listRecordings(libraryStore.getState().db!)).toHaveLength(2);
   });
 
   it("a forced refresh during an in-flight sync runs again after it finishes", async () => {
     await libraryReady;
     await library.clear();
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     const first = library.refresh(true);
     const second = library.refresh(true);
     await Promise.all([first, second]);
@@ -160,24 +160,24 @@ describe("library store", () => {
   it("bumps version after every sync and clear so live queries re-run", async () => {
     await libraryReady;
     await library.clear();
-    const start = useLibrary.getState().version;
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    const start = libraryStore.getState().version;
+    authStore.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
-    const afterSync = useLibrary.getState().version;
+    const afterSync = libraryStore.getState().version;
     expect(afterSync).toBeGreaterThan(start);
     await library.clear();
-    expect(useLibrary.getState().version).toBe(afterSync + 1);
+    expect(libraryStore.getState().version).toBe(afterSync + 1);
   });
 
   it("wipes the database on sign-out", async () => {
     await libraryReady;
     await library.clear();
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    authStore.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
-    expect(listRecordings(useLibrary.getState().db!)).toHaveLength(2);
-    useAuth.setState({ status: "signed-out", token: null });
+    expect(listRecordings(libraryStore.getState().db!)).toHaveLength(2);
+    authStore.setState({ status: "signed-out", token: null });
     await new Promise((r) => setTimeout(r, 0));
-    expect(listRecordings(useLibrary.getState().db!)).toEqual([]);
-    expect(useLibrary.getState().lastSyncAt).toBeNull();
+    expect(listRecordings(libraryStore.getState().db!)).toEqual([]);
+    expect(libraryStore.getState().lastSyncAt).toBeNull();
   });
 });

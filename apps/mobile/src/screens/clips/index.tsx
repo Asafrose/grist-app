@@ -9,7 +9,7 @@ import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { type ClipRow, highlightsQuery, teamsQuery } from "@/lib/db";
 import { formatClock, formatShortDate } from "@/lib/format";
-import { library, useDb, useLibrary } from "@/lib/library";
+import { library, useDb, useLibraryVersion, useSyncError, useSyncStatus } from "@/lib/library";
 import { type Me, useMe } from "@/lib/me";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
@@ -127,9 +127,9 @@ function Empty({ filter, me, syncing }: { filter: ClipsFilter; me: Me; syncing: 
 export function Clips() {
   const db = useDb();
   const insets = useSafeAreaInsets();
-  const version = useLibrary((s) => s.version);
-  const sync = useLibrary((s) => s.sync);
-  const error = useLibrary((s) => s.error);
+  const version = useLibraryVersion();
+  const sync = useSyncStatus();
+  const error = useSyncError();
   const me = useMe();
   const [filter, setFilter] = useState<ClipsFilter>({ kind: "workspace" });
   const [limit, setLimit] = useState(CLIPS_PAGE);

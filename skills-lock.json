@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "zustand": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/zustand/SKILL.md",
+      "computedHash": "337c79809642db2ecec7677e47fe17f26115a000a35b66ec5da4c38e132b0a8d"
+    }
+  }
+}

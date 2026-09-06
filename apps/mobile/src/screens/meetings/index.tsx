@@ -19,7 +19,7 @@ import { meetingCompany } from "@/lib/company";
 import { type RecordingListRow, recordingsQuery } from "@/lib/db";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { formatDurationCompact, formatTime } from "@/lib/format";
-import { library, useDb, useLibrary } from "@/lib/library";
+import { library, useDb, useLibraryVersion, useSyncError, useSyncStatus } from "@/lib/library";
 import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
@@ -145,9 +145,9 @@ export function Meetings() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const version = useLibrary((s) => s.version);
-  const sync = useLibrary((s) => s.sync);
-  const error = useLibrary((s) => s.error);
+  const version = useLibraryVersion();
+  const sync = useSyncStatus();
+  const error = useSyncError();
   const state = useFilters();
 
   const workspace = useMemo(() => getWorkspace(db), [db, version]);

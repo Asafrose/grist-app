@@ -3,14 +3,14 @@ import { VideoView } from "expo-video";
 import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Icon } from "@/components/icon";
-import { attachVideoView, player, usePlayer } from "@/lib/player";
+import { attachVideoView, player, useNowPlaying } from "@/lib/player";
 import { cn } from "@/lib/utils";
 
 export const PLAYER_SURFACE = "#23282D";
 export const PLAYER_ON_SURFACE = "#FFFFFF";
 
 export function PlayerView({ className }: { className?: string }) {
-  const current = usePlayer((s) => s.current);
+  const current = useNowPlaying();
   const isVideo = current?.mediaType === "video";
   const ref = useRef<VideoView>(null);
 

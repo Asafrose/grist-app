@@ -18,7 +18,7 @@ import {
   type TranscriptHit,
 } from "@/lib/db";
 import { formatClock, formatDuration, formatMeetingDate } from "@/lib/format";
-import { useDb, useLibrary } from "@/lib/library";
+import { useDb, useLibraryVersion } from "@/lib/library";
 import { addRecentSearch, clearRecentSearches, getRecentSearches } from "@/lib/recent-searches";
 import { type SnippetRun, snippetRuns } from "@/lib/snippet";
 import { cn } from "@/lib/utils";
@@ -207,7 +207,7 @@ export function Search() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const version = useLibrary((s) => s.version);
+  const version = useLibraryVersion();
   const inputRef = useRef<TextInput>(null);
 
   const [query, setQuery] = useState("");

@@ -1,6 +1,6 @@
 import { GrainApiError, GrainClient } from "@grist/grain-api";
 import { useMemo } from "react";
-import { useAuth } from "@/lib/auth";
+import { useAuthToken } from "@/lib/auth";
 
 export function makeClient(token: string) {
   return new GrainClient({ token });
@@ -15,6 +15,6 @@ export function tokenErrorMessage(e: unknown): string {
 }
 
 export function useGrainClient(): GrainClient | null {
-  const token = useAuth((s) => s.token);
+  const token = useAuthToken();
   return useMemo(() => (token ? makeClient(token) : null), [token]);
 }

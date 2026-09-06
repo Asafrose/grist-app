@@ -5,7 +5,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { formatClock } from "@/lib/format";
-import { playback, usePlayer } from "@/lib/player";
+import {
+  playback,
+  useIsPlaying,
+  useNowPlaying,
+  usePlaybackDuration,
+  usePlaybackPosition,
+  usePlaybackStatus,
+} from "@/lib/player";
 import { useColors } from "@/theme";
 
 export const MINI_PLAYER_HEIGHT = 60;
@@ -14,11 +21,28 @@ const TAB_BAR_HEIGHT = 49;
 const TAB_PATHS = new Set(["/", "/search", "/clips", "/settings"]);
 
 export function useMiniPlayerVisible(): boolean {
-  const current = usePlayer((s) => s.current);
+  const current = useNowPlaying();
   const pathname = usePathname();
   if (!current) return false;
   if (pathname === "/now-playing") return false;
   return decodeURIComponent(pathname) !== `/meeting/${current.id}`;
+}
+
+function Clock({ color }: { color: string }) {
+  const position = usePlaybackPosition();
+  const duration = usePlaybackDuration();
+  return (
+    <Text className="font-mono text-[12px] leading-4" style={{ color, opacity: 0.7 }}>
+      {formatClock(position)} · {formatClock(duration)}
+    </Text>
+  );
+}
+
+function ProgressFill({ color }: { color: string }) {
+  const position = usePlaybackPosition();
+  const duration = usePlaybackDuration();
+  const progress = duration ? Math.min(1, position / duration) : 0;
+  return <View className="h-0.5" style={{ width: `${progress * 100}%`, backgroundColor: color }} />;
 }
 
 export function useMiniPlayerInset(): number {
@@ -57,13 +81,14 @@ export function MiniPlayer() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const visible = useMiniPlayerVisible();
-  const { current, playing, position, duration, status } = usePlayer();
+  const current = useNowPlaying();
+  const playing = useIsPlaying();
+  const status = usePlaybackStatus();
 
   if (!visible || !current) return null;
 
   const onTab = TAB_PATHS.has(pathname);
   const bottom = insets.bottom + (onTab ? TAB_BAR_HEIGHT : 0) + MINI_PLAYER_GAP;
-  const progress = duration ? Math.min(1, position / duration) : 0;
 
   return (
     <View pointerEvents="box-none" className="absolute right-3 left-3" style={{ bottom }}>
@@ -105,12 +130,7 @@ export function MiniPlayer() {
           >
             {current.title}
           </Text>
-          <Text
-            className="font-mono text-[12px] leading-4"
-            style={{ color: colors.bg, opacity: 0.7 }}
-          >
-            {formatClock(position)} · {formatClock(duration)}
-          </Text>
+          <Clock color={colors.bg} />
         </View>
         <Control
           testID="mini-seek-back"
@@ -140,10 +160,7 @@ export function MiniPlayer() {
           className="absolute right-3.5 bottom-0 left-3.5 h-0.5"
           style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
         >
-          <View
-            className="h-0.5"
-            style={{ width: `${progress * 100}%`, backgroundColor: colors.accent }}
-          />
+          <ProgressFill color={colors.accent} />
         </View>
       </Pressable>
     </View>

@@ -17,9 +17,9 @@ import {
   type SheetFilters,
   sheetFilters,
   toQuery,
-  useFilters,
+  useFilterTitle,
 } from "@/lib/filters";
-import { useDb, useLibrary } from "@/lib/library";
+import { useDb, useLibraryVersion } from "@/lib/library";
 import { cn } from "@/lib/utils";
 import { getWorkspace } from "@/lib/workspace";
 import { useColors } from "@/theme";
@@ -154,9 +154,9 @@ export function Filters() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const version = useLibrary((s) => s.version);
-  const title = useFilters((s) => s.title);
-  const [draft, setDraft] = useState<SheetFilters>(() => sheetFilters(useFilters.getState()));
+  const version = useLibraryVersion();
+  const title = useFilterTitle();
+  const [draft, setDraft] = useState<SheetFilters>(() => sheetFilters(filters.current()));
   const [more, setMore] = useState<More>(null);
 
   const workspace = useMemo(() => getWorkspace(db), [db, version]);

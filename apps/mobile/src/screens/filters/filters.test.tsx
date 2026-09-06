@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, within } from "@/test/render";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { countRecordings, participantOptions } from "@/lib/db";
-import { defaultFilters, filters, sheetFilters, useFilters } from "@/lib/filters";
-import { library, libraryReady, useLibrary } from "@/lib/library";
+import { defaultFilters, filters, sheetFilters, filtersStore } from "@/lib/filters";
+import { library, libraryReady, libraryStore } from "@/lib/library";
 import { getWorkspace } from "@/lib/workspace";
 import { Filters } from "./index";
 
@@ -46,7 +46,7 @@ jest.mock("@/components/native-date-picker", () => {
 
 beforeAll(async () => {
   await libraryReady;
-  useAuth.setState({ status: "signed-in", token: "demo" });
+  authStore.setState({ status: "signed-in", token: "demo" });
   await library.refresh(true);
 });
 
@@ -55,7 +55,7 @@ beforeEach(() => {
   filters.reset();
 });
 
-const db = () => useLibrary.getState().db!;
+const db = () => libraryStore.getState().db!;
 const me = () => getWorkspace(db()).meId!;
 
 describe("Filters sheet", () => {
@@ -69,10 +69,10 @@ describe("Filters sheet", () => {
     const external = countRecordings(db(), { recorderId: me(), scope: "external" });
     expect(external).toBeLessThan(all);
     expect(screen.getByText(`Show ${external} meetings`)).toBeOnTheScreen();
-    expect(useFilters.getState().scope).toBe("all");
+    expect(filtersStore.getState().scope).toBe("all");
 
     await fireEvent.press(screen.getByTestId("filters-apply"));
-    expect(useFilters.getState().scope).toBe("external");
+    expect(filtersStore.getState().scope).toBe("external");
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
@@ -90,7 +90,7 @@ describe("Filters sheet", () => {
     await fireEvent.press(screen.getByTestId(`team-${ws.teams[0].id}`));
     await fireEvent.press(screen.getByTestId("filters-apply"));
 
-    const s = useFilters.getState();
+    const s = filtersStore.getState();
     expect(s.meetingTypeId).toBe(sales.id);
     expect(s.view).toEqual({ kind: "team", id: ws.teams[0].id });
     expect(s.date).toMatchObject({ preset: "custom" });
@@ -123,7 +123,7 @@ describe("Filters sheet", () => {
     if (expected === 0) expect(screen.getByText("Nothing matches these filters")).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByTestId("filters-apply"));
-    expect(useFilters.getState()).toMatchObject({
+    expect(filtersStore.getState()).toMatchObject({
       participant: person.name,
       recorderId: recorder.id,
       tag: null,
@@ -136,8 +136,8 @@ describe("Filters sheet", () => {
     expect(screen.getByTestId("scope-internal")).toBeSelected();
     await fireEvent.press(screen.getByTestId("filters-reset"));
     expect(screen.getByTestId("scope-all")).toBeSelected();
-    expect(useFilters.getState().scope).toBe("internal");
+    expect(filtersStore.getState().scope).toBe("internal");
     await fireEvent.press(screen.getByTestId("filters-apply"));
-    expect(sheetFilters(useFilters.getState())).toEqual(sheetFilters(defaultFilters));
+    expect(sheetFilters(filtersStore.getState())).toEqual(sheetFilters(defaultFilters));
   });
 });

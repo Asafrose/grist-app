@@ -1,5 +1,5 @@
 import type { VideoView } from "expo-video";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
 import {
   attachVideoView,
@@ -8,9 +8,9 @@ import {
   PLAYBACK_RATES,
   playback,
   player,
-  usePlayer,
+  playerStore,
 } from "@/lib/player";
-import { settings, useSettings } from "@/lib/settings";
+import { settings, settingsStore } from "@/lib/settings";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -59,7 +59,7 @@ const rec: NowPlaying = {
 beforeEach(() => {
   jest.clearAllMocks();
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
-  useAuth.setState({ status: "signed-in", token: "pat" });
+  authStore.setState({ status: "signed-in", token: "pat" });
   playback.stop();
   playback.setRate(1);
   fake.replaceAsync.mockClear();
@@ -80,7 +80,7 @@ describe("player store", () => {
       metadata: { title: "Pricing review", artist: "Grain", artwork: "https://thumb/1" },
     });
     expect(fake.play).toHaveBeenCalled();
-    expect(usePlayer.getState()).toMatchObject({ current: rec, playing: true, duration: 90 });
+    expect(playerStore.getState()).toMatchObject({ current: rec, playing: true, duration: 90 });
   });
 
   it("reuses the loaded source when the same recording is requested again", async () => {
@@ -89,7 +89,7 @@ describe("player store", () => {
     playback.pause();
     await playback.load(rec, { at: 30 });
     expect(resolveMediaUrl).toHaveBeenCalledTimes(1);
-    expect(usePlayer.getState()).toMatchObject({ position: 30, playing: true });
+    expect(playerStore.getState()).toMatchObject({ position: 30, playing: true });
   });
 
   it("ignores a stale load when a newer one starts", async () => {
@@ -101,11 +101,11 @@ describe("player store", () => {
     release("https://cdn/first.mp4");
     await first;
     expect(fake.replaceAsync).toHaveBeenCalledTimes(1);
-    expect(usePlayer.getState().current?.id).toBe("r2");
+    expect(playerStore.getState().current?.id).toBe("r2");
   });
 
   it("plays the public sample stream in demo mode without resolving a media url", async () => {
-    useAuth.setState({ status: "signed-in", token: "demo" });
+    authStore.setState({ status: "signed-in", token: "demo" });
     await playback.load(rec);
     expect(resolveMediaUrl).not.toHaveBeenCalled();
     expect(fake.replaceAsync).toHaveBeenCalledWith(
@@ -117,7 +117,7 @@ describe("player store", () => {
     resolveMediaUrl.mockRejectedValueOnce(new Error("offline"));
     await playback.load(rec);
     expect(fake.replaceAsync).not.toHaveBeenCalled();
-    expect(usePlayer.getState()).toMatchObject({ status: "error", error: "offline" });
+    expect(playerStore.getState()).toMatchObject({ status: "error", error: "offline" });
   });
 
   it("mirrors player events and clamps seeks to the duration", async () => {
@@ -126,17 +126,17 @@ describe("player store", () => {
     fake.emit("sourceLoad", { duration: 120 });
     fake.emit("statusChange", { status: "readyToPlay" });
     fake.emit("timeUpdate", { currentTime: 100 });
-    expect(usePlayer.getState()).toMatchObject({ status: "ready", duration: 120, position: 100 });
+    expect(playerStore.getState()).toMatchObject({ status: "ready", duration: 120, position: 100 });
     playback.seekBy(30);
-    expect(usePlayer.getState().position).toBe(120);
+    expect(playerStore.getState().position).toBe(120);
     playback.seekBy(-200);
-    expect(usePlayer.getState().position).toBe(0);
+    expect(playerStore.getState().position).toBe(0);
     playback.setRate(1.5);
     expect(fake.playbackRate).toBe(1.5);
     playback.toggle();
-    expect(usePlayer.getState().playing).toBe(true);
+    expect(playerStore.getState().playing).toBe(true);
     playback.toggle();
-    expect(usePlayer.getState().playing).toBe(false);
+    expect(playerStore.getState().playing).toBe(false);
   });
 
   it("stop clears the source and state but keeps the chosen rate", async () => {
@@ -145,7 +145,8 @@ describe("player store", () => {
     playback.setRate(2);
     playback.stop();
     expect(fake.replaceAsync).toHaveBeenCalledWith(null);
-    expect(usePlayer.getState()).toMatchObject({ current: null, status: "idle", rate: 2 });
+    expect(playerStore.getState()).toMatchObject({ current: null, status: "idle" });
+    expect(settingsStore.getState().playbackRate).toBe(2);
   });
 
   it("offers Grain's speed steps and validates them", () => {
@@ -173,11 +174,10 @@ describe("player store", () => {
 describe("playback rate persistence", () => {
   it("applies the settings default speed to the player and persists later changes", () => {
     settings.set("playbackRate", 1.7);
-    expect(usePlayer.getState().rate).toBe(1.7);
     expect(fake.playbackRate).toBe(1.7);
 
     playback.setRate(2.2);
-    expect(useSettings.getState().playbackRate).toBe(2.2);
-    expect(usePlayer.getState().rate).toBe(2.2);
+    expect(settingsStore.getState().playbackRate).toBe(2.2);
+    expect(fake.playbackRate).toBe(2.2);
   });
 });

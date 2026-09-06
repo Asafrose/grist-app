@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { countRecordings, listRecordings } from "@/lib/db";
 import { formatDayLabel } from "@/lib/format";
-import { defaultFilters, filters, useFilters } from "@/lib/filters";
-import { library, libraryReady, useLibrary } from "@/lib/library";
+import { defaultFilters, filters, filtersStore } from "@/lib/filters";
+import { library, libraryReady, libraryStore } from "@/lib/library";
 import { getWorkspace } from "@/lib/workspace";
 import { Meetings } from "./index";
 
@@ -36,7 +36,7 @@ jest.mock("expo-router", () => ({
 
 beforeAll(async () => {
   await libraryReady;
-  useAuth.setState({ status: "signed-in", token: "demo" });
+  authStore.setState({ status: "signed-in", token: "demo" });
   await library.refresh(true);
 });
 
@@ -45,7 +45,7 @@ beforeEach(() => {
   filters.reset();
 });
 
-const db = () => useLibrary.getState().db!;
+const db = () => libraryStore.getState().db!;
 
 describe("Meetings", () => {
   it("groups the signed-in recorder's meetings by day with row details", async () => {
@@ -67,27 +67,27 @@ describe("Meetings", () => {
   it("narrows the list as the title filter is typed and clears it again", async () => {
     await render(<Meetings />);
     await fireEvent.changeText(screen.getByTestId("title-filter"), "Fabrikam");
-    expect(useFilters.getState().title).toBe("Fabrikam");
+    expect(filtersStore.getState().title).toBe("Fabrikam");
     await waitFor(() => expect(screen.queryAllByText(/Relecloud/).length).toBe(0));
     expect(screen.getAllByText(/Fabrikam/).length).toBeGreaterThan(0);
     await fireEvent.press(screen.getByTestId("title-filter-clear"));
-    expect(useFilters.getState().title).toBe("");
+    expect(filtersStore.getState().title).toBe("");
     await fireEvent.changeText(screen.getByTestId("title-filter"), "zzzz-nothing");
     expect(await screen.findByText("No meetings match")).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId("reset-filters"));
-    expect(useFilters.getState()).toEqual(defaultFilters);
+    expect(filtersStore.getState()).toEqual(defaultFilters);
   });
 
   it("switches between Mine, Workspace and team views", async () => {
     await render(<Meetings />);
     await fireEvent.press(screen.getByTestId("view-workspace"));
-    expect(useFilters.getState().view).toEqual({ kind: "workspace" });
+    expect(filtersStore.getState().view).toEqual({ kind: "workspace" });
     expect(screen.getByTestId("view-workspace")).toBeSelected();
     const shared = listRecordings(db(), { workspace: true });
     await waitFor(() => expect(screen.getByTestId(`meeting-${shared[0].id}`)).toBeOnTheScreen());
     const team = getWorkspace(db()).teams[0];
     await fireEvent.press(screen.getByTestId(`view-team-${team.id}`));
-    expect(useFilters.getState().view).toEqual({ kind: "team", id: team.id });
+    expect(filtersStore.getState().view).toEqual({ kind: "team", id: team.id });
   });
 
   it("shows active filter chips that open the Filters sheet", async () => {

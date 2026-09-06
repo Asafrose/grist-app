@@ -1,11 +1,10 @@
 import { GrainApiError } from "@grist/grain-api";
 import * as WebBrowser from "expo-web-browser";
-import { auth, useAuth } from "@/lib/auth";
+import { auth, authStore } from "@/lib/auth";
 import { indexSize } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
-import { library, libraryReady, useLibrary } from "@/lib/library";
-import { usePlayer } from "@/lib/player";
-import { DEFAULT_SETTINGS, useSettings } from "@/lib/settings";
+import { library, libraryReady, libraryStore } from "@/lib/library";
+import { DEFAULT_SETTINGS, settingsStore } from "@/lib/settings";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import { maskToken, Settings } from "./index";
 
@@ -61,14 +60,14 @@ const api = () => ({ recordings: { list, iterate, transcript: jest.fn(async () =
 
 async function signInDemo() {
   await libraryReady;
-  useAuth.setState({ status: "signed-in", token: "demo" });
+  authStore.setState({ status: "signed-in", token: "demo" });
   await library.refresh(true);
 }
 
 beforeEach(async () => {
   jest.clearAllMocks();
   (makeClient as jest.Mock).mockImplementation(api);
-  useSettings.setState(DEFAULT_SETTINGS);
+  settingsStore.setState(DEFAULT_SETTINGS);
   await signInDemo();
 });
 
@@ -92,17 +91,16 @@ describe("Settings", () => {
     expect(screen.getByTestId("setting-audio-only-value")).toHaveTextContent("Off");
     await fireEvent.press(screen.getByTestId("setting-audio-only"));
     expect(screen.getByTestId("setting-audio-only-value")).toHaveTextContent("On");
-    expect(useSettings.getState().audioOnlyOnCellular).toBe(true);
+    expect(settingsStore.getState().audioOnlyOnCellular).toBe(true);
 
     await fireEvent(screen.getByTestId("setting-pip-switch"), "checkedChange", false);
-    expect(useSettings.getState().pictureInPicture).toBe(false);
+    expect(settingsStore.getState().pictureInPicture).toBe(false);
 
     expect(screen.queryByTestId("setting-rate-option-1.5")).toBeNull();
     await fireEvent.press(screen.getByTestId("setting-rate"));
     await fireEvent.press(screen.getByTestId("setting-rate-option-1.5"));
     expect(screen.getByTestId("setting-rate-value")).toHaveTextContent("1.5×");
-    expect(useSettings.getState().playbackRate).toBe(1.5);
-    expect(usePlayer.getState().rate).toBe(1.5);
+    expect(settingsStore.getState().playbackRate).toBe(1.5);
     expect(screen.queryByTestId("setting-rate-option-1.5")).toBeNull();
   });
 
@@ -114,7 +112,7 @@ describe("Settings", () => {
     await fireEvent.press(screen.getByTestId("setting-cap"));
     await fireEvent.press(screen.getByTestId(`setting-cap-option-${5 * 1024 ** 3}`));
     expect(screen.getByTestId("setting-cap-value")).toHaveTextContent("5 GB");
-    expect(useSettings.getState()).toMatchObject({
+    expect(settingsStore.getState()).toMatchObject({
       keepDownloadsDays: 90,
       downloadCapBytes: 5 * 1024 ** 3,
     });
@@ -122,7 +120,7 @@ describe("Settings", () => {
 
   it("clears the transcript index and shows the size drop to zero", async () => {
     await render(<Settings />);
-    const db = useLibrary.getState().db!;
+    const db = libraryStore.getState().db!;
     expect(indexSize(db).meetings).toBe(24);
     await fireEvent.press(screen.getByTestId("clear-index"));
     expect(indexSize(db)).toEqual({ meetings: 0, segments: 0 });
@@ -143,7 +141,7 @@ describe("Settings", () => {
       await screen.findByText("Grain didn't accept that token. Check it and try again."),
     ).toBeOnTheScreen();
     expect(makeClient).toHaveBeenCalledWith("bad-token");
-    expect(useAuth.getState().token).toBe("demo");
+    expect(authStore.getState().token).toBe("demo");
 
     await fireEvent.press(screen.getByTestId("replace-token-cancel"));
     expect(screen.queryByTestId("replace-token-input")).toBeNull();
@@ -158,9 +156,9 @@ describe("Settings", () => {
     await fireEvent.changeText(screen.getByTestId("replace-token-input"), "  grain_pat_new_1  ");
     await fireEvent.press(screen.getByTestId("replace-token-save"));
     await waitFor(() => expect(signIn).toHaveBeenCalledWith("grain_pat_new_1"));
-    expect(useAuth.getState()).toMatchObject({ status: "signed-in", token: "grain_pat_new_1" });
+    expect(authStore.getState()).toMatchObject({ status: "signed-in", token: "grain_pat_new_1" });
     await waitFor(() => expect(screen.getByTestId("token-masked")).toHaveTextContent("grain_••••"));
-    await waitFor(() => expect(useLibrary.getState().sync).toBe("idle"));
+    await waitFor(() => expect(libraryStore.getState().sync).toBe("idle"));
   });
 
   it("opens Grain settings and the source repo, and signs out", async () => {
@@ -174,7 +172,7 @@ describe("Settings", () => {
       "https://github.com/Asafrose/better-grain",
     );
     await fireEvent.press(screen.getByTestId("sign-out"));
-    await waitFor(() => expect(useAuth.getState().status).toBe("signed-out"));
+    await waitFor(() => expect(authStore.getState().status).toBe("signed-out"));
   });
 
   it("masks everything after the first six characters", () => {

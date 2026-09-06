@@ -43,5 +43,34 @@
     "**/*.config.js",
     "apps/mobile/src/components/ui/**",
     "apps/mobile/drizzle/**"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "apps/mobile/src/screens/**",
+        "apps/mobile/src/components/**",
+        "apps/mobile/src/app/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/lib/*"],
+                "importNamePattern": "Store$",
+                "message": "Screens read stores through the exported use* hooks and mutate through the facade; raw stores stay in src/lib and tests."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
   ]
 }

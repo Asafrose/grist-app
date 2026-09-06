@@ -96,7 +96,13 @@ non-interactive shells; the `nvm` shell function hangs there.
   explicit "Download for offline" tap. Caps: 2 GB media, 30-day downloads,
   90-day index. All three are Settings rows.
 - Single account per install (one PAT). OAuth2 PKCE later.
-- App state lives in zustand stores under `apps/mobile/src/lib` (auth first; player and settings follow). Each store exports the hook plus a plain-function facade for use outside React. Stores hydrate themselves at module load and expose a readiness promise; the root layout suspends on it with React `use()` rather than triggering loads from effects.
+- App state lives in zustand stores under `apps/mobile/src/lib`, one per domain (auth, library, filters, player, settings, thumbnails). Every store follows the same shape (see the `zustand` skill for the rules behind it):
+  - `export const fooStore = create<FooState>(() => initial)` holds **state only**, no functions. It is imported only inside `src/lib` and in tests; an oxlint `no-restricted-imports` override rejects `*Store` imports from `src/screens`, `src/components` and `src/app`.
+  - Reads go through exported atomic hooks, one value each: `useNowPlaying()`, `usePlaybackPosition()`, `useSyncStatus()`, `useSetting("playbackRate")`. Never `fooStore()` with no selector. The one whole-snapshot hook is `useFilters()`, because every field feeds the same query.
+  - Writes go through a plain-object facade (`auth`, `library`, `filters`, `playback`, `settings`, `thumbnails`) usable outside React. Batch related fields in one `setState`; `library` bumps `version` in the same call as the status change.
+  - Derived values are not mirrored: playback rate lives in settings and the player subscribes to it.
+  - Components that show high-frequency values (player position) are split so only the leaf subscribes: `Progress` in the player card, `Clock`/`ProgressFill` in the mini player, `LiveScrubber`/`CurrentLine` in Now Playing.
+  Stores hydrate themselves at module load and expose a readiness promise; the root layout suspends on it with React `use()` rather than triggering loads from effects.
 - UI: NativeWind (Tailwind classes) with react-native-reusables as the component
   kit, copy-pasted into `apps/mobile/src/components/ui` and owned by us. Design
   tokens live as CSS variables in `apps/mobile/global.css` (light and dark via

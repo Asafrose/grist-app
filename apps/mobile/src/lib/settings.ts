@@ -74,27 +74,30 @@ export function writeSettings(db: Db, s: Settings): void {
   for (const key of keys) setMeta(db, SETTINGS_META_KEYS[key], JSON.stringify(s[key]));
 }
 
-export const useSettings = create<Settings>(() => DEFAULT_SETTINGS);
+export const settingsStore = create<Settings>(() => DEFAULT_SETTINGS);
+
+export const useSetting = <K extends keyof Settings>(key: K): Settings[K] =>
+  settingsStore((s) => s[key]);
 
 let store: Db | null = null;
 
 export function hydrateSettings(db: Db): void {
   store = db;
-  useSettings.setState(readSettings(db));
+  settingsStore.setState(readSettings(db));
 }
 
 export function persistSettings(): void {
-  if (store) writeSettings(store, useSettings.getState());
+  if (store) writeSettings(store, settingsStore.getState());
 }
 
 function set<K extends keyof Settings>(key: K, value: Settings[K]): void {
-  useSettings.setState({ [key]: value } as Pick<Settings, K>);
+  settingsStore.setState({ [key]: value } as Pick<Settings, K>);
   if (store) setMeta(store, SETTINGS_META_KEYS[key], JSON.stringify(value));
 }
 
 export const settings = {
   set,
-  get: () => useSettings.getState(),
+  get: () => settingsStore.getState(),
   hydrate: hydrateSettings,
   persist: persistSettings,
 };

@@ -2,11 +2,11 @@ import type { GrainClient } from "@grist/grain-api";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth";
+import { useAuthToken } from "@/lib/auth";
 import { type Db, getMeta, meta, setMeta } from "@/lib/db";
 import { demoRecordings, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
-import { useDb, useLibrary } from "@/lib/library";
+import { useDb, useLibraryVersion } from "@/lib/library";
 
 export const META_ME = "me_user_id";
 
@@ -42,8 +42,8 @@ type Lookup = { token: string; id: string | null; error: boolean };
 
 export function useMe(): Me {
   const db = useDb();
-  const token = useAuth((s) => s.token);
-  const version = useLibrary((s) => s.version);
+  const token = useAuthToken();
+  const version = useLibraryVersion();
   const { data } = useLiveQuery(
     db.select({ value: meta.value }).from(meta).where(eq(meta.key, META_ME)),
     [version],

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@/test/render";
 import { MiniPlayer } from "@/components/mini-player";
-import { type NowPlaying, playback, usePlayer } from "@/lib/player";
+import { type NowPlaying, playback, playerStore } from "@/lib/player";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -37,7 +37,7 @@ const rec: NowPlaying = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPathname = "/";
-  usePlayer.setState({
+  playerStore.setState({
     current: null,
     status: "idle",
     playing: false,
@@ -54,7 +54,7 @@ describe("MiniPlayer", () => {
   });
 
   it("shows the title, elapsed time and drives the player facade", async () => {
-    usePlayer.setState({
+    playerStore.setState({
       current: rec,
       status: "ready",
       playing: true,
@@ -79,14 +79,14 @@ describe("MiniPlayer", () => {
   });
 
   it("expands to Now Playing when tapped", async () => {
-    usePlayer.setState({ current: rec, status: "ready" });
+    playerStore.setState({ current: rec, status: "ready" });
     await render(<MiniPlayer />);
     await fireEvent.press(screen.getByTestId("mini-player"));
     expect(mockPush).toHaveBeenCalledWith("/now-playing");
   });
 
   it("shows a spinner instead of play/pause while loading", async () => {
-    usePlayer.setState({ current: rec, status: "loading" });
+    playerStore.setState({ current: rec, status: "loading" });
     await render(<MiniPlayer />);
     expect(screen.queryByTestId("mini-play-pause")).toBeNull();
     expect(screen.getByTestId("mini-player")).toBeOnTheScreen();
@@ -98,7 +98,7 @@ describe("MiniPlayer", () => {
     ["/meeting/other", true],
     ["/search", true],
   ])("at %s the mini player is %s", async (path, shown) => {
-    usePlayer.setState({ current: rec, status: "ready" });
+    playerStore.setState({ current: rec, status: "ready" });
     mockPathname = path;
     await render(<MiniPlayer />);
     expect(screen.queryByTestId("mini-player") !== null).toBe(shown);

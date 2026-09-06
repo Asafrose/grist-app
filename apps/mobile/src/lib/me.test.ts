@@ -2,11 +2,11 @@ import type { Recording } from "@grist/grain-api";
 import page from "@grist/grain-api/fixtures/recordings.json";
 import users from "@grist/grain-api/fixtures/users.json";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
-import { useAuth } from "@/lib/auth";
+import { authStore } from "@/lib/auth";
 import { getMeta, setMeta } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
-import { library, libraryReady, useLibrary } from "@/lib/library";
+import { library, libraryReady, libraryStore } from "@/lib/library";
 import { demoMeId, lookupMe, META_ME, type MeApi, resolveMe, useMe } from "@/lib/me";
 import { testDb } from "@/test/db";
 
@@ -97,20 +97,20 @@ describe("resolveMe", () => {
 describe("useMe", () => {
   it("resolves once the library is open and follows the signed-in token", async () => {
     await libraryReady;
-    useAuth.setState({ status: "signed-out", token: null });
+    authStore.setState({ status: "signed-out", token: null });
     const { result } = await renderHook(() => useMe());
     await waitFor(() => expect(result.current).toEqual({ id: null, status: "ready" }));
 
-    await act(async () => useAuth.setState({ status: "signed-in", token: "pat" }));
+    await act(async () => authStore.setState({ status: "signed-in", token: "pat" }));
     await waitFor(() => expect(result.current).toEqual({ id: marcus, status: "ready" }));
-    expect(getMeta(useLibrary.getState().db!, META_ME)).toBe(marcus);
+    expect(getMeta(libraryStore.getState().db!, META_ME)).toBe(marcus);
   });
 
   it("reads a cached id straight from the database and drops it when the library is cleared", async () => {
     await libraryReady;
     await library.clear();
-    setMeta(useLibrary.getState().db!, META_ME, "cached-me");
-    useAuth.setState({ status: "signed-in", token: "pat" });
+    setMeta(libraryStore.getState().db!, META_ME, "cached-me");
+    authStore.setState({ status: "signed-in", token: "pat" });
     const { result } = await renderHook(() => useMe());
     expect(result.current).toEqual({ id: "cached-me", status: "ready" });
     expect(makeClient).not.toHaveBeenCalled();
@@ -126,7 +126,7 @@ describe("useMe", () => {
       recordings: { list: jest.fn(async () => Promise.reject(new Error("offline"))) },
       users: { list: jest.fn() },
     }));
-    useAuth.setState({ status: "signed-in", token: "pat2" });
+    authStore.setState({ status: "signed-in", token: "pat2" });
     const { result } = await renderHook(() => useMe());
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.id).toBeNull();
