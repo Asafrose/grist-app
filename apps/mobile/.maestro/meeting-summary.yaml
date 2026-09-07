@@ -58,9 +58,10 @@ appId: com.asafrose.grist
 # Tab strip switches and comes back
 - tapOn:
     id: "meeting-tab-transcript"
-- assertVisible: "Transcript coming soon"
+- assertVisible:
+    id: "transcript-tab"
 - assertNotVisible: "Action items"
-- takeScreenshot: meeting-transcript-placeholder
+- takeScreenshot: meeting-transcript-tab
 - tapOn:
     id: "meeting-tab-summary"
 - assertVisible: "Action items"

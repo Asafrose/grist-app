@@ -1,0 +1,102 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "player-start"
+- tapOn:
+    id: "meeting-tab-transcript"
+# Lines with speaker, time and colour-coded avatar; Follow on by default
+- assertVisible:
+    id: "transcript-tab"
+- assertVisible:
+    id: "transcript-search"
+- assertVisible:
+    id: "transcript-follow"
+- assertVisible:
+    id: "transcript-line-0"
+- assertVisible: ".*Marcus Kowalski.*"
+- assertVisible: "Mia Duarte"
+- assertNotVisible: "Transcript not downloaded yet"
+- takeScreenshot: meeting-transcript
+# Search highlights matches and jumps between them with an n of m count
+- tapOn:
+    id: "transcript-search"
+- inputText: "volume"
+- assertVisible:
+    id: "transcript-count"
+    text: "1 of .*"
+- assertVisible:
+    id: "transcript-next"
+- assertVisible:
+    id: "transcript-prev"
+- takeScreenshot: meeting-transcript-search
+- tapOn:
+    id: "transcript-next"
+- assertVisible:
+    id: "transcript-count"
+    text: "2 of .*"
+- tapOn:
+    id: "transcript-prev"
+- assertVisible:
+    id: "transcript-count"
+    text: "1 of .*"
+- tapOn:
+    id: "transcript-clear"
+- assertNotVisible:
+    id: "transcript-count"
+- hideKeyboard
+# Jumping to a match pauses Follow; the chip resumes it
+- assertVisible:
+    id: "transcript-follow"
+- tapOn:
+    id: "transcript-follow"
+# Tapping a line seeks the player and highlights the current line
+- tapOn:
+    id: "transcript-line-1"
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: meeting-transcript-following
+# Manual scroll pauses Follow; the chip is still there to resume
+- swipe:
+    direction: UP
+    duration: 400
+- assertVisible:
+    id: "transcript-follow"
+- tapOn:
+    id: "transcript-follow"
+- takeScreenshot: meeting-transcript-resumed
+# Back to Summary and out
+- tapOn:
+    id: "meeting-tab-summary"
+- assertVisible: "Action items"
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"

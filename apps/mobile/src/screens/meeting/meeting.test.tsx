@@ -145,7 +145,7 @@ describe("Meeting shell in demo mode", () => {
     await render(<Meeting id="demo-0" />);
     await fireEvent.press(screen.getByTestId("meeting-tab-transcript"));
     expect(router.setParams).toHaveBeenCalledWith({ tab: "transcript" });
-    expect(screen.getByText("Transcript coming soon")).toBeOnTheScreen();
+    expect(screen.getByTestId("transcript-tab")).toBeOnTheScreen();
     expect(screen.queryByText("Action items")).toBeNull();
     expect(screen.getByTestId("meeting-tab-transcript")).toBeSelected();
     expect(screen.getByTestId("meeting-tab-summary")).not.toBeSelected();
