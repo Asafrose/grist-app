@@ -40,12 +40,23 @@ describe("workspace", () => {
     const db = testDb();
     seedDemo(db, NOW);
     const api = fakeApi();
-    await syncWorkspace(db, api);
+    await syncWorkspace(db, api, "pat");
     const ws = getWorkspace(db);
     expect(ws.users).toEqual(users.users);
     expect(ws.teams).toEqual(teams.teams);
     expect(ws.meetingTypes).toEqual(meetingTypes.meeting_types);
     expect(api.users.list).toHaveBeenCalledTimes(1);
+  });
+
+  it("dedupes concurrent syncs on the same token", async () => {
+    const db = testDb();
+    const api = fakeApi();
+    await Promise.all([
+      syncWorkspace(db, api, "dedupe-token"),
+      syncWorkspace(db, api, "dedupe-token"),
+    ]);
+    expect(api.users.list).toHaveBeenCalledTimes(1);
+    expect(getWorkspace(db).teams).toEqual(teams.teams);
   });
 
   it("ignores a corrupt cache entry", () => {

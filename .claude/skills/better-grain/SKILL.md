@@ -94,12 +94,30 @@ non-interactive shells; the `nvm` shell function hangs there.
   it in a hook (or facade) in `lib/data/<domain>.ts`, export from
   `lib/data/index.ts`, cover it in `lib/data/data.test.tsx`.
   SQLite stays the store: screens only ever read the database, so a
-  request cache is not a data layer here. TanStack Query is the planned
-  network layer (dedupe, retry, foreground refetch) for the direct API
-  calls (media URL, single-recording refresh, identity, workspace) and,
-  later, as the scheduler behind `library.refresh`. Adopt it with
-  downloads, not before (#35). TanStack DB was evaluated and rejected:
-  in-memory collections and no FTS.
+  request cache is not a data layer here. TanStack DB was evaluated and
+  rejected: in-memory collections and no FTS.
+- Network layer (`lib/query.ts`): one module-level `QueryClient` (so
+  non-React code can call `queryClient.fetchQuery`), mounted as
+  `QueryClientProvider` in the root layout. Defaults: retry twice with
+  capped exponential backoff, never on a 401/403, `refetchOnWindowFocus`
+  off (foreground refresh is explicit). `focusManager` is fed by AppState
+  and `onlineManager` by `expo-network`. Every network call in `src/lib`
+  goes through it: `library.refresh` (`["library", token]`, staleTime 60s
+  — the sync scheduler: dedupe, retry and the stale window come from the
+  client, `force` invalidates then fetches, and a `focusManager`
+  subscription refreshes on foreground), `mediaUrl(id, token)` in
+  `lib/media-url.ts` (`["media-url", token, id]`, staleTime 45 min under
+  the ~1h signed-URL expiry, `gcTime` 1h, `invalidateMediaUrl(id)` for
+  error recovery), `resolveMe` (`["me", token]`, staleTime `Infinity`,
+  dropped by `resetMe`), `syncWorkspace` (`["workspace", token]`,
+  in-flight dedupe only), and `recordings.refresh` as a `MutationObserver`
+  mutation. To add an API call: read → `queryClient.fetchQuery` (or
+  `useQuery` in a screen) keyed `[domain, token, …id]` with the staleTime
+  next to the query, since the token is part of the key sign-out just
+  removes the queries; write → a mutation so retry is inherited. Query
+  state, not zustand, holds sync status: `useSyncStatus`/`useSyncError`
+  derive from the library query, while `libraryStore` keeps only `db` and
+  `version` (the change signal for SQLite readers).
 - Sync (`lib/sync.ts`, pure functions over `Db` + the recordings API):
   `after_datetime` incremental with a 2-day overlap on every foreground,
   full reconcile of the 90-day window every 7 days (deletes local rows the

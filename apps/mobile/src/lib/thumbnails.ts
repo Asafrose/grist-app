@@ -3,8 +3,7 @@ import { getThumbnailAsync } from "expo-video-thumbnails";
 import { useEffect } from "react";
 import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
-import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
-import { makeClient } from "@/lib/grain";
+import { mediaUrl } from "@/lib/media-url";
 
 export type ThumbnailSubject = { id: string; mediaType: string; durationMs: number };
 
@@ -48,14 +47,14 @@ function failed(id: string) {
   setTimeout(() => forget(id), THUMBNAIL_RETRY_MS);
 }
 
-async function mediaUrl(id: string): Promise<string> {
+async function urlFor(id: string): Promise<string> {
   const token = auth.token();
   if (!token) throw new Error("Not signed in");
-  return isDemoToken(token) ? DEMO_MEDIA_URL : makeClient(token).recordings.resolveMediaUrl(id);
+  return mediaUrl(id, token);
 }
 
 async function generate(subject: ThumbnailSubject): Promise<void> {
-  const url = await mediaUrl(subject.id);
+  const url = await urlFor(subject.id);
   const result = await getThumbnailAsync(url, {
     time: frameTime(subject.durationMs),
     quality: 0.6,

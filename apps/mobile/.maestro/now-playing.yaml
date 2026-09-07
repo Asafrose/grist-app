@@ -75,9 +75,16 @@ appId: com.asafrose.grist
 # The chosen speed survives a relaunch.
 - stopApp
 - launchApp
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
 - tapOn:
     id: "meeting-.*"
     index: 0
+- extendedWaitUntil:
+    visible:
+      id: "player-start"
+    timeout: 10000
 - tapOn:
     id: "player-start"
 - extendedWaitUntil:

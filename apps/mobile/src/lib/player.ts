@@ -1,9 +1,8 @@
 import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video";
 import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
-import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { downloads, downloadsStore } from "@/lib/downloads";
-import { makeClient } from "@/lib/grain";
+import { invalidateMediaUrl, mediaUrl } from "@/lib/media-url";
 import {
   isPlaybackRate,
   PLAYBACK_RATES,
@@ -103,9 +102,9 @@ function metadataFor(rec: NowPlaying) {
   return { title: rec.title, artist: "Grain", artwork: rec.thumbnailUrl ?? undefined };
 }
 
-function resolveUri(id: string, token: string): Promise<string> {
-  if (isDemoToken(token)) return Promise.resolve(DEMO_MEDIA_URL);
-  return makeClient(token).recordings.resolveMediaUrl(id);
+function freshUri(id: string, token: string): Promise<string> {
+  invalidateMediaUrl(id);
+  return mediaUrl(id, token);
 }
 
 async function swapSource(uri: string, resume?: boolean) {
@@ -133,7 +132,7 @@ async function reresolveSource() {
   reresolving = true;
   const seq = loadSeq;
   try {
-    const uri = await resolveUri(current.id, token);
+    const uri = await freshUri(current.id, token);
     if (seq !== loadSeq) return;
     playerStore.setState({ status: "loading", error: null });
     await swapSource(uri, playing);
@@ -176,7 +175,7 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     error: null,
   });
   try {
-    const uri = downloads.localUri(rec.id) ?? (await resolveUri(rec.id, token));
+    const uri = downloads.localUri(rec.id) ?? (await mediaUrl(rec.id, token));
     if (seq !== loadSeq) return;
     await player.replaceAsync({ uri, metadata: metadataFor(rec) });
     if (seq !== loadSeq) return;

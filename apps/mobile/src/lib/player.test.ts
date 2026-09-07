@@ -3,6 +3,7 @@ import type { VideoView } from "expo-video";
 import { authStore } from "@/lib/auth";
 import { downloadsStore } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
+import { queryClient } from "@/lib/query";
 import {
   attachVideoView,
   isPlaybackRate,
@@ -61,6 +62,8 @@ const rec: NowPlaying = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  queryClient.setDefaultOptions({ queries: { retry: false } });
+  queryClient.clear();
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
   authStore.setState({ status: "signed-in", token: "pat" });
   downloadsStore.setState({ byId: {} });

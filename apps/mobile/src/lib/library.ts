@@ -1,82 +1,75 @@
+import { focusManager, skipToken, useQuery } from "@tanstack/react-query";
 import * as Network from "expo-network";
-import { AppState } from "react-native";
 import { create, useStore } from "zustand";
-import { auth, authStore } from "@/lib/auth";
+import { auth, authStore, useAuthToken } from "@/lib/auth";
 import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
 import { downloads } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
+import { clearMediaUrls } from "@/lib/media-url";
 import { me } from "@/lib/me";
 import { playback } from "@/lib/player";
+import { queryClient } from "@/lib/query";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, type RecordingsApi, syncLibrary } from "@/lib/sync";
 import { thumbnails } from "@/lib/thumbnails";
 import { syncWorkspace } from "@/lib/workspace";
 
-export const REFRESH_DEBOUNCE_MS = 60_000;
+export const LIBRARY_STALE_MS = 60_000;
 export const PREFETCH_YIELD_MS = 8_000;
+
+export const libraryKey = (token: string) => ["library", token] as const;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 type LibraryState = {
   db: Db | null;
-  sync: "idle" | "syncing" | "error";
-  lastSyncAt: string | null;
-  error: string | null;
   version: number;
 };
 
 export const libraryStore = create<LibraryState>(() => ({
   db: null,
-  sync: "idle",
-  lastSyncAt: null,
-  error: null,
   version: 0,
 }));
 
-function bump(patch: Partial<LibraryState> = {}) {
-  libraryStore.setState((s) => ({ ...patch, version: s.version + 1 }));
+function bump() {
+  libraryStore.setState((s) => ({ version: s.version + 1 }));
 }
 
-let inflight: Promise<void> | null = null;
-let lastRunAt = 0;
+async function runSync(db: Db, token: string): Promise<string> {
+  if (isDemoToken(token)) {
+    void me.resolve(db, token);
+    seedDemo(db);
+    bump();
+    return new Date().toISOString();
+  }
+  const client = makeClient(token);
+  void me.resolve(db, token, client);
+  const api = client.recordings;
+  await syncLibrary(db, api, { onPage: () => bump() });
+  await syncWorkspace(db, client, token).catch(() => undefined);
+  bump();
+  void prefetchInBackground(db, api, token);
+  return getMeta(db, META_LAST_SYNC) ?? new Date().toISOString();
+}
 
 async function refresh(force = false): Promise<void> {
   await libraryReady;
   const { db } = libraryStore.getState();
   const token = auth.token();
   if (!db || !token) return;
-  if (inflight) {
-    if (!force) return inflight;
-    await inflight;
+  const queryKey = libraryKey(token);
+  if (force) await queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+  try {
+    await queryClient.fetchQuery({
+      queryKey,
+      queryFn: () => runSync(db, token),
+      staleTime: LIBRARY_STALE_MS,
+    });
+  } catch {
+    // the failure lives in the query state; useSyncError surfaces it
   }
-  if (!force && Date.now() - lastRunAt < REFRESH_DEBOUNCE_MS) return;
-
-  libraryStore.setState({ sync: "syncing", error: null });
-  inflight = (async () => {
-    try {
-      if (isDemoToken(token)) {
-        void me.resolve(db, token);
-        seedDemo(db);
-        bump({ sync: "idle", lastSyncAt: new Date().toISOString() });
-        return;
-      }
-      const client = makeClient(token);
-      void me.resolve(db, token, client);
-      const api = client.recordings;
-      await syncLibrary(db, api, { onPage: () => bump() });
-      await syncWorkspace(db, client).catch(() => undefined);
-      bump({ sync: "idle", lastSyncAt: getMeta(db, META_LAST_SYNC) });
-      void prefetchInBackground(db, api, token);
-    } catch (e) {
-      bump({ sync: "error", error: e instanceof Error ? e.message : String(e) });
-    } finally {
-      lastRunAt = Date.now();
-      inflight = null;
-    }
-  })();
-  return inflight;
 }
 
 let prefetching: Promise<void> | null = null;
@@ -121,14 +114,16 @@ async function clear(): Promise<void> {
   me.reset();
   clearAll(db);
   persistSettings();
-  lastRunAt = 0;
-  bump({ sync: "idle", lastSyncAt: null, error: null });
+  queryClient.removeQueries({ queryKey: ["library"] });
+  queryClient.removeQueries({ queryKey: ["workspace"] });
+  clearMediaUrls();
+  bump();
 }
 
 async function hydrate(): Promise<void> {
   const db = await openDb();
   hydrateSettings(db);
-  libraryStore.setState({ db, lastSyncAt: getMeta(db, META_LAST_SYNC) });
+  libraryStore.setState({ db });
 }
 
 export const libraryReady = hydrate().then(() => {
@@ -145,13 +140,28 @@ authStore.subscribe((s, prev) => {
   }
 });
 
-AppState.addEventListener("change", (state) => {
-  if (state === "active") void refresh();
+focusManager.subscribe((focused) => {
+  if (focused) void refresh();
 });
 
 export const useLibraryVersion = () => useStore(libraryStore, (s) => s.version);
-export const useSyncStatus = () => useStore(libraryStore, (s) => s.sync);
-export const useSyncError = () => useStore(libraryStore, (s) => s.error);
+
+function useLibraryQuery() {
+  const token = useAuthToken();
+  return useQuery({ queryKey: libraryKey(token ?? ""), queryFn: skipToken }, queryClient);
+}
+
+export const useSyncStatus = (): "idle" | "syncing" | "error" => {
+  const { fetchStatus, error } = useLibraryQuery();
+  if (fetchStatus === "fetching") return "syncing";
+  return error ? "error" : "idle";
+};
+
+export const useSyncError = (): string | null => {
+  const { error } = useLibraryQuery();
+  if (!error) return null;
+  return error instanceof Error ? error.message : String(error);
+};
 
 export function useDb(): Db {
   const db = useStore(libraryStore, (s) => s.db);

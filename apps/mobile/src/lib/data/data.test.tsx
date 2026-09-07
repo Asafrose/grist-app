@@ -8,7 +8,8 @@ import {
   upsertRecordings,
 } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
-import { library, libraryReady, libraryStore } from "@/lib/library";
+import { library, libraryKey, libraryReady, libraryStore } from "@/lib/library";
+import { queryClient } from "@/lib/query";
 import { meStore } from "@/lib/me";
 import { getRecentSearches, RECENT_SEARCHES_MAX } from "@/lib/recent-searches";
 import { isoSeconds } from "@/lib/sync";
@@ -79,7 +80,7 @@ const all = () => listRecordings(db());
 beforeAll(async () => {
   await libraryReady;
   authStore.setState({ status: "signed-in", token: "demo" });
-  await waitFor(() => expect(libraryStore.getState().sync).toBe("idle"));
+  await waitFor(() => expect(queryClient.getQueryData(libraryKey("demo"))).toBeDefined());
 });
 
 describe("useLive", () => {
@@ -331,7 +332,7 @@ describe("search", () => {
     await act(async () => {
       authStore.setState({ status: "signed-in", token: "demo" });
     });
-    await waitFor(() => expect(libraryStore.getState().sync).toBe("idle"));
+    await waitFor(() => expect(queryClient.getQueryData(libraryKey("demo"))).toBeDefined());
   });
 
   it("titles segment returns only matching recordings", async () => {

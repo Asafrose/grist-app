@@ -145,6 +145,18 @@ describe("resolveMe", () => {
     expect(iterate).toHaveBeenCalledTimes(1);
   });
 
+  it("dedupes concurrent lookups for the same token", async () => {
+    const db = testDb();
+    const { api, iterate } = fakeApi(attendedBy(users.users[0].email));
+    const [first, second] = await Promise.all([
+      resolveMe(db, "pat-dedupe", api),
+      resolveMe(db, "pat-dedupe", api),
+    ]);
+    expect(first).toEqual(second);
+    expect(first?.email).toBe(users.users[0].email);
+    expect(iterate).toHaveBeenCalledTimes(1);
+  });
+
   it("uses the fixture identity in demo mode without calling the API", async () => {
     const db = testDb();
     const { api, iterate } = fakeApi([]);

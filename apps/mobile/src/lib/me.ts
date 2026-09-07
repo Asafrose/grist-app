@@ -3,6 +3,7 @@ import { create, useStore } from "zustand";
 import { type Db, getMeta, setMeta } from "@/lib/db";
 import { DEMO_ME, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
+import { queryClient } from "@/lib/query";
 
 export const META_ME = "me";
 export const ME_LOOKUP_PAGES = 3;
@@ -85,7 +86,7 @@ function remember(db: Db, me: Me) {
   meStore.setState({ me, status: "ready" });
 }
 
-let inflight: Promise<Me | null> | null = null;
+export const meKey = (token: string) => ["me", token] as const;
 
 export async function resolveMe(db: Db, token: string, api?: MeApi): Promise<Me | null> {
   const cached = cachedMe(db);
@@ -93,24 +94,23 @@ export async function resolveMe(db: Db, token: string, api?: MeApi): Promise<Me 
     meStore.setState({ me: cached, status: "ready" });
     return cached;
   }
-  if (inflight) return inflight;
   meStore.setState({ status: "loading" });
-  const run = (async () => {
-    try {
-      const me = isDemoToken(token) ? DEMO_ME : await lookupMe(api ?? makeClient(token));
-      if (me) remember(db, me);
-      else meStore.setState({ me: null, status: "ready" });
-      return me;
-    } catch {
-      meStore.setState({ me: null, status: "error" });
-      return null;
-    }
-  })();
-  inflight = run;
-  void run.finally(() => {
-    if (inflight === run) inflight = null;
+  return queryClient.fetchQuery({
+    queryKey: meKey(token),
+    queryFn: async () => {
+      try {
+        const me = isDemoToken(token) ? DEMO_ME : await lookupMe(api ?? makeClient(token));
+        if (me) remember(db, me);
+        else meStore.setState({ me: null, status: "ready" });
+        return me;
+      } catch {
+        meStore.setState({ me: null, status: "error" });
+        return null;
+      }
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
-  return run;
 }
 
 export function chooseMe(db: Db, user: Pick<User, "id" | "name" | "email">): Me {
@@ -120,6 +120,7 @@ export function chooseMe(db: Db, user: Pick<User, "id" | "name" | "email">): Me 
 }
 
 export function resetMe(): void {
+  queryClient.removeQueries({ queryKey: ["me"] });
   meStore.setState({ me: null, status: "idle" });
 }
 

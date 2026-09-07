@@ -4,7 +4,8 @@ import { countRecordings, listRecordings } from "@/lib/db";
 import { formatDayLabel } from "@/lib/format";
 import { DEMO_ME, resolveMe } from "@/lib/me";
 import { defaultFilters, filters, filtersStore } from "@/lib/filters";
-import { library, libraryReady, libraryStore } from "@/lib/library";
+import { library, libraryKey, libraryReady, libraryStore } from "@/lib/library";
+import { queryClient } from "@/lib/query";
 import { getWorkspace } from "@/lib/workspace";
 import { Meetings } from "./index";
 
@@ -69,16 +70,24 @@ describe("Meetings", () => {
     await resolveMe(db(), "demo");
     await render(<Meetings />);
     expect(screen.queryByTestId("syncing")).toBeNull();
-    await act(async () => libraryStore.setState({ sync: "syncing" }));
-    expect(screen.getByTestId("syncing")).toBeOnTheScreen();
+    let finish!: () => void;
+    const pending = queryClient.fetchQuery({
+      queryKey: libraryKey("demo"),
+      queryFn: () => new Promise<null>((resolve) => (finish = () => resolve(null))),
+      staleTime: 0,
+    });
+    await waitFor(() => expect(screen.getByTestId("syncing")).toBeOnTheScreen());
     expect(screen.getByText("Syncing\u2026")).toBeOnTheScreen();
     expect(
       screen.getByTestId(
         `meeting-${listRecordings(db(), { participantEmail: DEMO_ME.email })[0].id}`,
       ),
     ).toBeOnTheScreen();
-    await act(async () => libraryStore.setState({ sync: "idle" }));
-    expect(screen.queryByTestId("syncing")).toBeNull();
+    await act(async () => {
+      finish();
+      await pending;
+    });
+    await waitFor(() => expect(screen.queryByTestId("syncing")).toBeNull());
   });
 
   it("narrows the list as the title filter is typed and clears it again", async () => {

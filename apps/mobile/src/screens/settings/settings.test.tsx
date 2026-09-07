@@ -4,6 +4,7 @@ import { auth, authStore } from "@/lib/auth";
 import { indexSize } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
+import { queryClient } from "@/lib/query";
 import { DEFAULT_SETTINGS, settingsStore } from "@/lib/settings";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import { maskToken, Settings } from "./index";
@@ -57,6 +58,7 @@ const iterate = jest.fn(async function* () {
 });
 const api = () => ({ recordings: { list, iterate, transcript: jest.fn(async () => []) } });
 (makeClient as jest.Mock).mockImplementation(api);
+queryClient.setDefaultOptions({ queries: { retry: false } });
 
 async function signInDemo() {
   await libraryReady;
@@ -158,7 +160,7 @@ describe("Settings", () => {
     await waitFor(() => expect(signIn).toHaveBeenCalledWith("grain_pat_new_1"));
     expect(authStore.getState()).toMatchObject({ status: "signed-in", token: "grain_pat_new_1" });
     await waitFor(() => expect(screen.getByTestId("token-masked")).toHaveTextContent("grain_••••"));
-    await waitFor(() => expect(libraryStore.getState().sync).toBe("idle"));
+    await waitFor(() => expect(queryClient.isFetching({ queryKey: ["library"] })).toBe(0));
   });
 
   it("opens Grain settings and the source repo, and signs out", async () => {

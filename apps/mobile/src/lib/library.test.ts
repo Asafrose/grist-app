@@ -1,12 +1,21 @@
 import type { Recording } from "@grist/grain-api";
 import page from "@grist/grain-api/fixtures/recordings.json";
+import { focusManager } from "@tanstack/react-query";
 import * as Network from "expo-network";
 import { renderHook, waitFor } from "@testing-library/react-native";
-import { AppState } from "react-native";
 import { authStore } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
-import { library, libraryReady, useDb, libraryStore } from "@/lib/library";
+import {
+  library,
+  libraryKey,
+  libraryReady,
+  libraryStore,
+  useDb,
+  useSyncError,
+  useSyncStatus,
+} from "@/lib/library";
+import { queryClient } from "@/lib/query";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -43,12 +52,12 @@ const workspaceLists = {
 const fakeClient = () => ({ recordings: { iterate, transcript }, ...workspaceLists });
 (makeClient as jest.Mock).mockImplementation(fakeClient);
 
-const appStateListener: (state: string) => void = (
-  AppState.addEventListener as jest.Mock
-).mock.calls.find(([event]) => event === "change")[1];
+queryClient.setDefaultOptions({ queries: { retry: false }, mutations: { retry: false } });
 
 beforeEach(() => {
   jest.clearAllMocks();
+  queryClient.clear();
+  focusManager.setFocused(false);
   (makeClient as jest.Mock).mockImplementation(fakeClient);
 });
 
@@ -57,7 +66,6 @@ describe("library store", () => {
     await libraryReady;
     const s = libraryStore.getState();
     expect(s.db).not.toBeNull();
-    expect(s.sync).toBe("idle");
     expect(listRecordings(s.db!)).toEqual([]);
     expect(iterate).not.toHaveBeenCalled();
   });
@@ -69,13 +77,12 @@ describe("library store", () => {
     await library.refresh();
     const s = libraryStore.getState();
     expect(listRecordings(s.db!)).toHaveLength(2);
-    expect(s.sync).toBe("idle");
-    expect(s.lastSyncAt).not.toBeNull();
+    expect(queryClient.getQueryData(libraryKey("pat"))).toEqual(expect.any(String));
     await library.prefetchDone();
     expect(transcript).toHaveBeenCalledTimes(2);
   });
 
-  it("debounces foreground refreshes but honours force", async () => {
+  it("holds a refresh inside the stale window but honours force", async () => {
     await libraryReady;
     authStore.setState({ status: "signed-in", token: "pat" });
     await library.refresh(true);
@@ -83,6 +90,14 @@ describe("library store", () => {
     await library.refresh();
     expect(iterate).not.toHaveBeenCalled();
     await library.refresh(true);
+    expect(iterate).toHaveBeenCalledTimes(1);
+  });
+
+  it("dedupes concurrent refreshes into one sync", async () => {
+    await libraryReady;
+    await library.clear();
+    authStore.setState({ status: "signed-in", token: "pat" });
+    await Promise.all([library.refresh(true), library.refresh(true)]);
     expect(iterate).toHaveBeenCalledTimes(1);
   });
 
@@ -96,15 +111,24 @@ describe("library store", () => {
     expect(transcript).not.toHaveBeenCalled();
   });
 
-  it("records sync failures without throwing", async () => {
+  it("reports sync failures through useSyncStatus and useSyncError without throwing", async () => {
     await libraryReady;
     authStore.setState({ status: "signed-in", token: "pat" });
-    iterate.mockImplementationOnce(async function* () {
+    iterate.mockImplementation(async function* () {
       yield* [];
       throw new Error("rate limited");
     });
+    const { result } = await renderHook(() => ({
+      status: useSyncStatus(),
+      error: useSyncError(),
+    }));
+    expect(result.current).toEqual({ status: "idle", error: null });
     await library.refresh(true);
-    expect(libraryStore.getState()).toMatchObject({ sync: "error", error: "rate limited" });
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe("rate limited");
+    iterate.mockImplementation(async function* () {
+      yield { cursor: null, recordings: recs };
+    });
   });
 
   it("refreshes when the app returns to the foreground", async () => {
@@ -113,12 +137,10 @@ describe("library store", () => {
     await library.refresh(true);
     await library.clear();
     iterate.mockClear();
-    appStateListener("background");
+    focusManager.setFocused(false);
     expect(iterate).not.toHaveBeenCalled();
-    appStateListener("active");
-    await new Promise((r) => setTimeout(r, 0));
-    await library.refresh();
-    expect(iterate).toHaveBeenCalledTimes(1);
+    focusManager.setFocused(true);
+    await waitFor(() => expect(iterate).toHaveBeenCalledTimes(1));
   });
 
   it("useDb hands screens the open database", async () => {
@@ -134,7 +156,7 @@ describe("library store", () => {
     await library.refresh(true);
     expect(iterate).not.toHaveBeenCalled();
     expect(listRecordings(libraryStore.getState().db!).length).toBeGreaterThanOrEqual(20);
-    expect(libraryStore.getState().sync).toBe("idle");
+    expect(queryClient.getQueryData(libraryKey("demo"))).toEqual(expect.any(String));
   });
 
   it("switching accounts wipes the previous account's data before syncing", async () => {
@@ -144,18 +166,8 @@ describe("library store", () => {
     expect(listRecordings(libraryStore.getState().db!).length).toBeGreaterThan(2);
     authStore.setState({ status: "signed-in", token: "pat" });
     await waitFor(() => expect(iterate).toHaveBeenCalled());
-    await waitFor(() => expect(libraryStore.getState().sync).toBe("idle"));
+    await waitFor(() => expect(queryClient.getQueryData(libraryKey("pat"))).toBeDefined());
     expect(listRecordings(libraryStore.getState().db!)).toHaveLength(2);
-  });
-
-  it("a forced refresh during an in-flight sync runs again after it finishes", async () => {
-    await libraryReady;
-    await library.clear();
-    authStore.setState({ status: "signed-in", token: "pat" });
-    const first = library.refresh(true);
-    const second = library.refresh(true);
-    await Promise.all([first, second]);
-    expect(iterate).toHaveBeenCalledTimes(2);
   });
 
   it("bumps version after every sync and clear so live queries re-run", async () => {
@@ -170,7 +182,7 @@ describe("library store", () => {
     expect(libraryStore.getState().version).toBe(afterSync + 1);
   });
 
-  it("wipes the database on sign-out", async () => {
+  it("wipes the database and the cached sync on sign-out", async () => {
     await libraryReady;
     await library.clear();
     authStore.setState({ status: "signed-in", token: "pat" });
@@ -179,6 +191,6 @@ describe("library store", () => {
     authStore.setState({ status: "signed-out", token: null });
     await new Promise((r) => setTimeout(r, 0));
     expect(listRecordings(libraryStore.getState().db!)).toEqual([]);
-    expect(libraryStore.getState().lastSyncAt).toBeNull();
+    expect(queryClient.getQueryData(libraryKey("pat"))).toBeUndefined();
   });
 });

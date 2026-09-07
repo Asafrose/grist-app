@@ -4,6 +4,7 @@ import { highlightsQuery, listTeams, listRecordings } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { DEMO_ME, resolveMe } from "@/lib/me";
+import { queryClient } from "@/lib/query";
 import { fireEvent, render, screen, waitFor, within } from "@/test/render";
 import { Clips, clipHref } from "./index";
 
@@ -44,6 +45,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  queryClient.setDefaultOptions({ queries: { retry: false } });
   (router.push as jest.Mock).mockClear();
 });
 
@@ -124,7 +126,7 @@ describe("Clips", () => {
     await library.clear();
     authStore.setState({ status: "signed-in", token: "pat" });
     await render(<Clips />);
-    expect(screen.getByText("No clips yet")).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText("No clips yet")).toBeOnTheScreen());
     await fireEvent.press(screen.getByTestId("chip-mine"));
     await waitFor(() =>
       expect(screen.getByText("Couldn't tell which meetings are yours")).toBeOnTheScreen(),

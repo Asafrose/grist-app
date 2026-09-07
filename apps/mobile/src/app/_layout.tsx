@@ -1,6 +1,7 @@
 import "../../global.css";
 
 import { PortalHost } from "@rn-primitives/portal";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, type Theme, ThemeProvider } from "expo-router";
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
@@ -9,6 +10,7 @@ import { MiniPlayer } from "@/components/mini-player";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { authReady, useSignedIn } from "@/lib/auth";
 import { libraryReady } from "@/lib/library";
+import { queryClient } from "@/lib/query";
 import { fonts, palette } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -106,8 +108,10 @@ function Root() {
 
 export default function RootLayout() {
   return (
-    <Suspense fallback={null}>
-      <Root />
-    </Suspense>
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={null}>
+        <Root />
+      </Suspense>
+    </QueryClientProvider>
   );
 }

@@ -7,6 +7,7 @@ import {
   setMeta,
   teamOptions,
 } from "@/lib/db";
+import { queryClient } from "@/lib/query";
 
 export const META_USERS = "workspace_users";
 export const META_TEAMS = "workspace_teams";
@@ -20,15 +21,23 @@ export type Workspace = {
 
 export type WorkspaceApi = Pick<GrainClient, "users" | "teams" | "meetingTypes">;
 
-export async function syncWorkspace(db: Db, api: WorkspaceApi): Promise<void> {
-  const [users, teams, meetingTypes] = await Promise.all([
-    api.users.list(),
-    api.teams.list(),
-    api.meetingTypes.list(),
-  ]);
-  setMeta(db, META_USERS, JSON.stringify(users.users));
-  setMeta(db, META_TEAMS, JSON.stringify(teams.teams));
-  setMeta(db, META_MEETING_TYPES, JSON.stringify(meetingTypes.meeting_types));
+export const workspaceKey = (token: string) => ["workspace", token] as const;
+
+export async function syncWorkspace(db: Db, api: WorkspaceApi, token: string): Promise<void> {
+  await queryClient.fetchQuery({
+    queryKey: workspaceKey(token),
+    queryFn: async () => {
+      const [users, teams, meetingTypes] = await Promise.all([
+        api.users.list(),
+        api.teams.list(),
+        api.meetingTypes.list(),
+      ]);
+      setMeta(db, META_USERS, JSON.stringify(users.users));
+      setMeta(db, META_TEAMS, JSON.stringify(teams.teams));
+      setMeta(db, META_MEETING_TYPES, JSON.stringify(meetingTypes.meeting_types));
+      return null;
+    },
+  });
 }
 
 function cached<T>(db: Db, key: string): T[] | null {

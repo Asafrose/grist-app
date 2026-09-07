@@ -1,6 +1,7 @@
 import { getThumbnailAsync } from "expo-video-thumbnails";
 import { authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
+import { queryClient } from "@/lib/query";
 import { frameTime, THUMBNAIL_RETRY_MS, thumbnails, thumbnailsStore } from "@/lib/thumbnails";
 
 jest.mock("expo-secure-store", () => ({
@@ -52,6 +53,8 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 
 beforeEach(() => {
   jest.clearAllMocks();
+  queryClient.setDefaultOptions({ queries: { retry: false } });
+  queryClient.clear();
   files.clear();
   thumbnails.clear();
   authStore.setState({ status: "signed-in", token: "pat" });
