@@ -163,6 +163,13 @@ export function upsertRecordings(db: Db, recs: Recording[], syncedAt: string): v
   });
 }
 
+export function setRecordingTags(db: Db, id: string, tags: string[]): void {
+  db.transaction((tx) => {
+    tx.update(recordings).set({ tags }).where(eq(recordings.id, id)).run();
+    tx.run(sql`UPDATE recordings_fts SET tags = ${tags.join(" ")} WHERE id = ${id}`);
+  });
+}
+
 export function deleteRecordings(db: Db, ids: string[]): void {
   if (!ids.length) return;
   db.transaction((tx) => {

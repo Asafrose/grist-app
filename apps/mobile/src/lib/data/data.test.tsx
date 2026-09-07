@@ -209,6 +209,31 @@ describe("recordings", () => {
   });
 });
 
+describe("recordings tags", () => {
+  it("adds and removes a tag through the API, then updates the cached row", async () => {
+    const { result } = await renderHook(() => useRecording(demo[2].id));
+    await waitFor(() => expect(result.current?.id).toBe(demo[2].id));
+    const api = { addTag: jest.fn(async () => ({})), removeTag: jest.fn(async () => ({})) };
+
+    await act(async () => recordings.addTag(demo[2].id, "pilot", api));
+    expect(api.addTag).toHaveBeenCalledWith(demo[2].id, "pilot");
+    await waitFor(() => expect(result.current?.tags).toContain("pilot"));
+
+    await act(async () => recordings.removeTag(demo[2].id, "pilot", null));
+    expect(api.removeTag).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current?.tags).not.toContain("pilot"));
+  });
+
+  it("leaves the row alone when the API rejects", async () => {
+    const api = {
+      addTag: jest.fn(async () => Promise.reject(new Error("nope"))),
+      removeTag: jest.fn(),
+    };
+    await expect(recordings.addTag(demo[2].id, "x", api)).rejects.toThrow("nope");
+    expect(all().find((r) => r.id === demo[2].id)?.tags).not.toContain("x");
+  });
+});
+
 describe("clips", () => {
   it("filters by team and attendee and respects the limit", async () => {
     const team = listTeams(db())[0];

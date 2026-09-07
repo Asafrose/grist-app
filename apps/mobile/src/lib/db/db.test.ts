@@ -28,6 +28,7 @@ import {
   searchTranscripts,
   searchTranscriptsGrouped,
   setMeta,
+  setRecordingTags,
   setTranscript,
   tagOptions,
   teamOptions,
@@ -247,6 +248,17 @@ describe("recordings", () => {
     const pruned = pruneRecordingsBefore(db, cutoff);
     expect(pruned.length).toBe(recs.length - 3);
     expect(listRecordings(db)).toHaveLength(2);
+  });
+
+  it("replaces a recording's tags and keeps search in step", () => {
+    const db = testDb();
+    upsertRecordings(db, [first], NOW);
+    setRecordingTags(db, first.id, ["pilot", "q3"]);
+    expect(getRecording(db, first.id)?.tags).toEqual(["pilot", "q3"]);
+    expect(searchRecordings(db, "pilot")).toContainEqual(expect.objectContaining({ id: first.id }));
+    setRecordingTags(db, first.id, []);
+    expect(getRecording(db, first.id)?.tags).toEqual([]);
+    expect(searchRecordings(db, "pilot")).toEqual([]);
   });
 
   it("stores, reads and deletes meta keys", () => {

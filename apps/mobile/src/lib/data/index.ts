@@ -6,6 +6,7 @@ export type {
   HighlightsFilter,
   IndexStats,
   Option,
+  ParticipantRow,
   RecordingDetail,
   RecordingListRow,
   RecordingRow,

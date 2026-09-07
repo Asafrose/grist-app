@@ -160,7 +160,8 @@ describe("Meeting shell in demo mode", () => {
   it("opens on the tab named in the URL", async () => {
     setParams({ tab: "timeline" });
     await render(<Meeting id="demo-0" />);
-    expect(screen.getByText("Timeline coming soon")).toBeOnTheScreen();
+    expect(screen.getByTestId("timeline-tab")).toBeOnTheScreen();
+    expect(screen.getByText("Talk time")).toBeOnTheScreen();
   });
 
   it("a seek chip loads the recording at that position and shows it in the transport", async () => {

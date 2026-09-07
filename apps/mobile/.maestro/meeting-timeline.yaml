@@ -1,0 +1,100 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "meeting-tabs"
+- tapOn:
+    id: "meeting-tab-timeline"
+# Talk time, screenshare, participants and tags sections
+- assertVisible: "Talk time"
+- assertVisible:
+    id: "timeline-bar-.*"
+- assertVisible:
+    id: "timeline-pct-.*"
+- takeScreenshot: meeting-timeline
+- swipe:
+    start: 50%, 85%
+    end: 50%, 55%
+    duration: 400
+- swipe:
+    start: 50%, 85%
+    end: 50%, 55%
+    duration: 400
+- assertVisible:
+    id: "timeline-participant-.*"
+- swipe:
+    start: 50%, 85%
+    end: 50%, 55%
+    duration: 400
+- swipe:
+    start: 50%, 85%
+    end: 50%, 55%
+    duration: 400
+- assertVisible: "Tags"
+- takeScreenshot: meeting-timeline-participants
+# Tapping a bar segment seeks the player
+- swipe:
+    start: 50%, 55%
+    end: 50%, 90%
+    duration: 400
+- swipe:
+    start: 50%, 55%
+    end: 50%, 90%
+    duration: 400
+- tapOn:
+    id: "timeline-bar-.*-seg-.*"
+    index: 1
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: meeting-timeline-seeked
+# Tags add and remove locally in demo mode
+- swipe:
+    start: 50%, 85%
+    end: 50%, 55%
+    duration: 400
+- swipe:
+    start: 50%, 85%
+    end: 50%, 55%
+    duration: 400
+- tapOn:
+    id: "timeline-add-tag"
+- inputText: "maestro"
+- pressKey: Enter
+- assertVisible:
+    id: "timeline-tag-maestro"
+- takeScreenshot: meeting-timeline-tag-added
+- tapOn:
+    id: "timeline-tag-maestro"
+- assertNotVisible:
+    id: "timeline-tag-maestro"
+- tapOn:
+    id: "meeting-tab-summary"
+- assertVisible: "Action items"
