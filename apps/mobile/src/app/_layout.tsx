@@ -52,7 +52,7 @@ function Root() {
 
   return (
     <ThemeProvider value={navTheme(scheme)}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, orientation: "portrait" }}>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
@@ -82,6 +82,15 @@ function Root() {
           <Stack.Screen
             name="now-playing"
             options={{ presentation: "modal", contentStyle: { backgroundColor: palette.dark.bg } }}
+          />
+          <Stack.Screen
+            name="fullscreen"
+            options={{
+              presentation: "fullScreenModal",
+              orientation: "all",
+              animation: "fade",
+              contentStyle: { backgroundColor: "#000000" },
+            }}
           />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>

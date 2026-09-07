@@ -79,6 +79,7 @@ player.addListener("statusChange", ({ status, error }) => {
     status: status === "readyToPlay" ? "ready" : status === "error" ? "error" : "loading",
     error: error?.message ?? null,
   });
+  if (status === "error") void reresolveSource();
 });
 
 let loadSeq = 0;
@@ -102,14 +103,45 @@ function metadataFor(rec: NowPlaying) {
   return { title: rec.title, artist: "Grain", artwork: rec.thumbnailUrl ?? undefined };
 }
 
-async function swapSource(uri: string) {
+function resolveUri(id: string, token: string): Promise<string> {
+  if (isDemoToken(token)) return Promise.resolve(DEMO_MEDIA_URL);
+  return makeClient(token).recordings.resolveMediaUrl(id);
+}
+
+async function swapSource(uri: string, resume?: boolean) {
   const { current, position, playing } = playerStore.getState();
   if (!current) return;
   const seq = loadSeq;
   await player.replaceAsync({ uri, metadata: metadataFor(current) });
   if (seq !== loadSeq) return;
   player.currentTime = position;
-  if (playing) player.play();
+  if (resume ?? playing) player.play();
+}
+
+export const RERESOLVE_BACKOFF_MS = 10_000;
+let reresolving = false;
+let reresolvedAt = 0;
+
+async function reresolveSource() {
+  const { current, playing } = playerStore.getState();
+  const token = auth.token();
+  if (!current || !token || reresolving) return;
+  if (downloads.localUri(current.id)) return;
+  const now = Date.now();
+  if (now - reresolvedAt < RERESOLVE_BACKOFF_MS) return;
+  reresolvedAt = now;
+  reresolving = true;
+  const seq = loadSeq;
+  try {
+    const uri = await resolveUri(current.id, token);
+    if (seq !== loadSeq) return;
+    playerStore.setState({ status: "loading", error: null });
+    await swapSource(uri, playing);
+  } catch {
+    // the store keeps the original playback error
+  } finally {
+    reresolving = false;
+  }
 }
 
 downloadsStore.subscribe((s, prev) => {
@@ -133,6 +165,7 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   const seq = ++loadSeq;
   const token = auth.token();
   if (!token) throw new Error("Not signed in");
+  reresolvedAt = 0;
   playerStore.setState({
     current: rec,
     status: "loading",
@@ -143,11 +176,7 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     error: null,
   });
   try {
-    const uri =
-      downloads.localUri(rec.id) ??
-      (isDemoToken(token)
-        ? DEMO_MEDIA_URL
-        : await makeClient(token).recordings.resolveMediaUrl(rec.id));
+    const uri = downloads.localUri(rec.id) ?? (await resolveUri(rec.id, token));
     if (seq !== loadSeq) return;
     await player.replaceAsync({ uri, metadata: metadataFor(rec) });
     if (seq !== loadSeq) return;
@@ -186,6 +215,7 @@ function toggle() {
 
 function stop() {
   loadSeq++;
+  reresolvedAt = 0;
   void player.replaceAsync(null);
   playerStore.setState(initial);
 }

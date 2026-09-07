@@ -1,0 +1,80 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "player-start"
+# Start playback, then open fullscreen from the player card
+- tapOn:
+    id: "player-start"
+- extendedWaitUntil:
+    visible:
+      id: "player-fullscreen"
+    timeout: 30000
+# Pause first so the controls stay put while we look at them
+- tapOn:
+    id: "play-pause"
+- tapOn:
+    id: "player-fullscreen"
+- assertVisible:
+    id: "fs-controls"
+- assertVisible:
+    id: "fs-play-pause"
+- assertVisible:
+    id: "fs-seek-back"
+- assertVisible:
+    id: "fs-seek-forward"
+- assertVisible:
+    id: "fs-rate"
+- takeScreenshot: fullscreen-controls
+- tapOn:
+    id: "fs-seek-forward"
+- tapOn:
+    id: "fs-seek-back"
+# Playing again: controls auto-hide after ~3s
+- tapOn:
+    id: "fs-play-pause"
+- extendedWaitUntil:
+    notVisible:
+      id: "fs-controls"
+    timeout: 8000
+- takeScreenshot: fullscreen-controls-hidden
+# First tap reveals the controls, the second lands on the centre play/pause and pauses
+- tapOn:
+    point: "50%,50%"
+    repeat: 2
+    delay: 400
+    waitToSettleTimeoutMs: 100
+- assertVisible:
+    id: "fs-controls"
+# Exiting returns to the meeting with playback where we left it
+- tapOn:
+    id: "fs-close"
+- assertVisible:
+    id: "meeting-tabs"
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: fullscreen-exit-position-kept

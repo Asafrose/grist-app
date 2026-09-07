@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { isPictureInPictureSupported } from "expo-video";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -165,6 +166,32 @@ export function NowPlaying() {
         >
           Now playing
         </Text>
+        {isVideo ? (
+          <>
+            {isPictureInPictureSupported() ? (
+              <Pressable
+                testID="np-pip"
+                accessibilityRole="button"
+                accessibilityLabel="Picture in picture"
+                hitSlop={8}
+                onPress={() => void playback.startPictureInPicture()}
+                className="h-11 w-11 items-center justify-center rounded-[12px] active:opacity-60"
+              >
+                <Icon name="pip" size={22} color={d.ink} />
+              </Pressable>
+            ) : null}
+            <Pressable
+              testID="np-fullscreen"
+              accessibilityRole="button"
+              accessibilityLabel="Fullscreen"
+              hitSlop={8}
+              onPress={() => router.push("/fullscreen")}
+              className="h-11 w-11 items-center justify-center rounded-[12px] active:opacity-60"
+            >
+              <Icon name="fullscreen" size={22} color={d.ink} />
+            </Pressable>
+          </>
+        ) : null}
         <Pressable
           testID="np-open-meeting"
           accessibilityRole="link"

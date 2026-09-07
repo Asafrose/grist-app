@@ -50,7 +50,9 @@ jest.mock("expo-router", () => {
         params = { ...params, ...next };
         notify();
       }),
+      push: jest.fn(),
     },
+    useRouter: () => jest.requireMock("expo-router").router,
     useLocalSearchParams: () => {
       const [, force] = React.useState(0);
       React.useEffect(() => {

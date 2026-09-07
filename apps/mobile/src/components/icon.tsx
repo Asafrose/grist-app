@@ -85,6 +85,18 @@ const paths = {
       <Rect x="12" y="11" width="7" height="5" rx="1.5" fill="currentColor" stroke="none" />
     </>
   ),
+  fullscreen: (
+    <>
+      <Path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4" />
+      <Path d="M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" />
+    </>
+  ),
+  fullscreenExit: (
+    <>
+      <Path d="M9 4v4a1 1 0 0 1-1 1H4M15 4v4a1 1 0 0 0 1 1h4" />
+      <Path d="M9 20v-4a1 1 0 0 0-1-1H4M15 20v-4a1 1 0 0 1 1-1h4" />
+    </>
+  ),
   gear: (
     <>
       <Circle cx="12" cy="12" r="3" />

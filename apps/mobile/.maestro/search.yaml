@@ -47,8 +47,8 @@ appId: com.asafrose.grist
 - tapOn: ".*0:04"
 - extendedWaitUntil:
     visible:
-      id: "player-start"
-    timeout: 10000
+      id: "play-pause"
+    timeout: 30000
 - assertNotVisible:
     id: "search-input"
 - takeScreenshot: search-opened-meeting

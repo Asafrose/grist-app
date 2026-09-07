@@ -39,8 +39,9 @@ jest.mock("expo-sqlite", () => ({ addDatabaseChangeListener: () => ({ remove() {
 
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack, replace: mockReplace }),
+  useRouter: () => ({ back: mockBack, replace: mockReplace, push: mockPush }),
   usePathname: () => "/now-playing",
 }));
 
@@ -134,6 +135,17 @@ describe("NowPlaying", () => {
     await render(<NowPlaying />);
     expect(screen.getByText("Audio only")).toBeOnTheScreen();
     expect(screen.queryByTestId("np-video")).toBeNull();
+    expect(screen.queryByTestId("np-fullscreen")).toBeNull();
+    expect(screen.queryByTestId("np-pip")).toBeNull();
+  });
+
+  it("opens fullscreen and picture in picture for video recordings", async () => {
+    const pip = jest.spyOn(playback, "startPictureInPicture").mockResolvedValue(undefined);
+    await render(<NowPlaying />);
+    await fireEvent.press(screen.getByTestId("np-fullscreen"));
+    expect(mockPush).toHaveBeenCalledWith("/fullscreen");
+    await fireEvent.press(screen.getByTestId("np-pip"));
+    expect(pip).toHaveBeenCalledTimes(1);
   });
 
   it("closes and opens the meeting", async () => {

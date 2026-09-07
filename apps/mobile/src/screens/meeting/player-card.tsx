@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { isPictureInPictureSupported } from "expo-video";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
@@ -158,6 +159,7 @@ function Progress({
 }
 
 export function PlayerCard({ rec }: { rec: RecordingDetail }) {
+  const router = useRouter();
   const isCurrent = useIsCurrent(rec.id);
   const playing = useIsPlaying() && isCurrent;
   const status = usePlaybackStatus();
@@ -228,17 +230,31 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                 : null}
             </View>
             {rec.mediaType === "video" ? (
-              isCurrent && isPictureInPictureSupported() ? (
-                <Pressable
-                  testID="pip"
-                  accessibilityRole="button"
-                  accessibilityLabel="Picture in picture"
-                  hitSlop={8}
-                  onPress={() => playback.startPictureInPicture()}
-                  className="h-9 w-9 items-center justify-center active:opacity-60"
-                >
-                  <Icon name="pip" size={20} color={PLAYER_ON_SURFACE} />
-                </Pressable>
+              isCurrent ? (
+                <View className="flex-row items-center">
+                  {isPictureInPictureSupported() ? (
+                    <Pressable
+                      testID="pip"
+                      accessibilityRole="button"
+                      accessibilityLabel="Picture in picture"
+                      hitSlop={8}
+                      onPress={() => playback.startPictureInPicture()}
+                      className="h-9 w-9 items-center justify-center active:opacity-60"
+                    >
+                      <Icon name="pip" size={20} color={PLAYER_ON_SURFACE} />
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    testID="player-fullscreen"
+                    accessibilityRole="button"
+                    accessibilityLabel="Fullscreen"
+                    hitSlop={8}
+                    onPress={() => router.push("/fullscreen")}
+                    className="h-9 w-9 items-center justify-center active:opacity-60"
+                  >
+                    <Icon name="fullscreen" size={20} color={PLAYER_ON_SURFACE} />
+                  </Pressable>
+                </View>
               ) : null
             ) : (
               <SurfaceTag icon="mic" label="Audio only" />

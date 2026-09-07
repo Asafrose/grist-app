@@ -1,3 +1,4 @@
+import { act, renderHook } from "@testing-library/react-native";
 import type { VideoView } from "expo-video";
 import { authStore } from "@/lib/auth";
 import { downloadsStore } from "@/lib/downloads";
@@ -10,6 +11,7 @@ import {
   playback,
   player,
   playerStore,
+  useIsPlaying,
 } from "@/lib/player";
 import { settings, settingsStore } from "@/lib/settings";
 
@@ -158,6 +160,17 @@ describe("player store", () => {
     expect(isPlaybackRate("2")).toBe(false);
   });
 
+  it("reflects play/pause driven from the native side, such as the PiP window", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    const { result } = await renderHook(() => useIsPlaying());
+    expect(result.current).toBe(false);
+    await act(async () => fake.emit("playingChange", { isPlaying: true }));
+    expect(result.current).toBe(true);
+    await act(async () => fake.emit("playingChange", { isPlaying: false }));
+    expect(result.current).toBe(false);
+  });
+
   it("starts picture in picture on the most recently attached view", async () => {
     const first = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
     const second = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
@@ -243,6 +256,70 @@ describe("offline downloads", () => {
     downloadsStore.setState({ byId: { r2: done("file:///docs/downloads/r2.mp4") } });
     await new Promise((r) => setTimeout(r, 0));
     expect(fake.replaceAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe("expired media urls", () => {
+  const fail = () =>
+    fake.emit("statusChange", { status: "error", error: { message: "403 Forbidden" } });
+
+  it("re-resolves a fresh url, restores the position and resumes", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/expired.mp4");
+    await playback.load(rec);
+    fake.emit("timeUpdate", { currentTime: 55 });
+    fake.replaceAsync.mockClear();
+
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/fresh.mp4");
+    fail();
+    expect(playerStore.getState()).toMatchObject({ status: "error", error: "403 Forbidden" });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
+    expect(fake.replaceAsync).toHaveBeenCalledWith({
+      uri: "https://cdn/fresh.mp4",
+      metadata: { title: "Pricing review", artist: "Grain", artwork: "https://thumb/1" },
+    });
+    expect(fake.currentTime).toBe(55);
+    expect(playerStore.getState()).toMatchObject({ playing: true, error: null });
+  });
+
+  it("re-resolves at most once per backoff window", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec);
+    fail();
+    await new Promise((r) => setTimeout(r, 0));
+    fail();
+    fail();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the error when the re-resolve fails, and leaves local files alone", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/expired.mp4");
+    await playback.load(rec);
+    fake.replaceAsync.mockClear();
+    resolveMediaUrl.mockRejectedValueOnce(new Error("offline"));
+    fail();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.replaceAsync).not.toHaveBeenCalled();
+    expect(playerStore.getState()).toMatchObject({ status: "error", error: "403 Forbidden" });
+
+    downloadsStore.setState({
+      byId: { r1: { status: "done", progress: 1, uri: "file:///r1.mp4", bytes: 1, error: null } },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    resolveMediaUrl.mockClear();
+    fake.emit("statusChange", { status: "error", error: { message: "corrupt" } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(resolveMediaUrl).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when playback is idle", async () => {
+    playback.stop();
+    fail();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(resolveMediaUrl).not.toHaveBeenCalled();
+    expect(playerStore.getState().status).toBe("idle");
   });
 });
 

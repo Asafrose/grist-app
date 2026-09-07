@@ -4,13 +4,15 @@ import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Icon } from "@/components/icon";
 import { attachVideoView, player, useNowPlaying } from "@/lib/player";
+import { useSetting } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 export const PLAYER_SURFACE = "#23282D";
 export const PLAYER_ON_SURFACE = "#FFFFFF";
 
-export function PlayerView({ className }: { className?: string }) {
+export function PlayerView({ className, fill }: { className?: string; fill?: boolean }) {
   const current = useNowPlaying();
+  const pip = useSetting("pictureInPicture");
   const isVideo = current?.mediaType === "video";
   const ref = useRef<VideoView>(null);
 
@@ -21,7 +23,7 @@ export function PlayerView({ className }: { className?: string }) {
 
   return (
     <View
-      className={cn("aspect-video overflow-hidden rounded-lg", className)}
+      className={cn(fill ? "flex-1" : "aspect-video rounded-lg", "overflow-hidden", className)}
       style={{ backgroundColor: PLAYER_SURFACE }}
     >
       {isVideo ? (
@@ -31,8 +33,8 @@ export function PlayerView({ className }: { className?: string }) {
           style={{ flex: 1 }}
           contentFit="contain"
           nativeControls={false}
-          allowsPictureInPicture
-          startsPictureInPictureAutomatically
+          allowsPictureInPicture={pip}
+          startsPictureInPictureAutomatically={pip}
         />
       ) : (
         <View className="flex-1 items-center justify-center">
