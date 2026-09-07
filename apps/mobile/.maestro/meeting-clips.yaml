@@ -1,0 +1,80 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+# Empty state: the first demo meeting has no clips
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "meeting-tabs"
+- tapOn:
+    id: "meeting-tab-clips"
+- assertVisible:
+    id: "clips-empty"
+- assertVisible: "No clips yet"
+- assertVisible:
+    id: "clips-open-grain"
+- takeScreenshot: meeting-clips-empty
+- tapOn:
+    id: "clips-open-grain"
+- extendedWaitUntil:
+    notVisible:
+      id: "clips-empty"
+    timeout: 10000
+- tapOn: "Done"
+- assertVisible:
+    id: "clips-empty"
+- tapOn: "Meetings"
+# Clip cards: enter via the Clips feed, which deep-links to ?tab=clips&clip=<id>
+- tapOn:
+    id: "tab-clips"
+- extendedWaitUntil:
+    visible:
+      id: "clip-.*"
+    timeout: 20000
+- tapOn:
+    id: "clip-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "clip-card-.*"
+    timeout: 10000
+- assertVisible: ".*starts .*"
+- takeScreenshot: meeting-clips
+# Tapping the card plays the clip range in the pinned player
+- tapOn:
+    id: "clip-card-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: meeting-clips-playing
+- tapOn: "Meetings"
+- tapOn:
+    id: "tab-index"
+- assertVisible:
+    id: "meetings-list"

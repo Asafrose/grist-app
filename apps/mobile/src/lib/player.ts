@@ -28,6 +28,7 @@ type PlayerState = {
   playing: boolean;
   position: number;
   duration: number;
+  until: number | null;
   error: string | null;
 };
 
@@ -37,6 +38,7 @@ const initial: PlayerState = {
   playing: false,
   position: 0,
   duration: 0,
+  until: null,
   error: null,
 };
 
@@ -49,6 +51,7 @@ export const usePlaybackError = () => useStore(playerStore, (s) => s.error);
 export const useIsPlaying = () => useStore(playerStore, (s) => s.playing);
 export const usePlaybackPosition = () => useStore(playerStore, (s) => s.position);
 export const usePlaybackDuration = () => useStore(playerStore, (s) => s.duration);
+export const usePlaybackUntil = () => useStore(playerStore, (s) => s.until);
 export const usePlaybackRate = () => useSetting("playbackRate");
 
 export const player: VideoPlayer = createVideoPlayer(null);
@@ -59,9 +62,15 @@ player.timeUpdateEventInterval = 0.5;
 player.addListener("playingChange", ({ isPlaying }) =>
   playerStore.setState({ playing: isPlaying }),
 );
-player.addListener("timeUpdate", ({ currentTime }) =>
-  playerStore.setState({ position: currentTime }),
-);
+player.addListener("timeUpdate", ({ currentTime }) => {
+  const { until } = playerStore.getState();
+  if (until !== null && currentTime >= until) {
+    player.pause();
+    playerStore.setState({ position: currentTime, until: null });
+    return;
+  }
+  playerStore.setState({ position: currentTime });
+});
 player.addListener("sourceLoad", ({ duration }) => playerStore.setState({ duration }));
 player.addListener("statusChange", ({ status, error }) => {
   if (playerStore.getState().status === "idle") return;
@@ -86,10 +95,14 @@ function startPictureInPicture() {
   return videoViews.at(-1)?.startPictureInPicture() ?? Promise.resolve();
 }
 
-async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } = {}) {
+type LoadOptions = { autoplay?: boolean; at?: number; until?: number };
+
+async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   const { current } = playerStore.getState();
+  const until = opts.until ?? null;
   if (current?.id === rec.id) {
     if (opts.at !== undefined) seekTo(opts.at);
+    playerStore.setState({ until });
     if (opts.autoplay ?? true) player.play();
     return;
   }
@@ -102,6 +115,7 @@ async function load(rec: NowPlaying, opts: { autoplay?: boolean; at?: number } =
     playing: false,
     position: opts.at ?? 0,
     duration: rec.durationMs / 1000,
+    until,
     error: null,
   });
   try {
@@ -127,7 +141,7 @@ function seekTo(seconds: number) {
   const { duration } = playerStore.getState();
   const clamped = Math.max(0, duration ? Math.min(seconds, duration) : seconds);
   player.currentTime = clamped;
-  playerStore.setState({ position: clamped });
+  playerStore.setState({ position: clamped, until: null });
 }
 
 function seekBy(seconds: number) {

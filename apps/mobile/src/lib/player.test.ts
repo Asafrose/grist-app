@@ -171,6 +171,36 @@ describe("player store", () => {
   });
 });
 
+describe("clip ranges", () => {
+  it("pauses at the end of the range and clears it", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { at: 10, until: 20 });
+    expect(playerStore.getState()).toMatchObject({ position: 10, until: 20, playing: true });
+    fake.emit("timeUpdate", { currentTime: 15 });
+    expect(playerStore.getState()).toMatchObject({ position: 15, until: 20, playing: true });
+    fake.emit("timeUpdate", { currentTime: 20.3 });
+    expect(fake.pause).toHaveBeenCalledTimes(1);
+    expect(playerStore.getState()).toMatchObject({ position: 20.3, until: null, playing: false });
+    fake.emit("timeUpdate", { currentTime: 21 });
+    expect(fake.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces the range on the loaded recording and clears it on seek or plain load", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { at: 10, until: 20 });
+    await playback.load(rec, { at: 40, until: 50 });
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(1);
+    expect(playerStore.getState()).toMatchObject({ position: 40, until: 50 });
+    playback.seekBy(-5);
+    expect(playerStore.getState()).toMatchObject({ position: 35, until: null });
+    await playback.load(rec, { at: 60, until: 70 });
+    await playback.load(rec);
+    expect(playerStore.getState().until).toBeNull();
+    fake.emit("timeUpdate", { currentTime: 80 });
+    expect(fake.pause).not.toHaveBeenCalled();
+  });
+});
+
 describe("playback rate persistence", () => {
   it("applies the settings default speed to the player and persists later changes", () => {
     settings.set("playbackRate", 1.7);

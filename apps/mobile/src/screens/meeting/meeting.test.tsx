@@ -151,7 +151,7 @@ describe("Meeting shell in demo mode", () => {
     expect(screen.getByTestId("meeting-tab-summary")).not.toBeSelected();
 
     await fireEvent.press(screen.getByTestId("meeting-tab-clips"));
-    expect(screen.getByText("Clips coming soon")).toBeOnTheScreen();
+    expect(screen.getByTestId("clips-empty")).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByTestId("meeting-tab-summary"));
     expect(screen.getByText("Action items")).toBeOnTheScreen();
