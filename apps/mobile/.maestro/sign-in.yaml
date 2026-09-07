@@ -1,7 +1,7 @@
 appId: com.asafrose.grist
-env:
-  GRAIN_PAT: ${GRAIN_PAT}
 ---
+# No real token here: this flow signs in with the demo account, so it runs
+# without GRAIN_PAT. Only the invalid-token path talks to Grain.
 - launchApp:
     clearState: true
 # The keychain survives clearState, so a previous run may have left a token behind.
@@ -20,23 +20,46 @@ env:
           id: "sign-out"
 - assertVisible: "Personal access token"
 - assertVisible: "Where do I get a token?"
+- assertVisible: "Stored in the device keychain. Only sent to api.grain.com."
+- assertVisible:
+    id: "continue"
+    enabled: false
 - tapOn:
     id: "token-input"
 - inputText: "not-a-real-token"
 - tapOn:
     id: "continue"
 - assertVisible: "Grain didn't accept that token. Check it and try again."
+- assertNotVisible:
+    id: "retry"
+- assertVisible: "Personal access token"
 - takeScreenshot: sign-in-error
+# Editing the token clears the inline error; nothing is ever shown in a modal.
 - tapOn:
     id: "token-input"
 - eraseText: 20
-- inputText: ${GRAIN_PAT}
+- inputText: "x"
+- assertVisible: "Stored in the device keychain. Only sent to api.grain.com."
 - tapOn:
-    id: "continue"
-- assertVisible: "Meetings"
+    id: "token-input"
+- eraseText: 5
+- hideKeyboard
+- tapOn:
+    id: "demo-sign-in"
+- extendedWaitUntil:
+    visible: "Meetings"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "meetings-list"
+    timeout: 20000
 - takeScreenshot: signed-in-meetings
 - tapOn:
     id: "tab-settings"
+- scrollUntilVisible:
+    element:
+      id: "sign-out"
+    direction: DOWN
 - tapOn:
     id: "sign-out"
 - assertVisible: "Personal access token"

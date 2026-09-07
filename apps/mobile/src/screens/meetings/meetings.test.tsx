@@ -65,6 +65,22 @@ describe("Meetings", () => {
     expect(screen.getByTestId(`view-team-${getWorkspace(db()).teams[0].id}`)).toBeOnTheScreen();
   });
 
+  it("shows rows and a syncing indicator while the sync is still running", async () => {
+    await resolveMe(db(), "demo");
+    await render(<Meetings />);
+    expect(screen.queryByTestId("syncing")).toBeNull();
+    await act(async () => libraryStore.setState({ sync: "syncing" }));
+    expect(screen.getByTestId("syncing")).toBeOnTheScreen();
+    expect(screen.getByText("Syncing\u2026")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId(
+        `meeting-${listRecordings(db(), { participantEmail: DEMO_ME.email })[0].id}`,
+      ),
+    ).toBeOnTheScreen();
+    await act(async () => libraryStore.setState({ sync: "idle" }));
+    expect(screen.queryByTestId("syncing")).toBeNull();
+  });
+
   it("narrows the list as the title filter is typed and clears it again", async () => {
     await render(<Meetings />);
     await fireEvent.changeText(screen.getByTestId("title-filter"), "Fabrikam");

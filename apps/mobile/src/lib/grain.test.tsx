@@ -2,7 +2,7 @@ import { GrainApiError, GrainClient } from "@grist/grain-api";
 import { renderHook } from "@testing-library/react-native";
 import { act } from "react";
 import { authStore } from "@/lib/auth";
-import { makeClient, tokenErrorMessage, useGrainClient } from "@/lib/grain";
+import { isTokenRejected, makeClient, tokenErrorMessage, useGrainClient } from "@/lib/grain";
 
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
@@ -38,11 +38,23 @@ describe("grain client", () => {
     expect(tokenErrorMessage(new GrainApiError("no", 403))).toBe(
       "Grain didn't accept that token. Check it and try again.",
     );
+    expect(tokenErrorMessage(new GrainApiError("slow down", 429, "rate_limited", 3))).toBe(
+      "Too many requests to Grain. Try again in 3s.",
+    );
+    expect(tokenErrorMessage(new GrainApiError("slow down", 429))).toBe(
+      "Too many requests to Grain. Try again in a moment.",
+    );
     expect(tokenErrorMessage(new GrainApiError("boom", 500))).toBe(
       "Grain returned an error (500). Try again in a moment.",
     );
     expect(tokenErrorMessage(new TypeError("Network request failed"))).toBe(
       "Couldn't reach Grain. Check your connection and try again.",
     );
+  });
+
+  it("isTokenRejected is true only for auth failures", () => {
+    expect(isTokenRejected(new GrainApiError("no", 401))).toBe(true);
+    expect(isTokenRejected(new GrainApiError("slow down", 429))).toBe(false);
+    expect(isTokenRejected(new TypeError("Network request failed"))).toBe(false);
   });
 });

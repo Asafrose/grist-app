@@ -193,6 +193,12 @@ export function Meetings() {
               {error ?? "Sync failed"}
             </Text>
           ) : null}
+          {sync === "syncing" && !pulling ? (
+            <View testID="syncing" className="flex-row items-center gap-1.5">
+              <ActivityIndicator size="small" color={colors.ink3} />
+              <Text className="text-[12px] text-muted-foreground">Syncing…</Text>
+            </View>
+          ) : null}
           <Pressable
             testID="open-filters"
             accessibilityRole="button"

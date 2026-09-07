@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { auth } from "@/lib/auth";
 import { DEMO_TOKEN } from "@/lib/demo";
-import { makeClient, tokenErrorMessage } from "@/lib/grain";
+import { isTokenRejected, makeClient, tokenErrorMessage } from "@/lib/grain";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 
@@ -25,7 +25,7 @@ export function SignIn() {
   const insets = useSafeAreaInsets();
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
 
   async function paste() {
     const text = (await Clipboard.getStringAsync()).trim();
@@ -41,7 +41,7 @@ export function SignIn() {
       await makeClient(value).recordings.list();
       await auth.signIn(value);
     } catch (e) {
-      setError(tokenErrorMessage(e));
+      setError({ message: tokenErrorMessage(e), retryable: !isTokenRejected(e) });
     } finally {
       setBusy(false);
     }
@@ -111,8 +111,21 @@ export function SignIn() {
               error ? "text-destructive" : "text-muted-foreground",
             )}
           >
-            {error ?? "Stored in the device keychain. Only sent to api.grain.com."}
+            {error?.message ?? "Stored in the device keychain. Only sent to api.grain.com."}
           </Text>
+          {error?.retryable ? (
+            <Pressable
+              testID="retry"
+              accessibilityRole="button"
+              onPress={submit}
+              hitSlop={8}
+              className="self-start active:opacity-70"
+            >
+              <Text className="font-jakarta-semibold text-[13px] text-accent-foreground">
+                Try again
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <Button
