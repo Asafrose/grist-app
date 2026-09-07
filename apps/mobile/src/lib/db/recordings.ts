@@ -170,6 +170,13 @@ export function setRecordingTags(db: Db, id: string, tags: string[]): void {
   });
 }
 
+export function renameRecording(db: Db, id: string, title: string): void {
+  db.transaction((tx) => {
+    tx.update(recordings).set({ title }).where(eq(recordings.id, id)).run();
+    tx.run(sql`UPDATE recordings_fts SET title = ${title} WHERE id = ${id}`);
+  });
+}
+
 export function deleteRecordings(db: Db, ids: string[]): void {
   if (!ids.length) return;
   db.transaction((tx) => {

@@ -30,14 +30,14 @@ const TAB_LABELS: Record<MeetingTab, string> = {
   clips: "Clips",
 };
 
-function HeaderActions() {
+function HeaderActions({ id }: { id: string }) {
   return (
     <Pressable
       testID="actions"
       accessibilityRole="button"
       accessibilityLabel="Actions"
       hitSlop={8}
-      onPress={() => {}}
+      onPress={() => router.push({ pathname: "/actions", params: { id } })}
       className="h-11 w-11 items-center justify-center active:opacity-60"
     >
       <Icon name="more" size={24} />
@@ -210,7 +210,7 @@ export function Meeting({ id }: { id: string }) {
 
   return (
     <View className="flex-1 bg-background">
-      <Stack.Screen options={{ title: "", headerRight: HeaderActions }} />
+      <Stack.Screen options={{ title: "", headerRight: () => <HeaderActions id={id} /> }} />
       <View className="px-5 pt-1">
         <PlayerCard rec={rec} />
       </View>

@@ -16,6 +16,8 @@ export type {
   TranscriptHit,
   TranscriptSegmentRow,
 } from "@/lib/db";
+export type { DownloadEntry, DownloadStatus } from "@/lib/downloads";
+export { downloads, useDownload } from "@/lib/downloads";
 export type { StorageStats } from "@/lib/storage";
 export type { Workspace } from "@/lib/workspace";
 export * from "./clips";

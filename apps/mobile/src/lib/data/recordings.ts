@@ -6,6 +6,7 @@ import {
   type RecordingsFilter,
   recordingsQuery,
   setRecordingTags,
+  renameRecording,
   tagOptions,
   teamsQuery,
 } from "@/lib/db";
@@ -51,6 +52,7 @@ async function writeTags(id: string, tag: string, on: boolean, api: TagsApi | nu
   setRecordingTags(db, id, toggleTag(current, tag, on));
   library.touch();
 }
+export type RenameApi = { rename(id: string, title: string): Promise<unknown> };
 
 export const recordings = {
   refresh: async (id: string, api: RecordingsApi) => {
@@ -59,4 +61,9 @@ export const recordings = {
   },
   addTag: (id: string, tag: string, api: TagsApi | null) => writeTags(id, tag, true, api),
   removeTag: (id: string, tag: string, api: TagsApi | null) => writeTags(id, tag, false, api),
+  rename: async (id: string, title: string, api: RenameApi | null) => {
+    if (api) await api.rename(id, title);
+    renameRecording(currentDb(), id, title);
+    library.touch();
+  },
 };

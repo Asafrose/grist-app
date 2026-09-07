@@ -1,0 +1,82 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible: ".*Northwind.*"
+    timeout: 20000
+- tapOn:
+    id: "meeting-.*"
+    index: 0
+- assertVisible:
+    id: "player-start"
+- tapOn:
+    id: "actions"
+# Native group
+- assertVisible:
+    id: "action-share"
+- assertVisible:
+    id: "action-download"
+- assertVisible:
+    id: "action-tags"
+- assertVisible:
+    id: "action-copy-transcript"
+- assertVisible:
+    id: "action-rename"
+# In Grain group
+- assertVisible: "In Grain"
+- assertVisible:
+    id: "action-grain-comments"
+- assertVisible:
+    id: "action-grain-playlist"
+- assertVisible:
+    id: "action-grain-viewers"
+- assertVisible:
+    id: "action-grain-integrations"
+- takeScreenshot: actions
+# Copy transcript works offline in demo mode
+- tapOn:
+    id: "action-copy-transcript"
+- assertVisible: "Copied"
+# Download for offline marks the demo recording as available
+- tapOn:
+    id: "action-download"
+- assertVisible: "Downloaded.*"
+- takeScreenshot: actions-downloaded
+# Rename inline, validate, save
+- tapOn:
+    id: "action-rename"
+- assertVisible:
+    id: "rename-input"
+- tapOn:
+    id: "rename-input"
+- eraseText: 120
+- inputText: "Renamed from the sheet"
+- takeScreenshot: actions-rename
+- tapOn:
+    id: "rename-save"
+- assertNotVisible:
+    id: "rename-input"
+- assertVisible: "Renamed from the sheet"
+# Close the sheet and confirm the meeting title changed
+- swipe:
+    direction: DOWN
+- assertVisible: "Renamed from the sheet"
+- assertVisible:
+    id: "meeting-tabs"

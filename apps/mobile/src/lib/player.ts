@@ -2,6 +2,7 @@ import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video"
 import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
+import { downloads, downloadsStore } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
 import {
   isPlaybackRate,
@@ -97,6 +98,29 @@ function startPictureInPicture() {
 
 type LoadOptions = { autoplay?: boolean; at?: number; until?: number };
 
+function metadataFor(rec: NowPlaying) {
+  return { title: rec.title, artist: "Grain", artwork: rec.thumbnailUrl ?? undefined };
+}
+
+async function swapSource(uri: string) {
+  const { current, position, playing } = playerStore.getState();
+  if (!current) return;
+  const seq = loadSeq;
+  await player.replaceAsync({ uri, metadata: metadataFor(current) });
+  if (seq !== loadSeq) return;
+  player.currentTime = position;
+  if (playing) player.play();
+}
+
+downloadsStore.subscribe((s, prev) => {
+  const id = playerStore.getState().current?.id;
+  if (!id) return;
+  const next = s.byId[id];
+  if (next?.status === "done" && next.uri && prev.byId[id]?.status !== "done") {
+    void swapSource(next.uri).catch(() => undefined);
+  }
+});
+
 async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   const { current } = playerStore.getState();
   const until = opts.until ?? null;
@@ -119,14 +143,13 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     error: null,
   });
   try {
-    const uri = isDemoToken(token)
-      ? DEMO_MEDIA_URL
-      : await makeClient(token).recordings.resolveMediaUrl(rec.id);
+    const uri =
+      downloads.localUri(rec.id) ??
+      (isDemoToken(token)
+        ? DEMO_MEDIA_URL
+        : await makeClient(token).recordings.resolveMediaUrl(rec.id));
     if (seq !== loadSeq) return;
-    await player.replaceAsync({
-      uri,
-      metadata: { title: rec.title, artist: "Grain", artwork: rec.thumbnailUrl ?? undefined },
-    });
+    await player.replaceAsync({ uri, metadata: metadataFor(rec) });
     if (seq !== loadSeq) return;
     player.playbackRate = settings.get().playbackRate;
     if (opts.at) player.currentTime = opts.at;

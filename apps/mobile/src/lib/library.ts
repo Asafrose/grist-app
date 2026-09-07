@@ -5,6 +5,7 @@ import { auth, authStore } from "@/lib/auth";
 import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
+import { downloads } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
 import { me } from "@/lib/me";
 import { playback } from "@/lib/player";
@@ -115,6 +116,7 @@ async function clear(): Promise<void> {
   const { db } = libraryStore.getState();
   if (!db) return;
   playback.stop();
+  downloads.clear();
   thumbnails.clear();
   me.reset();
   clearAll(db);

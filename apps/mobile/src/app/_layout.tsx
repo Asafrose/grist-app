@@ -70,6 +70,16 @@ function Root() {
             }}
           />
           <Stack.Screen
+            name="actions"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.85, 1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 20,
+              contentStyle: { backgroundColor: palette[scheme].surface },
+            }}
+          />
+          <Stack.Screen
             name="now-playing"
             options={{ presentation: "modal", contentStyle: { backgroundColor: palette.dark.bg } }}
           />

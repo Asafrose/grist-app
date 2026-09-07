@@ -1,5 +1,6 @@
 import type { VideoView } from "expo-video";
 import { authStore } from "@/lib/auth";
+import { downloadsStore } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
 import {
   attachVideoView,
@@ -60,6 +61,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
   authStore.setState({ status: "signed-in", token: "pat" });
+  downloadsStore.setState({ byId: {} });
   playback.stop();
   playback.setRate(1);
   fake.replaceAsync.mockClear();
@@ -198,6 +200,49 @@ describe("clip ranges", () => {
     expect(playerStore.getState().until).toBeNull();
     fake.emit("timeUpdate", { currentTime: 80 });
     expect(fake.pause).not.toHaveBeenCalled();
+  });
+});
+
+describe("offline downloads", () => {
+  const done = (uri: string) => ({
+    status: "done" as const,
+    progress: 1,
+    uri,
+    bytes: 1,
+    error: null,
+  });
+
+  it("prefers a downloaded file over the network url", async () => {
+    downloadsStore.setState({ byId: { r1: done("file:///docs/downloads/r1.mp4") } });
+    await playback.load(rec);
+    expect(resolveMediaUrl).not.toHaveBeenCalled();
+    expect(fake.replaceAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: "file:///docs/downloads/r1.mp4" }),
+    );
+  });
+
+  it("swaps to the local file when the current recording finishes downloading, keeping position", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    fake.emit("timeUpdate", { currentTime: 42 });
+    fake.replaceAsync.mockClear();
+    downloadsStore.setState({ byId: { r1: done("file:///docs/downloads/r1.mp4") } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.replaceAsync).toHaveBeenCalledWith({
+      uri: "file:///docs/downloads/r1.mp4",
+      metadata: { title: "Pricing review", artist: "Grain", artwork: "https://thumb/1" },
+    });
+    expect(fake.currentTime).toBe(42);
+    expect(playerStore.getState().playing).toBe(true);
+  });
+
+  it("ignores downloads for other recordings", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    fake.replaceAsync.mockClear();
+    downloadsStore.setState({ byId: { r2: done("file:///docs/downloads/r2.mp4") } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.replaceAsync).not.toHaveBeenCalled();
   });
 });
 

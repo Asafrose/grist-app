@@ -207,6 +207,22 @@ describe("recordings", () => {
     expect(api.get).toHaveBeenCalledWith(demo[1].id, expect.anything());
     await waitFor(() => expect(result.current?.title).toBe("Refreshed title"));
   });
+
+  it("recordings.rename writes through the API, then the local row and its search index", async () => {
+    const { result } = await renderHook(() => useRecording(demo[2].id));
+    await waitFor(() => expect(result.current?.title).toBe(demo[2].title));
+    const api = { rename: jest.fn(async () => ({ success: true })) };
+    await act(async () => recordings.rename(demo[2].id, "Renamed locally", api));
+    expect(api.rename).toHaveBeenCalledWith(demo[2].id, "Renamed locally");
+    await waitFor(() => expect(result.current?.title).toBe("Renamed locally"));
+    const { result: hits } = await renderHook(() => useSearch("Renamed", "titles"));
+    await waitFor(() => {
+      const found = hits.current.segment === "titles" ? hits.current.recordings : [];
+      expect(found.map((r) => r.id)).toContain(demo[2].id);
+    });
+    await act(async () => recordings.rename(demo[2].id, demo[2].title, null));
+    await waitFor(() => expect(result.current?.title).toBe(demo[2].title));
+  });
 });
 
 describe("recordings tags", () => {
