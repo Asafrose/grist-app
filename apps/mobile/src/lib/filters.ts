@@ -69,6 +69,20 @@ function startOfNextDay(iso: string): string {
   return d.toISOString();
 }
 
+export function withCustomDate(
+  date: DateFilter | null,
+  which: "from" | "to",
+  value: string,
+): DateFilter {
+  const current =
+    date?.preset === "custom" ? date : { preset: "custom" as const, from: null, to: null };
+  const next = { ...current, [which]: value };
+  if (next.from && next.to && startOfDay(next.from) > startOfDay(next.to)) {
+    return which === "from" ? { ...next, to: null } : { ...next, from: null };
+  }
+  return next;
+}
+
 export function dateBounds(
   date: DateFilter | null,
   now: number,

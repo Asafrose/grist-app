@@ -1,6 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { authStore } from "@/lib/auth";
-import { listRecordings, listTeams, recordingsQuery, upsertRecordings } from "@/lib/db";
+import {
+  listRecordings,
+  listTeams,
+  recorderOptions,
+  recordingsQuery,
+  upsertRecordings,
+} from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { meStore } from "@/lib/me";
@@ -17,6 +23,7 @@ import {
   useParticipantOptions,
   useRecentSearches,
   useRecording,
+  useRecorderOptions,
   useRecordingCount,
   useRecordings,
   useSearch,
@@ -184,6 +191,15 @@ describe("recordings", () => {
     const tags = await renderHook(() => useTagOptions());
     const allTags = new Set(all().flatMap((r) => r.tags));
     expect(new Set(tags.result.current.map((t) => t.id))).toEqual(allTags);
+  });
+
+  it("useRecorderOptions lists only people who recorded, with counts", async () => {
+    const { result } = await renderHook(() => useRecorderOptions());
+    await waitFor(() => expect(result.current.length).toBeGreaterThan(0));
+    expect(result.current).toEqual(recorderOptions(db()));
+    const ids = new Set(all().flatMap((r) => r.recorders.map((x) => x.id)));
+    expect(new Set(result.current.map((o) => o.id))).toEqual(ids);
+    for (const o of result.current) expect(o.count).toBeGreaterThan(0);
   });
 
   it("useTeams lists each team once, sorted by name", async () => {

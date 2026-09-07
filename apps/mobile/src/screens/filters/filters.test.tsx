@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@/test/render";
 import { authStore } from "@/lib/auth";
-import { countRecordings, participantOptions } from "@/lib/db";
+import { countRecordings, participantOptions, recorderOptions } from "@/lib/db";
 import { defaultFilters, filters, sheetFilters, filtersStore } from "@/lib/filters";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { DEMO_ME, resolveMe } from "@/lib/me";
@@ -38,9 +38,12 @@ jest.mock("@/components/native-date-picker", () => {
       value: Date | null;
       onChange: (d: Date) => void;
     }) => (
-      <Pressable testID={testID} onPress={() => onChange(new Date(2026, 8, 1))}>
-        <Text>{value ? value.toISOString() : "Pick a date"}</Text>
-      </Pressable>
+      <>
+        <Pressable testID={testID} onPress={() => onChange(new Date(2026, 8, 1))}>
+          <Text>{value ? value.toISOString() : "Pick a date"}</Text>
+        </Pressable>
+        <Pressable testID={`${testID}-late`} onPress={() => onChange(new Date(2026, 8, 20))} />
+      </>
     ),
   };
 });
@@ -111,7 +114,7 @@ describe("Filters sheet", () => {
     expect(screen.getByText("No tags on your meetings yet")).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByTestId("more-recorder"));
-    const recorder = getWorkspace(db()).users[1];
+    const recorder = recorderOptions(db())[0];
     await fireEvent.press(screen.getByTestId(`recorder-${recorder.id}`));
     expect(within(screen.getByTestId("more-recorder")).getByText(recorder.name)).toBeOnTheScreen();
 
@@ -129,6 +132,41 @@ describe("Filters sheet", () => {
       participant: person.name,
       recorderId: recorder.id,
       tag: null,
+    });
+  });
+
+  it("offers only recorders that appear on meetings, named from the workspace", async () => {
+    await render(<Filters />);
+    await fireEvent.press(screen.getByTestId("more-recorder"));
+    const options = recorderOptions(db());
+    expect(options.length).toBeGreaterThan(0);
+    for (const o of options) expect(screen.getByTestId(`recorder-${o.id}`)).toBeOnTheScreen();
+    const idle = getWorkspace(db()).users.find((u) => !options.some((o) => o.id === u.id));
+    if (idle) expect(screen.queryByTestId(`recorder-${idle.id}`)).toBeNull();
+  });
+
+  it("keeps the Workspace view when a team chip is turned off again", async () => {
+    filters.setView({ kind: "workspace" });
+    await render(<Filters />);
+    const team = getWorkspace(db()).teams[0];
+    await fireEvent.press(screen.getByTestId(`team-${team.id}`));
+    await fireEvent.press(screen.getByTestId(`team-${team.id}`));
+    await fireEvent.press(screen.getByTestId("filters-apply"));
+    expect(filtersStore.getState().view).toEqual({ kind: "workspace" });
+  });
+
+  it("clears the other end of a custom range when the range would be inverted", async () => {
+    await render(<Filters />);
+    await fireEvent.press(screen.getByTestId("date-custom"));
+    await fireEvent.press(screen.getByTestId("date-to"));
+    expect(screen.getByTestId("date-to")).toHaveTextContent(new Date(2026, 8, 1).toISOString());
+    await fireEvent.press(screen.getByTestId("date-from-late"));
+    expect(screen.getByTestId("date-to")).toHaveTextContent("Pick a date");
+    await fireEvent.press(screen.getByTestId("filters-apply"));
+    expect(filtersStore.getState().date).toEqual({
+      preset: "custom",
+      from: new Date(2026, 8, 20).toISOString(),
+      to: null,
     });
   });
 

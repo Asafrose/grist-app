@@ -8,6 +8,7 @@ import {
   sheetFilters,
   toQuery,
   filtersStore,
+  withCustomDate,
 } from "@/lib/filters";
 
 const NOW = Date.parse("2026-09-06T10:00:00Z");
@@ -120,6 +121,48 @@ describe("toQuery", () => {
     expect(toQuery({ ...base, date: { preset: "90d" } }, { meEmail: null, now: NOW }).after).toBe(
       new Date(NOW - 90 * DAY).toISOString(),
     );
+  });
+});
+
+describe("withCustomDate", () => {
+  const sep = (day: number) => new Date(2026, 8, day, 12).toISOString();
+
+  it("switches a preset to a custom range and keeps the other end", () => {
+    expect(withCustomDate({ preset: "30d" }, "from", sep(1))).toEqual({
+      preset: "custom",
+      from: sep(1),
+      to: null,
+    });
+    expect(withCustomDate({ preset: "custom", from: sep(1), to: null }, "to", sep(3))).toEqual({
+      preset: "custom",
+      from: sep(1),
+      to: sep(3),
+    });
+    expect(withCustomDate(null, "to", sep(3))).toEqual({
+      preset: "custom",
+      from: null,
+      to: sep(3),
+    });
+  });
+
+  it("drops the other end when the range would be inverted, and allows a same-day range", () => {
+    expect(withCustomDate({ preset: "custom", from: sep(1), to: sep(3) }, "from", sep(5))).toEqual({
+      preset: "custom",
+      from: sep(5),
+      to: null,
+    });
+    expect(withCustomDate({ preset: "custom", from: sep(5), to: null }, "to", sep(1))).toEqual({
+      preset: "custom",
+      from: null,
+      to: sep(1),
+    });
+    const sameDay = withCustomDate(
+      { preset: "custom", from: new Date(2026, 8, 3, 21).toISOString(), to: null },
+      "to",
+      new Date(2026, 8, 3, 2).toISOString(),
+    );
+    expect(sameDay).toMatchObject({ preset: "custom" });
+    expect((sameDay as { from: string | null }).from).not.toBeNull();
   });
 });
 

@@ -145,6 +145,19 @@ describe("recordings", () => {
     if (mt) expect(listRecordings(db, { meetingTypeId: mt.id }).length).toBeGreaterThan(0);
   });
 
+  it("filters by the after and before bounds a date filter produces", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    const starts = recs.map((r) => r.start_datetime).toSorted();
+    const cut = starts[1];
+
+    expect(listRecordings(db, { after: cut }).every((r) => r.startDatetime >= cut)).toBe(true);
+    expect(listRecordings(db, { before: cut }).map((r) => r.startDatetime)).toEqual([starts[0]]);
+    expect(countRecordings(db, { after: starts[0], before: cut })).toBe(1);
+    expect(listRecordings(db, { after: starts.at(-1), before: starts[0] })).toEqual([]);
+    expect(countRecordings(db, { after: starts[0] })).toBe(recs.length);
+  });
+
   it("filters by title, participant, tag, recorder and workspace sharing, and counts", () => {
     const db = testDb();
     const tagged: Recording = { ...recs[1], tags: ["vip", "q3"], workspace_shared: true };

@@ -80,4 +80,104 @@ appId: com.asafrose.grist
     id: "filters-apply"
 - assertNotVisible:
     id: "active-scope"
+# Date preset: the count follows the draft and the chip names the range.
+- tapOn:
+    id: "open-filters"
+- tapOn:
+    id: "date-30d"
+- assertVisible: ".*Show .* meetings?.*"
+- tapOn:
+    id: "filters-apply"
+- assertVisible:
+    id: "active-date"
+- assertVisible: "Last 30 days"
+# Custom range replaces the preset; both ends are editable in the sheet.
+- tapOn:
+    id: "active-date"
+- tapOn:
+    id: "date-custom"
+- assertVisible:
+    id: "date-from"
+- assertVisible:
+    id: "date-to"
+- tapOn:
+    id: "date-custom"
+- tapOn:
+    id: "filters-reset"
+- tapOn:
+    id: "filters-apply"
+- assertNotVisible:
+    id: "active-date"
+# Meeting type and team chips round-trip to the list.
+- tapOn:
+    id: "open-filters"
+- tapOn:
+    id: "type-.*"
+    index: 0
+- tapOn:
+    id: "filters-apply"
+- assertVisible:
+    id: "active-meetingTypeId"
+- tapOn:
+    id: "active-meetingTypeId"
+- tapOn:
+    id: "team-.*"
+    index: 0
+- tapOn:
+    id: "filters-apply"
+- assertVisible:
+    id: "view-team-.*"
+- takeScreenshot: meetings-team
+- tapOn:
+    id: "active-meetingTypeId"
+- tapOn:
+    id: "filters-reset"
+- tapOn:
+    id: "filters-apply"
+- assertVisible:
+    id: "view-mine"
+- assertNotVisible:
+    id: "active-meetingTypeId"
+# More card: participant, tag and recorder each expand and filter.
+- tapOn:
+    id: "open-filters"
+- scrollUntilVisible:
+    element:
+      id: "more-participant"
+    direction: DOWN
+- tapOn:
+    id: "more-participant"
+- tapOn:
+    id: "participant-.*"
+    index: 0
+- tapOn:
+    id: "more-participant"
+- tapOn:
+    id: "more-tag"
+- assertVisible:
+    id: "more-recorder"
+- tapOn:
+    id: "more-recorder"
+- tapOn:
+    id: "recorder-.*"
+    index: 0
+- assertVisible: ".*Show .* meetings?.*"
+- takeScreenshot: filters-more
+- tapOn:
+    id: "filters-apply"
+- assertVisible:
+    id: "active-participant"
+- assertVisible:
+    id: "active-recorderId"
+# Reset clears every chip at once.
+- tapOn:
+    id: "active-participant"
+- tapOn:
+    id: "filters-reset"
+- tapOn:
+    id: "filters-apply"
+- assertNotVisible:
+    id: "active-participant"
+- assertNotVisible:
+    id: "active-recorderId"
 # Rows open the meeting screen.

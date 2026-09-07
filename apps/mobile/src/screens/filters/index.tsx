@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import {
   type Option,
   useParticipantOptions,
+  useRecorderOptions,
   useRecordingCount,
   useTagOptions,
   useWorkspace,
@@ -24,6 +25,8 @@ import {
   sheetFilters,
   toQuery,
   useFilterTitle,
+  type View as FilterView,
+  withCustomDate,
 } from "@/lib/filters";
 import { useMe } from "@/lib/me";
 import { cn } from "@/lib/utils";
@@ -161,13 +164,22 @@ export function Filters() {
   const title = useFilterTitle();
   const [draft, setDraft] = useState<SheetFilters>(() => sheetFilters(filters.current()));
   const [more, setMore] = useState<More>(null);
+  const [baseView] = useState<FilterView>(() => {
+    const view = filters.current().view;
+    return view.kind === "team" ? defaultFilters.view : view;
+  });
 
   const workspace = useWorkspace();
   const people = useParticipantOptions(40);
   const tags = useTagOptions();
+  const recorded = useRecorderOptions();
   const recorders = useMemo<Option[]>(
-    () => workspace.users.map((u) => ({ id: u.id, name: u.name, count: 0 })),
-    [workspace.users],
+    () =>
+      recorded.map((r) => ({
+        ...r,
+        name: workspace.users.find((u) => u.id === r.id)?.name ?? r.name,
+      })),
+    [recorded, workspace.users],
   );
   const meEmail = useMe()?.email ?? null;
   const count = useRecordingCount(
@@ -267,7 +279,7 @@ export function Filters() {
                 <NativeDatePicker
                   testID="date-from"
                   value={custom.from ? new Date(custom.from) : null}
-                  onChange={(d) => patch({ date: { ...custom, from: d.toISOString() } })}
+                  onChange={(d) => patch({ date: withCustomDate(custom, "from", d.toISOString()) })}
                 />
               </View>
               <View className="flex-1 gap-1">
@@ -275,7 +287,7 @@ export function Filters() {
                 <NativeDatePicker
                   testID="date-to"
                   value={custom.to ? new Date(custom.to) : null}
-                  onChange={(d) => patch({ date: { ...custom, to: d.toISOString() } })}
+                  onChange={(d) => patch({ date: withCustomDate(custom, "to", d.toISOString()) })}
                 />
               </View>
             </View>
@@ -299,7 +311,7 @@ export function Filters() {
               testPrefix="team"
               options={workspace.teams}
               selected={teamId}
-              onSelect={(id) => patch({ view: id ? { kind: "team", id } : defaultFilters.view })}
+              onSelect={(id) => patch({ view: id ? { kind: "team", id } : baseView })}
             />
           </Section>
         ) : null}

@@ -5,6 +5,7 @@ import {
   recordingQuery,
   type RecordingsFilter,
   recordingsQuery,
+  recorderOptions,
   setRecordingTags,
   renameRecording,
   tagOptions,
@@ -30,6 +31,10 @@ export function useRecordingCount(filter: RecordingsFilter): number {
 
 export function useParticipantOptions(limit = 40) {
   return useSnapshot((db) => participantOptions(db).slice(0, limit), [limit]);
+}
+
+export function useRecorderOptions() {
+  return useSnapshot((db) => recorderOptions(db), []);
 }
 
 export function useTagOptions() {
