@@ -5,7 +5,7 @@ import { Share } from "react-native";
 import { authStore } from "@/lib/auth";
 import { getRecording, getTranscript } from "@/lib/db";
 import { seedDemo } from "@/lib/demo";
-import { downloadsStore } from "@/lib/downloads";
+import { CAP_EXCEEDED, downloadsStore } from "@/lib/downloads";
 import { makeClient, useGrainClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
@@ -188,6 +188,21 @@ describe("Actions sheet", () => {
     await fireEvent.press(screen.getByTestId("action-download"));
     expect(downloadsStore.getState().byId[ID]).toBeUndefined();
 
+    await fireEvent.press(screen.getByTestId("action-download"));
+    await waitFor(() => expect(downloadsStore.getState().byId[ID]?.status).toBe("done"));
+  });
+
+  it("shows the cap-exceeded error and retries on press", async () => {
+    await render(<Actions id={ID} />);
+    await act(async () =>
+      downloadsStore.setState({
+        byId: {
+          [ID]: { status: "error", progress: 0, uri: null, bytes: 0, error: CAP_EXCEEDED },
+        },
+      }),
+    );
+    expect(screen.getByTestId("action-download-sub")).toHaveTextContent(CAP_EXCEEDED);
+    expect(screen.queryByTestId("download-progress")).toBeNull();
     await fireEvent.press(screen.getByTestId("action-download"));
     await waitFor(() => expect(downloadsStore.getState().byId[ID]?.status).toBe("done"));
   });

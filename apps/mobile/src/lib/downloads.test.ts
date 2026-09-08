@@ -70,7 +70,7 @@ describe("downloads", () => {
     expect(resolveMediaUrl).toHaveBeenCalledWith("r1");
     expect(downloadFileAsync).toHaveBeenCalledWith(
       "https://cdn/r1.mp4",
-      expect.objectContaining({ uri: "file:///docs/downloads/r1.mp4" }),
+      expect.objectContaining({ uri: "file:///docs/downloads/r1.mp4.part" }),
       expect.objectContaining({ idempotent: true }),
     );
     expect(downloadsStore.getState().byId.r1).toEqual({
@@ -100,6 +100,7 @@ describe("downloads", () => {
     });
     await downloads.start("r1");
     expect(downloadsStore.getState().byId.r1).toMatchObject({ status: "error", error: "offline" });
+    expect(sizes.has("file:///docs/downloads/r1.mp4.part")).toBe(false);
     expect(sizes.has("file:///docs/downloads/r1.mp4")).toBe(false);
     expect(downloads.localUri("r1")).toBeNull();
   });
@@ -130,6 +131,7 @@ describe("downloads", () => {
     expect(downloadsStore.getState().byId.r1).toBeUndefined();
     await run;
     expect(downloadsStore.getState().byId.r1).toBeUndefined();
+    expect(sizes.has("file:///docs/downloads/r1.mp4.part")).toBe(false);
     expect(sizes.has("file:///docs/downloads/r1.mp4")).toBe(false);
     downloads.cancel("never-started");
   });
@@ -165,6 +167,65 @@ describe("downloads", () => {
       },
     });
     expect(downloads.localUri("a")).toBe("file:///docs/downloads/a.mp4");
+  });
+
+  it("moves the part file onto the destination once the download completes", async () => {
+    scriptedDownload([{ bytesWritten: 40, totalBytes: 40 }]);
+    await downloads.start("r1", "video");
+    expect(sizes.has("file:///docs/downloads/r1.mp4.part")).toBe(false);
+    expect(sizes.get("file:///docs/downloads/r1.mp4")).toBe(40);
+    expect(downloadsStore.getState().byId.r1).toMatchObject({ bytes: 40 });
+  });
+
+  it("overwrites a file left over from an earlier download", async () => {
+    sizes.set("file:///docs/downloads/r1.mp4", 5);
+    downloadsStore.setState({
+      byId: { r1: { ...IDLE_DOWNLOAD, status: "error", error: "offline" } },
+    });
+    scriptedDownload([{ bytesWritten: 40, totalBytes: 40 }]);
+    await downloads.start("r1", "video");
+    expect(downloadsStore.getState().byId.r1).toMatchObject({ status: "done", bytes: 40 });
+  });
+
+  it("counts an in-flight part file against the cap", async () => {
+    settingsStore.setState({ downloadCapBytes: 1000 });
+    sizes.set("file:///docs/downloads/other.mp4.part", 900);
+    scriptedDownload([{ bytesWritten: 200, totalBytes: 200 }]);
+    await downloads.start("r1", "video");
+    expect(downloadsStore.getState().byId.r1).toMatchObject({
+      status: "error",
+      error: CAP_EXCEEDED,
+    });
+  });
+
+  it("removes an in-flight part file", async () => {
+    scriptedDownload([
+      { bytesWritten: 1, totalBytes: 10 },
+      { bytesWritten: 10, totalBytes: 10 },
+    ]);
+    const run = downloads.start("r1");
+    await flush();
+    sizes.set("file:///docs/downloads/r1.mp4.part", 1);
+    downloads.remove("r1");
+    await run;
+    expect(sizes.has("file:///docs/downloads/r1.mp4.part")).toBe(false);
+  });
+
+  it("deletes a leftover part file at hydrate instead of hydrating it as done", () => {
+    sizes.set("file:///docs/downloads/a.mp4.part", 120);
+    hydrateDownloads();
+    expect(sizes.has("file:///docs/downloads/a.mp4.part")).toBe(false);
+    expect(downloadsStore.getState().byId).toEqual({});
+    expect(downloads.localUri("a")).toBeNull();
+  });
+
+  it("leaves a part file out of the pruning sweep", () => {
+    sizes.set("file:///docs/downloads/a.mp4.part", 120);
+    times.set("file:///docs/downloads/a.mp4.part", Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const before = downloadsStore.getState().version;
+    downloads.prune();
+    expect(sizes.has("file:///docs/downloads/a.mp4.part")).toBe(true);
+    expect(downloadsStore.getState().version).toBe(before);
   });
 
   it("clear wipes files and state", async () => {

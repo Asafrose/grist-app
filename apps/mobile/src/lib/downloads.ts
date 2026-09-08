@@ -59,18 +59,28 @@ function fileFor(id: string, mediaType: string): File {
   return new File(downloadsDirectory(), `${id}.${extensionFor(mediaType)}`);
 }
 
+const PART_SUFFIX = ".part";
+
+function isPart(file: File): boolean {
+  return file.uri.endsWith(PART_SUFFIX);
+}
+
 function idOf(file: File): string {
-  const name = file.uri.split("/").pop() ?? "";
+  const name = (file.uri.split("/").pop() ?? "").replace(/\.part$/, "");
   return name.replace(/\.[^.]+$/, "");
 }
 
-function listFiles(): File[] {
+function listEntries(): File[] {
   const dir = downloadsDirectory();
   return dir.exists ? dir.list().filter((e): e is File => e instanceof File) : [];
 }
 
+function listFiles(): File[] {
+  return listEntries().filter((f) => !isPart(f));
+}
+
 function usedBytes(exceptId: string): number {
-  return listFiles().reduce((n, f) => (idOf(f) === exceptId ? n : n + (f.size ?? 0)), 0);
+  return listEntries().reduce((n, f) => (idOf(f) === exceptId ? n : n + (f.size ?? 0)), 0);
 }
 
 function safeDelete(file: File) {
@@ -98,6 +108,7 @@ async function start(id: string, mediaType = "video"): Promise<void> {
   inflight.set(id, controller);
   set(id, { ...IDLE_DOWNLOAD, status: "downloading" });
   const dest = fileFor(id, mediaType);
+  const part = new File(`${dest.uri}${PART_SUFFIX}`);
   const cap = settings.get().downloadCapBytes;
   const used = usedBytes(id);
   let capHit = false;
@@ -105,7 +116,7 @@ async function start(id: string, mediaType = "video"): Promise<void> {
     const url = await mediaUrl(id);
     if (controller.signal.aborted) return;
     downloadsDirectory().create({ intermediates: true, idempotent: true });
-    const file = await File.downloadFileAsync(url, dest, {
+    const file = await File.downloadFileAsync(url, part, {
       idempotent: true,
       signal: controller.signal,
       onProgress: ({ bytesWritten, totalBytes }) => {
@@ -119,14 +130,18 @@ async function start(id: string, mediaType = "video"): Promise<void> {
         set(id, { status: "downloading", progress, uri: null, bytes: bytesWritten, error: null });
       },
     });
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted) {
+      safeDelete(part);
+      return;
+    }
+    await file.move(dest, { overwrite: true });
     set(
       id,
-      { status: "done", progress: 1, uri: file.uri, bytes: file.size ?? 0, error: null },
+      { status: "done", progress: 1, uri: dest.uri, bytes: dest.size ?? 0, error: null },
       true,
     );
   } catch (e) {
-    safeDelete(dest);
+    safeDelete(part);
     if (capHit) {
       set(id, { ...IDLE_DOWNLOAD, status: "error", error: CAP_EXCEEDED });
     } else if (!controller.signal.aborted) {
@@ -152,7 +167,7 @@ function cancel(id: string): void {
 
 function remove(id: string): void {
   cancel(id);
-  for (const f of listFiles()) if (idOf(f) === id) safeDelete(f);
+  for (const f of listEntries()) if (idOf(f) === id) safeDelete(f);
   forget(id);
 }
 
@@ -198,7 +213,11 @@ function prune(): void {
 export function hydrateDownloads(): void {
   const byId: Record<string, DownloadEntry> = {};
   try {
-    for (const f of listFiles()) {
+    for (const f of listEntries()) {
+      if (isPart(f)) {
+        safeDelete(f);
+        continue;
+      }
       byId[idOf(f)] = { status: "done", progress: 1, uri: f.uri, bytes: f.size ?? 0, error: null };
     }
   } catch {

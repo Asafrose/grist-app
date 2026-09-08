@@ -20,6 +20,17 @@ export class File extends Entry {
     return mockTimes.get(this.uri) ?? Date.now();
   }
   create() {}
+  async move(to: Entry, options?: { overwrite?: boolean }) {
+    await Promise.resolve();
+    if (mockSizes.has(to.uri) && !options?.overwrite)
+      throw new Error(`DestinationAlreadyExists: ${to.uri}`);
+    const size = mockSizes.get(this.uri);
+    const time = mockTimes.get(this.uri);
+    this.delete();
+    this.uri = to.uri;
+    if (size !== undefined) mockSizes.set(this.uri, size);
+    if (time !== undefined) mockTimes.set(this.uri, time);
+  }
   delete() {
     mockSizes.delete(this.uri);
     mockTimes.delete(this.uri);
