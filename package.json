@@ -7,11 +7,10 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run -s check-lock && oxlint && oxfmt --check",
+    "lint": "npm run -s check-store-reads && oxlint && oxfmt --check",
     "format": "oxfmt",
     "test": "npm run test --workspaces --if-present",
-    "fix-lock": "sed -i \"\" \"s|https://registry.npmjs.org/|https://registry.npmjs.org/|g\" package-lock.json",
-    "check-lock": "! grep -q registry.npmjs.org package-lock.json"
+    "check-store-reads": "! grep -rnoE '\\b[A-Za-z_$]+Store\\(' apps/mobile/src --include='*.ts' --include='*.tsx' | grep -v 'useStore($' || { echo 'Read bound zustand stores through useStore(fooStore, selector), or fooStore.getState()/setState()/subscribe().'; false; }"
   },
   "devDependencies": {
     "oxfmt": "^0.66.0",

@@ -1,5 +1,5 @@
 import { File } from "expo-file-system";
-import { create } from "zustand";
+import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
@@ -31,8 +31,8 @@ export const CAP_EXCEEDED = "Over the download cap set in Settings";
 export const downloadsStore = create<DownloadsState>(() => ({ byId: {}, version: 0 }));
 
 export const useDownload = (id: string): DownloadEntry =>
-  downloadsStore((s) => s.byId[id] ?? IDLE_DOWNLOAD);
-export const useDownloadsVersion = () => downloadsStore((s) => s.version);
+  useStore(downloadsStore, (s) => s.byId[id] ?? IDLE_DOWNLOAD);
+export const useDownloadsVersion = () => useStore(downloadsStore, (s) => s.version);
 
 const inflight = new Map<string, AbortController>();
 

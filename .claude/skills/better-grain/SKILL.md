@@ -60,7 +60,7 @@ statements/functions/lines and 60% branches or `npm test` fails (thresholds in
 `.test.ts` sibling; screens and components are verified with RNTL where they
 carry logic and with Maestro flows otherwise. GitHub Actions on Ubuntu (lint, typecheck,
 test). Maestro end-to-end flows run on the local iOS simulator, not in CI.
-After `npm install`, run `npm run fix-lock`: the work machine resolves packages through a private proxy and CI cannot reach it (`npm run lint` fails on proxy URLs).
+The repo-level `.npmrc` pins `registry.npmjs.org`, so a machine whose global npm config points at a private proxy still writes public URLs into `package-lock.json`.
 Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
 non-interactive shells; the `nvm` shell function hangs there.
 
