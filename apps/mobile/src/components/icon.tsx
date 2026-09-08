@@ -184,12 +184,7 @@ const paths = {
       <Circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
     </>
   ),
-  grist: (
-    <Path
-      d="M3 10.5v3M6 8v8M9 5v14M12 2.5v19M15 6v12M18 8.5v7M21 10.5v3"
-      strokeWidth={2.4}
-    />
-  ),
+  grist: <Path d="M3 10.5v3M6 8v8M9 5v14M12 2.5v19M15 6v12M18 8.5v7M21 10.5v3" strokeWidth={2.4} />,
 };
 
 export type IconName = keyof typeof paths;
