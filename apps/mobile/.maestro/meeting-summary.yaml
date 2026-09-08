@@ -68,3 +68,24 @@ appId: com.asafrose.grist
 - tapOn: "Meetings"
 - assertVisible:
     id: "meetings-list"
+# Mini player: hidden on the playing meeting, present elsewhere, taps back into it.
+- assertVisible:
+    id: "mini-player"
+- tapOn:
+    id: "tab-search"
+- assertVisible:
+    id: "mini-player"
+- takeScreenshot: mini-player
+- tapOn:
+    id: "mini-player"
+- assertVisible:
+    id: "meeting-tabs"
+- assertNotVisible:
+    id: "mini-player"
+- tapOn: "Meetings"
+- assertVisible:
+    id: "mini-player"
+- tapOn:
+    id: "mini-close"
+- assertNotVisible:
+    id: "mini-player"

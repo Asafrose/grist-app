@@ -90,10 +90,6 @@ function Root() {
             }}
           />
           <Stack.Screen
-            name="now-playing"
-            options={{ presentation: "modal", contentStyle: { backgroundColor: palette.dark.bg } }}
-          />
-          <Stack.Screen
             name="fullscreen"
             options={{
               presentation: "fullScreenModal",

@@ -19,10 +19,64 @@ jest.mock("expo-video", () => ({
 }));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
 
-const mockPush = jest.fn();
+type PanEvent = { translationY: number; velocityY: number };
+
+let mockPanUpdate: ((e: PanEvent) => void) | undefined;
+let mockPanEnd: ((e: PanEvent) => void) | undefined;
+jest.mock("react-native-gesture-handler", () => {
+  const pan = {
+    activeOffsetY: () => pan,
+    failOffsetY: () => pan,
+    onUpdate: (fn: (e: PanEvent) => void) => {
+      mockPanUpdate = fn;
+      return pan;
+    },
+    onEnd: (fn: (e: PanEvent) => void) => {
+      mockPanEnd = fn;
+      return pan;
+    },
+  };
+  return {
+    Gesture: { Pan: () => pan },
+    GestureDetector: ({ children }: { children: React.ReactNode }) => children,
+    GestureHandlerRootView: jest.requireActual("react-native").View,
+  };
+});
+
+const mockShared: { value: number }[] = [];
+jest.mock("react-native-reanimated", () => ({
+  __esModule: true,
+  default: { View: jest.requireActual("react-native").View },
+  useSharedValue: (initial: number) => {
+    const shared = { value: initial };
+    mockShared.push(shared);
+    return shared;
+  },
+  useAnimatedStyle: (fn: () => unknown) => fn(),
+  withTiming: (to: number, _config: unknown, done?: (finished: boolean) => void) => {
+    done?.(true);
+    return to;
+  },
+  withSpring: (to: number) => to,
+  runOnJS: (fn: () => void) => fn,
+}));
+
+function offset(): number {
+  const shared = mockShared.at(-1);
+  if (!shared) throw new Error("no shared value registered");
+  return shared.value;
+}
+
+function swipe(...events: PanEvent[]) {
+  if (!mockPanUpdate || !mockPanEnd) throw new Error("no pan gesture registered");
+  for (const e of events.slice(0, -1)) mockPanUpdate(e);
+  mockPanEnd(events.at(-1) as PanEvent);
+}
+
+const mockNavigate = jest.fn();
 let mockPathname = "/";
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ navigate: mockNavigate }),
   usePathname: () => mockPathname,
 }));
 
@@ -37,6 +91,7 @@ const rec: NowPlaying = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPathname = "/";
+  mockShared.length = 0;
   playerStore.setState({
     current: null,
     status: "idle",
@@ -75,14 +130,56 @@ describe("MiniPlayer", () => {
     expect(seekBy).toHaveBeenCalledWith(-10);
     await fireEvent.press(screen.getByTestId("mini-seek-forward"));
     expect(seekBy).toHaveBeenCalledWith(10);
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("expands to Now Playing when tapped", async () => {
+  it("opens the playing meeting when tapped", async () => {
     playerStore.setState({ current: rec, status: "ready" });
     await render(<MiniPlayer />);
     await fireEvent.press(screen.getByTestId("mini-player"));
-    expect(mockPush).toHaveBeenCalledWith("/now-playing");
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: "/meeting/[id]",
+      params: { id: rec.id },
+    });
+  });
+
+  it("stops playback from the close button", async () => {
+    playerStore.setState({ current: rec, status: "ready" });
+    const stop = jest.spyOn(playback, "stop").mockImplementation(() => {});
+    await render(<MiniPlayer />);
+    await fireEvent.press(screen.getByLabelText("Close player"));
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("follows the finger down and stops playback once the card is off-screen", async () => {
+    playerStore.setState({ current: rec, status: "ready" });
+    const stop = jest.spyOn(playback, "stop").mockImplementation(() => {});
+    await render(<MiniPlayer />);
+    mockPanUpdate?.({ translationY: 20, velocityY: 300 });
+    expect(offset()).toBe(20);
+    mockPanUpdate?.({ translationY: 80, velocityY: 600 });
+    expect(offset()).toBe(80);
+    mockPanEnd?.({ translationY: 120, velocityY: 900 });
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("springs back and keeps playing after a short drag", async () => {
+    playerStore.setState({ current: rec, status: "ready" });
+    const stop = jest.spyOn(playback, "stop").mockImplementation(() => {});
+    await render(<MiniPlayer />);
+    swipe({ translationY: 10, velocityY: 50 }, { translationY: 20, velocityY: 60 });
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  it("does not drag the card upward", async () => {
+    playerStore.setState({ current: rec, status: "ready" });
+    const stop = jest.spyOn(playback, "stop").mockImplementation(() => {});
+    await render(<MiniPlayer />);
+    swipe({ translationY: -120, velocityY: -900 }, { translationY: -120, velocityY: -900 });
+    expect(offset()).toBe(0);
+    expect(stop).not.toHaveBeenCalled();
+    expect(screen.getByTestId("mini-player")).toBeOnTheScreen();
   });
 
   it("shows a spinner instead of play/pause while loading", async () => {
@@ -93,7 +190,6 @@ describe("MiniPlayer", () => {
   });
 
   it.each([
-    ["/now-playing", false],
     ["/meeting/r1", false],
     ["/meeting/other", true],
     ["/search", true],

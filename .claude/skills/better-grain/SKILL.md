@@ -132,7 +132,9 @@ non-interactive shells; the `nvm` shell function hangs there.
   (`load`, `toggle`, `seekBy`, `setRate`, `stop`) and read atomic hooks
   (`useNowPlaying`, `usePlaybackPosition`, …).
   Media URLs are resolved per play via `recordings.resolveMediaUrl` (signed
-  CloudFront URL); `<PlayerView>` renders the shared `VideoView`.
+  CloudFront URL); `<PlayerView>` renders the shared `VideoView`. There is no
+  expanded Now Playing screen: the meeting screen is the full player, and the
+  mini player navigates to it.
 - Media streams from the download endpoint; downloads happen only on an
   explicit "Download for offline" tap. Caps: 2 GB media, 30-day downloads,
   90-day index. All three are Settings rows.
@@ -149,7 +151,7 @@ non-interactive shells; the `nvm` shell function hangs there.
   - Reads go through exported atomic hooks, one value each: `useNowPlaying()`, `usePlaybackPosition()`, `useSyncStatus()`, `useSetting("playbackRate")`. Never `fooStore()` with no selector. The one whole-snapshot hook is `useFilters()`, because every field feeds the same query.
   - Writes go through a plain-object facade (`auth`, `library`, `filters`, `playback`, `settings`, `thumbnails`) usable outside React. Batch related fields in one `setState`; `library` bumps `version` in the same call as the status change.
   - Derived values are not mirrored: playback rate lives in settings and the player subscribes to it.
-  - Components that show high-frequency values (player position) are split so only the leaf subscribes: `Progress` in the player card, `Clock`/`ProgressFill` in the mini player, `LiveScrubber`/`CurrentLine` in Now Playing.
+  - Components that show high-frequency values (player position) are split so only the leaf subscribes: `Progress` in the player card, `Clock`/`ProgressFill` in the mini player, `LiveScrubber` in the fullscreen screen.
   Stores hydrate themselves at module load and expose a readiness promise; the root layout suspends on it with React `use()` rather than triggering loads from effects.
 - UI: NativeWind (Tailwind classes) with react-native-reusables as the component
   kit, copy-pasted into `apps/mobile/src/components/ui` and owned by us. Design
