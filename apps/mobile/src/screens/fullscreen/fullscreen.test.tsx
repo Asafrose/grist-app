@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen } from "@/test/render";
+import { haptics } from "@/lib/haptics";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 import { settings } from "@/lib/settings";
 import { CONTROLS_HIDE_MS, Fullscreen } from "./index";
 
+jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
@@ -73,8 +75,10 @@ describe("Fullscreen", () => {
     expect(seekBy).toHaveBeenCalledWith(-10);
     await fireEvent.press(screen.getByTestId("fs-seek-forward"));
     expect(seekBy).toHaveBeenCalledWith(10);
+    jest.mocked(haptics.selection).mockClear();
     await fireEvent.press(screen.getByTestId("fs-rate"));
     expect(setRate).toHaveBeenCalledWith(1.2);
+    expect(haptics.selection).toHaveBeenCalledTimes(1);
     await fireEvent.press(screen.getByTestId("fs-pip"));
     expect(pip).toHaveBeenCalledTimes(1);
   });

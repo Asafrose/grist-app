@@ -3,6 +3,7 @@ import { type ColorValue, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Text } from "@/components/ui/text";
 import { formatClock } from "@/lib/format";
+import { haptics } from "@/lib/haptics";
 
 export function scrubRatio(x: number, width: number): number {
   if (width <= 0) return 0;
@@ -19,10 +20,16 @@ function makeGesture(
     .activeOffsetX([-4, 4])
     .failOffsetY([-12, 12])
     .runOnJS(true)
-    .onBegin((e) => setDragX(e.x))
+    .onBegin((e) => {
+      haptics.selection();
+      setDragX(e.x);
+    })
     .onUpdate((e) => setDragX(e.x))
     .onEnd((e, success) => {
-      if (success) release(e.x);
+      if (success) {
+        haptics.selection();
+        release(e.x);
+      }
     })
     .onFinalize(() => setDragX(null));
   const tap = Gesture.Tap()

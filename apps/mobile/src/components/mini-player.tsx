@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { formatClock } from "@/lib/format";
+import { haptics } from "@/lib/haptics";
 import {
   playback,
   useIsPlaying,
@@ -99,6 +100,7 @@ export function MiniPlayer() {
   const translateY = useSharedValue(0);
 
   const dismiss = useCallback(() => {
+    haptics.light();
     playback.stop();
     translateY.set(0);
   }, [translateY]);

@@ -9,6 +9,7 @@ import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
 import type { RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
+import { haptics } from "@/lib/haptics";
 import {
   type NowPlaying,
   PLAYBACK_RATES,
@@ -200,6 +201,7 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                       accessibilityRole="button"
                       accessibilityLabel={`${r} times speed`}
                       onPress={() => {
+                        haptics.selection();
                         playback.setRate(r);
                         setRatesOpen(false);
                       }}

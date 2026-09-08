@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/icon";
 import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/player-view";
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
+import { haptics } from "@/lib/haptics";
 import {
   PLAYBACK_RATES,
   playback,
@@ -160,7 +161,10 @@ export function Fullscreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Speed ${rate}×`}
                 hitSlop={10}
-                onPress={act(() => playback.setRate(nextRate()))}
+                onPress={act(() => {
+                  haptics.selection();
+                  playback.setRate(nextRate());
+                })}
                 className="h-11 items-center justify-center rounded-full px-3 active:opacity-60"
                 style={{ backgroundColor: CHROME_BG }}
               >

@@ -6,10 +6,12 @@ import { authStore } from "@/lib/auth";
 import { getRecording, listRecordings, upsertRecordings } from "@/lib/db";
 import { makeClient, useGrainClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
-import { playerStore } from "@/lib/player";
+import { haptics } from "@/lib/haptics";
+import { playback, playerStore } from "@/lib/player";
 import { isoSeconds } from "@/lib/sync";
 import { Meeting } from "./index";
 
+jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
@@ -154,6 +156,16 @@ describe("Meeting shell in demo mode", () => {
     expect(playerStore.getState().position).toBe(88);
     await waitFor(() => expect(screen.queryByTestId("player-start")).toBeNull());
     expect(screen.getByTestId("position")).toHaveTextContent("1:28");
+  });
+
+  it("picks a playback rate from the speed menu with a haptic tick", async () => {
+    const setRate = jest.spyOn(playback, "setRate").mockImplementation(() => {});
+    jest.mocked(haptics.selection).mockClear();
+    await render(<Meeting id="demo-0" />);
+    await fireEvent.press(screen.getByTestId("rate"));
+    await fireEvent.press(screen.getByTestId("rate-1.5"));
+    expect(setRate).toHaveBeenCalledWith(1.5);
+    expect(haptics.selection).toHaveBeenCalledTimes(1);
   });
 
   it("seeks to the t param on open", async () => {

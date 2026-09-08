@@ -2,7 +2,10 @@ import { DeviceEventEmitter } from "react-native";
 import { State } from "react-native-gesture-handler";
 import { fireGestureHandler, getByGestureTestId } from "react-native-gesture-handler/jest-utils";
 import { Scrubber, scrubRatio } from "@/components/scrubber";
+import { haptics } from "@/lib/haptics";
 import { act, fireEvent, render, screen } from "@/test/render";
+
+jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
 
 const props = {
   testID: "scrub",
@@ -106,6 +109,22 @@ describe("Scrubber", () => {
       ]);
     });
     expect(onScrub).toHaveBeenLastCalledWith(null);
+  });
+
+  it("ticks once when the drag is picked up and again on release", async () => {
+    jest.mocked(haptics.selection).mockClear();
+    await render(<Scrubber {...props} position={0} duration={200} onSeek={jest.fn()} />);
+    await layout(400);
+
+    await act(async () => {
+      fireGestureHandler(getByGestureTestId("scrub-pan"), [
+        { state: State.BEGAN, x: 100 },
+        { state: State.ACTIVE, x: 100 },
+        { x: 300 },
+        { state: State.END, x: 300 },
+      ]);
+    });
+    expect(haptics.selection).toHaveBeenCalledTimes(2);
   });
 
   it("seeks on release", async () => {

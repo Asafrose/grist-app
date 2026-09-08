@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from "@/test/render";
 import { MiniPlayer } from "@/components/mini-player";
+import { haptics } from "@/lib/haptics";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 
+jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
@@ -156,6 +158,7 @@ describe("MiniPlayer", () => {
     expect(offset()).toBe(80);
     mockPanEnd?.({ translationY: 120, velocityY: 900 });
     expect(stop).toHaveBeenCalledTimes(1);
+    expect(haptics.light).toHaveBeenCalled();
   });
 
   it("springs back and keeps playing after a short drag", async () => {

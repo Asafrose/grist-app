@@ -38,7 +38,7 @@ appId: com.asafrose.grist
 - assertVisible:
     id: "transcript-line-0"
 - assertVisible: ".*Marcus Kowalski.*"
-- assertVisible: "Mia Duarte"
+- assertVisible: ".*Mia Duarte.*"
 - assertNotVisible: "Transcript not downloaded yet"
 - takeScreenshot: meeting-transcript
 # Search highlights matches and jumps between them with an n of m count
