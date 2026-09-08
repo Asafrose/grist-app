@@ -11,6 +11,7 @@ import {
   PLAYBACK_RATES,
   playback,
   player,
+  RERESOLVE_BACKOFF_MS,
   playerStore,
   useIsPlaying,
 } from "@/lib/player";
@@ -311,6 +312,26 @@ describe("expired media urls", () => {
     expect(resolveMediaUrl).not.toHaveBeenCalled();
   });
 
+  it("stops re-resolving after two attempts and lets a retry try once more", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec);
+    resolveMediaUrl.mockClear();
+
+    const base = Date.now();
+    const now = jest.spyOn(Date, "now");
+    for (let i = 1; i <= 6; i++) {
+      now.mockReturnValue(base + i * (RERESOLVE_BACKOFF_MS + 1));
+      fail();
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    now.mockRestore();
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
+    expect(playerStore.getState()).toMatchObject({ status: "error", error: "403 Forbidden" });
+
+    await playback.retry();
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(3);
+  });
+
   it("does nothing when playback is idle", async () => {
     playback.stop();
     fail();
@@ -321,6 +342,31 @@ describe("expired media urls", () => {
 });
 
 describe("playback rate persistence", () => {
+  it("reapplies the chosen rate after a download swap replaces the source", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    playback.setRate(2);
+    fake.playbackRate = 1;
+
+    downloadsStore.setState({
+      byId: { r1: { status: "done", progress: 1, uri: "file:///r1.mp4", bytes: 1, error: null } },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.playbackRate).toBe(2);
+  });
+
+  it("reapplies the chosen rate after an expired url is re-resolved", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/expired.mp4");
+    await playback.load(rec);
+    playback.setRate(1.5);
+    fake.playbackRate = 1;
+
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/fresh.mp4");
+    fake.emit("statusChange", { status: "error", error: { message: "403 Forbidden" } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fake.playbackRate).toBe(1.5);
+  });
+
   it("applies the settings default speed to the player and persists later changes", () => {
     settings.set("playbackRate", 1.7);
     expect(fake.playbackRate).toBe(1.7);

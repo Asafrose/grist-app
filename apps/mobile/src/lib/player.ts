@@ -107,28 +107,37 @@ function freshUri(id: string, token: string): Promise<string> {
   return mediaUrl(id, token);
 }
 
+function restoreAfterReplace(at: number, autoplay: boolean) {
+  player.playbackRate = settings.get().playbackRate;
+  player.currentTime = at;
+  if (autoplay) player.play();
+}
+
 async function swapSource(uri: string, resume?: boolean) {
   const { current, position, playing } = playerStore.getState();
   if (!current) return;
   const seq = loadSeq;
   await player.replaceAsync({ uri, metadata: metadataFor(current) });
   if (seq !== loadSeq) return;
-  player.currentTime = position;
-  if (resume ?? playing) player.play();
+  restoreAfterReplace(position, resume ?? playing);
 }
 
 export const RERESOLVE_BACKOFF_MS = 10_000;
+export const RERESOLVE_MAX_ATTEMPTS = 2;
 let reresolving = false;
 let reresolvedAt = 0;
+let reresolveAttempts = 0;
 
 async function reresolveSource() {
   const { current, playing } = playerStore.getState();
   const token = auth.token();
   if (!current || !token || reresolving) return;
   if (downloads.localUri(current.id)) return;
+  if (reresolveAttempts >= RERESOLVE_MAX_ATTEMPTS) return;
   const now = Date.now();
   if (now - reresolvedAt < RERESOLVE_BACKOFF_MS) return;
   reresolvedAt = now;
+  reresolveAttempts++;
   reresolving = true;
   const seq = loadSeq;
   try {
@@ -165,6 +174,7 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   const token = auth.token();
   if (!token) throw new Error("Not signed in");
   reresolvedAt = 0;
+  reresolveAttempts = 0;
   playerStore.setState({
     current: rec,
     status: "loading",
@@ -179,9 +189,7 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     if (seq !== loadSeq) return;
     await player.replaceAsync({ uri, metadata: metadataFor(rec) });
     if (seq !== loadSeq) return;
-    player.playbackRate = settings.get().playbackRate;
-    if (opts.at) player.currentTime = opts.at;
-    if (opts.autoplay ?? true) player.play();
+    restoreAfterReplace(opts.at ?? 0, opts.autoplay ?? true);
   } catch (e) {
     if (seq !== loadSeq) return;
     playerStore.setState({ status: "error", error: e instanceof Error ? e.message : String(e) });
@@ -207,6 +215,12 @@ function setRate(rate: PlaybackRate) {
   settings.set("playbackRate", rate);
 }
 
+function retry() {
+  reresolvedAt = 0;
+  reresolveAttempts = 0;
+  return reresolveSource();
+}
+
 function toggle() {
   if (playerStore.getState().playing) player.pause();
   else player.play();
@@ -215,6 +229,7 @@ function toggle() {
 function stop() {
   loadSeq++;
   reresolvedAt = 0;
+  reresolveAttempts = 0;
   void player.replaceAsync(null);
   playerStore.setState(initial);
 }
@@ -228,5 +243,6 @@ export const playback = {
   seekBy,
   setRate,
   stop,
+  retry,
   startPictureInPicture,
 };
