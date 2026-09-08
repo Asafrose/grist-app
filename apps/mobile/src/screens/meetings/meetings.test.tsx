@@ -44,20 +44,31 @@ beforeEach(() => {
 const db = () => libraryStore.getState().db!;
 
 describe("Meetings", () => {
-  it("lists nothing until the signed-in profile resolves", async () => {
+  it("renders the cached list while the signed-in profile is still idle", async () => {
     resetMe();
-    meStore.setState({ status: "loading" });
     await render(<Meetings />);
-    const mine = listRecordings(db(), { participantEmail: DEMO_ME.email });
-    const others = listRecordings(db(), {}).filter((r) => !mine.some((m) => m.id === r.id));
-    expect(others.length).toBeGreaterThan(0);
-    expect(screen.queryByTestId("meetings-list")).toBeNull();
-    for (const r of others) expect(screen.queryByTestId(`meeting-${r.id}`)).toBeNull();
+    expect(screen.getByTestId("meetings-list")).toBeOnTheScreen();
+    const all = listRecordings(db(), {});
+    expect(screen.getByTestId(`meeting-${all[0].id}`)).toBeOnTheScreen();
 
     await act(async () => {
       await resolveMe(db(), "demo");
     });
+    const mine = listRecordings(db(), { participantEmail: DEMO_ME.email });
     await waitFor(() => expect(screen.getByTestId(`meeting-${mine[0].id}`)).toBeOnTheScreen());
+    const others = all.filter((r) => !mine.some((m) => m.id === r.id));
+    expect(others.length).toBeGreaterThan(0);
+    for (const r of others) expect(screen.queryByTestId(`meeting-${r.id}`)).toBeNull();
+  });
+
+  it("applies the participant filter on the very first render when me is cached", async () => {
+    resetMe();
+    meStore.setState({ me: DEMO_ME, status: "ready" });
+    await render(<Meetings />);
+    const mine = listRecordings(db(), { participantEmail: DEMO_ME.email });
+    const others = listRecordings(db(), {}).filter((r) => !mine.some((m) => m.id === r.id));
+    expect(others.length).toBeGreaterThan(0);
+    expect(screen.getByTestId(`meeting-${mine[0].id}`)).toBeOnTheScreen();
     for (const r of others) expect(screen.queryByTestId(`meeting-${r.id}`)).toBeNull();
   });
 

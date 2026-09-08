@@ -23,7 +23,9 @@ jest.mock("expo-network", () => ({
   getNetworkStateAsync: jest.fn(async () => ({ type: "WIFI" })),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
-jest.mock("@/lib/me", () => ({ me: { resolve: jest.fn(async () => null), reset: jest.fn() } }));
+jest.mock("@/lib/me", () => ({
+  me: { resolve: jest.fn(async () => null), reset: jest.fn(), hydrate: jest.fn() },
+}));
 
 const recs = (page.recordings as Recording[]).slice(0, 2);
 const iterate = jest.fn(async function* () {

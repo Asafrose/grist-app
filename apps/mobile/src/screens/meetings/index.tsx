@@ -24,7 +24,7 @@ import {
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { formatDurationCompact, formatTime } from "@/lib/format";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
-import { useMe, useMeStatus } from "@/lib/me";
+import { useMe } from "@/lib/me";
 import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
@@ -226,8 +226,6 @@ export function Meetings() {
 
   const workspace = useWorkspace();
   const meEmail = useMe()?.email ?? null;
-  const meStatus = useMeStatus();
-  const meResolved = meStatus === "ready" || meStatus === "error";
   const filter = useMemo(() => toQuery(state, { meEmail }), [state, meEmail]);
   const [pulling, setPulling] = useState(false);
   const pull = async () => {
@@ -363,18 +361,14 @@ export function Meetings() {
         </ScrollView>
       ) : null}
 
-      {meResolved ? (
-        <MeetingList
-          filter={filter}
-          filtered={filtered}
-          sync={sync}
-          pulling={pulling}
-          onRefresh={pull}
-          bottom={insets.bottom}
-        />
-      ) : (
-        <View testID="meetings-loading" className="flex-1" />
-      )}
+      <MeetingList
+        filter={filter}
+        filtered={filtered}
+        sync={sync}
+        pulling={pulling}
+        onRefresh={pull}
+        bottom={insets.bottom}
+      />
     </View>
   );
 }

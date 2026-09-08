@@ -81,6 +81,12 @@ export function cachedMe(db: Db): Me | null {
   }
 }
 
+export function hydrateMe(db: Db): Me | null {
+  const cached = cachedMe(db);
+  if (cached) meStore.setState({ me: cached, status: "ready" });
+  return cached;
+}
+
 function remember(db: Db, me: Me) {
   setMeta(db, META_ME, JSON.stringify(me));
   meStore.setState({ me, status: "ready" });
@@ -124,4 +130,10 @@ export function resetMe(): void {
   meStore.setState({ me: null, status: "idle" });
 }
 
-export const me = { resolve: resolveMe, choose: chooseMe, reset: resetMe, cached: cachedMe };
+export const me = {
+  resolve: resolveMe,
+  choose: chooseMe,
+  reset: resetMe,
+  cached: cachedMe,
+  hydrate: hydrateMe,
+};

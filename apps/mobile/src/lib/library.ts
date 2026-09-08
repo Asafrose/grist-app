@@ -122,6 +122,7 @@ async function clear(): Promise<void> {
 
 async function hydrate(): Promise<void> {
   const db = await openDb();
+  me.hydrate(db);
   hydrateSettings(db);
   libraryStore.setState({ db });
 }
