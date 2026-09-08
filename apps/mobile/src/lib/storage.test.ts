@@ -7,8 +7,6 @@ import { formatBytes } from "@/lib/format";
 import { downloadsDirectory, storageStats } from "@/lib/storage";
 import { testDb } from "@/test/db";
 
-jest.mock("@/lib/db/open", () => ({ DB_NAME: "grist.db" }));
-jest.mock("expo-sqlite", () => ({ defaultDatabaseDirectory: "/data/SQLite" }));
 jest.mock("expo-file-system", () => {
   const sizes = new Map<string, number>();
   class MockEntry {

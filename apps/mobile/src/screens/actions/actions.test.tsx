@@ -11,12 +11,6 @@ import { library, libraryReady, libraryStore } from "@/lib/library";
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { Actions, transcriptToText } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn(async () => true) }));
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
@@ -24,39 +18,12 @@ jest.mock("expo-web-browser", () => ({
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn() },
 }));
-jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({
-    addListener: jest.fn(),
-    replaceAsync: jest.fn(async () => {}),
-    play: jest.fn(),
-    pause: jest.fn(),
-  })),
-}));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
   getNetworkStateAsync: jest.fn(async () => ({ type: "CELLULAR" })),
 }));
-jest.mock("expo-sqlite", () => ({ addDatabaseChangeListener: () => ({ remove() {} }) }));
-jest.mock("expo-file-system", () => {
-  class Entry {
-    uri: string;
-    exists = false;
-    size = null;
-    static downloadFileAsync = jest.fn();
-    constructor(...parts: unknown[]) {
-      this.uri = parts.map(String).join("/");
-    }
-    list() {
-      return [];
-    }
-    create() {}
-    delete() {}
-  }
-  return { File: Entry, Directory: Entry, Paths: { document: "file:///docs" } };
-});
-jest.mock("@/lib/db/open", () => ({
-  openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
-}));
+jest.mock("expo-file-system", () => require("@/test/mocks/expo-file-system"));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn(), useGrainClient: jest.fn() }));
 
 const iterate = jest.fn(async function* () {

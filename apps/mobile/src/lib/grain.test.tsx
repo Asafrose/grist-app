@@ -4,13 +4,6 @@ import { act } from "react";
 import { authStore } from "@/lib/auth";
 import { isTokenRejected, makeClient, tokenErrorMessage, useGrainClient } from "@/lib/grain";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
-
 describe("grain client", () => {
   it("makeClient builds a GrainClient for the token", () => {
     expect(makeClient("pat")).toBeInstanceOf(GrainClient);

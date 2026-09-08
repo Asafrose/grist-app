@@ -10,31 +10,12 @@ import { playerStore } from "@/lib/player";
 import { isoSeconds } from "@/lib/sync";
 import { Meeting } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
-jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({
-    addListener: jest.fn(),
-    replaceAsync: jest.fn(async () => {}),
-    play: jest.fn(),
-    pause: jest.fn(),
-  })),
-  VideoView: () => null,
-  isPictureInPictureSupported: () => false,
-}));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
   getNetworkStateAsync: jest.fn(async () => ({ type: "CELLULAR" })),
 }));
-jest.mock("@/lib/db/open", () => ({
-  openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn(), useGrainClient: jest.fn() }));
-jest.mock("expo-sqlite", () => ({ addDatabaseChangeListener: () => ({ remove() {} }) }));
 jest.mock("expo-router", () => {
   const React = jest.requireActual("react");
   let params: Record<string, string> = {};

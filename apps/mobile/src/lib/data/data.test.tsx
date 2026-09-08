@@ -35,18 +35,7 @@ import {
   useWorkspace,
 } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 1,
-}));
-jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({
-    addListener: jest.fn(),
-    replaceAsync: jest.fn(async () => {}),
-  })),
-}));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
   getNetworkStateAsync: jest.fn(async () => ({ type: "CELLULAR" })),
@@ -65,10 +54,6 @@ jest.mock("expo-file-system", () => {
   }
   return { Directory: Entry, File: Entry, Paths: { document: "/doc", cache: "/cache" } };
 });
-jest.mock("@/lib/db/open", () => ({
-  DB_NAME: "grist.db",
-  openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 
 const NOW = Date.parse("2026-09-06T12:00:00Z");

@@ -1,18 +1,3 @@
-jest.mock("expo-secure-store", () => {
-  const store = new Map<string, string>();
-  return {
-    mockKeychain: store,
-    AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "afterFirstUnlockThisDeviceOnly",
-    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
-    setItemAsync: jest.fn(async (key: string, value: string) => {
-      store.set(key, value);
-    }),
-    deleteItemAsync: jest.fn(async (key: string) => {
-      store.delete(key);
-    }),
-  };
-});
-
 import * as SecureStore from "expo-secure-store";
 import { auth, authReady, hydrateAuth, TOKEN_KEY, authStore } from "./auth";
 

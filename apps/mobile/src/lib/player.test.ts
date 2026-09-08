@@ -16,12 +16,6 @@ import {
 } from "@/lib/player";
 import { settings, settingsStore } from "@/lib/settings";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video", () => {
   const listeners = new Map<string, Function>();

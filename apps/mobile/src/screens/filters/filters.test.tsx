@@ -8,21 +8,10 @@ import { DEMO_ME, resolveMe } from "@/lib/me";
 import { getWorkspace } from "@/lib/workspace";
 import { Filters } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
-jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({ addListener: jest.fn(), replaceAsync: jest.fn() })),
-}));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI" },
   getNetworkStateAsync: jest.fn(async () => ({ type: "WIFI" })),
-}));
-jest.mock("@/lib/db/open", () => ({
-  openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 const mockBack = jest.fn();

@@ -4,12 +4,6 @@ import { makeClient } from "@/lib/grain";
 import { queryClient } from "@/lib/query";
 import { frameTime, THUMBNAIL_RETRY_MS, thumbnails, thumbnailsStore } from "@/lib/thumbnails";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video-thumbnails", () => ({ getThumbnailAsync: jest.fn() }));
 jest.mock("expo-file-system", () => {

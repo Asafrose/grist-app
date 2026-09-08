@@ -9,44 +9,15 @@ import { DEFAULT_SETTINGS, settingsStore } from "@/lib/settings";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import { maskToken, Settings } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
 }));
-jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({
-    addListener: jest.fn(),
-    replaceAsync: jest.fn(async () => {}),
-  })),
-}));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
   getNetworkStateAsync: jest.fn(async () => ({ type: "CELLULAR" })),
 }));
-jest.mock("expo-sqlite", () => ({ defaultDatabaseDirectory: "/data/SQLite" }));
-jest.mock("expo-file-system", () => {
-  class Entry {
-    uri: string;
-    exists = false;
-    size = null;
-    constructor(...parts: unknown[]) {
-      this.uri = parts.map(String).join("/");
-    }
-    list() {
-      return [];
-    }
-  }
-  return { File: Entry, Directory: Entry, Paths: { document: "file:///docs" } };
-});
-jest.mock("@/lib/db/open", () => ({
-  DB_NAME: "grist.db",
-  openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
-}));
+jest.mock("expo-file-system", () => require("@/test/mocks/expo-file-system"));
 jest.mock("@/lib/grain", () => ({
   ...jest.requireActual("@/lib/grain"),
   makeClient: jest.fn(),

@@ -2,26 +2,8 @@ import { act, fireEvent, render, screen } from "@/test/render";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 import { CONTROLS_HIDE_MS, Fullscreen } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
-jest.mock("expo-video", () => {
-  const { View } = jest.requireActual("react-native");
-  return {
-    createVideoPlayer: jest.fn(() => ({
-      addListener: jest.fn(),
-      replaceAsync: jest.fn(async () => {}),
-      play: jest.fn(),
-      pause: jest.fn(),
-    })),
-    VideoView: (props: object) => <View testID="video-view" {...props} />,
-    isPictureInPictureSupported: () => true,
-  };
-});
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 

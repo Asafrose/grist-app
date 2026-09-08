@@ -7,12 +7,6 @@ import { auth, authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
 import { SignIn } from "./index";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "after-first-unlock-this-device-only",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("expo-clipboard", () => ({
   getStringAsync: jest.fn(async () => "  grain_pat_from_clipboard  "),
 }));
@@ -131,7 +125,7 @@ describe("SignIn", () => {
     expect(makeClient).toHaveBeenCalledWith("grain_pat_ok");
     expect(list.mock.invocationCallOrder[0]).toBeLessThan(signIn.mock.invocationCallOrder[0]);
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith("grain_pat", "grain_pat_ok", {
-      keychainAccessible: "after-first-unlock-this-device-only",
+      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
     });
     expect(authStore.getState()).toMatchObject({ status: "signed-in", token: "grain_pat_ok" });
   });

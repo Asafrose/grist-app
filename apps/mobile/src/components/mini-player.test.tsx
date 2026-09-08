@@ -2,21 +2,8 @@ import { fireEvent, render, screen } from "@/test/render";
 import { MiniPlayer } from "@/components/mini-player";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
-jest.mock("expo-video", () => ({
-  createVideoPlayer: jest.fn(() => ({
-    addListener: jest.fn(),
-    replaceAsync: jest.fn(async () => {}),
-    play: jest.fn(),
-    pause: jest.fn(),
-  })),
-}));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
 
 type PanEvent = { translationY: number; velocityY: number };

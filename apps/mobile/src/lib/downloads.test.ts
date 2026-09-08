@@ -11,56 +11,8 @@ import {
 import { makeClient } from "@/lib/grain";
 import { settingsStore } from "@/lib/settings";
 
-jest.mock("expo-secure-store", () => ({
-  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "x",
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => {}),
-  deleteItemAsync: jest.fn(async () => {}),
-}));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
-jest.mock("expo-file-system", () => {
-  const sizes = new Map<string, number>();
-  class Entry {
-    uri: string;
-    constructor(...parts: unknown[]) {
-      this.uri = parts
-        .map((p) => (typeof p === "string" ? p : (p as { uri: string }).uri))
-        .join("/");
-    }
-  }
-  class MockFile extends Entry {
-    static downloadFileAsync = jest.fn();
-    get exists() {
-      return sizes.has(this.uri);
-    }
-    get size() {
-      return sizes.get(this.uri) ?? null;
-    }
-    delete() {
-      sizes.delete(this.uri);
-    }
-  }
-  class MockDirectory extends Entry {
-    get exists() {
-      return [...sizes.keys()].some((k) => k.startsWith(`${this.uri}/`));
-    }
-    create() {}
-    delete() {
-      for (const k of sizes.keys()) if (k.startsWith(`${this.uri}/`)) sizes.delete(k);
-    }
-    list() {
-      return [...sizes.keys()]
-        .filter((k) => k.startsWith(`${this.uri}/`))
-        .map((k) => new MockFile(k));
-    }
-  }
-  return {
-    File: MockFile,
-    Directory: MockDirectory,
-    Paths: { document: "file:///docs" },
-    mockSizes: sizes,
-  };
-});
+jest.mock("expo-file-system", () => require("@/test/mocks/expo-file-system"));
 
 type DownloadOpts = {
   signal: AbortSignal;
