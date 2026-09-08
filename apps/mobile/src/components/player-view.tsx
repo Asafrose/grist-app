@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { VideoView } from "expo-video";
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { View } from "react-native";
 import { Icon } from "@/components/icon";
 import { attachVideoView, player, useNowPlaying } from "@/lib/player";
@@ -14,12 +14,11 @@ export function PlayerView({ className, fill }: { className?: string; fill?: boo
   const current = useNowPlaying();
   const pip = useSetting("pictureInPicture");
   const isVideo = current?.mediaType === "video";
-  const ref = useRef<VideoView>(null);
 
-  useEffect(() => {
-    if (!isVideo || !ref.current) return;
-    return attachVideoView(ref.current);
-  }, [isVideo]);
+  const attach = useCallback(
+    (view: VideoView | null) => (view ? attachVideoView(view) : undefined),
+    [],
+  );
 
   return (
     <View
@@ -28,7 +27,7 @@ export function PlayerView({ className, fill }: { className?: string; fill?: boo
     >
       {isVideo ? (
         <VideoView
-          ref={ref}
+          ref={attach}
           player={player}
           style={{ flex: 1 }}
           contentFit="contain"

@@ -1,3 +1,4 @@
+import { Alert } from "react-native";
 import { act, fireEvent, render, screen } from "@/test/render";
 import { haptics } from "@/lib/haptics";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
@@ -83,13 +84,15 @@ describe("Fullscreen", () => {
     expect(pip).toHaveBeenCalledTimes(1);
   });
 
-  it("swallows a rejected picture in picture start", async () => {
+  it("surfaces a rejected picture in picture start", async () => {
     const pip = jest
       .spyOn(playback, "startPictureInPicture")
       .mockRejectedValue(new Error("not allowed"));
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
     await render(<Fullscreen />);
     await fireEvent.press(screen.getByTestId("fs-pip"));
     expect(pip).toHaveBeenCalledTimes(1);
+    expect(alert).toHaveBeenCalledWith("Picture in picture unavailable", "not allowed");
   });
 
   it("hides the picture in picture button when the setting is off", async () => {

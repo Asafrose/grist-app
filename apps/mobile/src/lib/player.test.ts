@@ -189,7 +189,6 @@ describe("player store", () => {
   it("starts picture in picture on the most recently attached view", async () => {
     const first = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
     const second = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
-    await playback.startPictureInPicture();
     const detachFirst = attachVideoView(first);
     const detachSecond = attachVideoView(second);
     await playback.startPictureInPicture();
@@ -198,6 +197,19 @@ describe("player store", () => {
     await playback.startPictureInPicture();
     expect(first.startPictureInPicture).toHaveBeenCalledTimes(1);
     detachFirst();
+  });
+
+  it("registers a view once however many times it attaches", async () => {
+    const view = { startPictureInPicture: jest.fn(async () => {}) } as unknown as VideoView;
+    attachVideoView(view);
+    const detach = attachVideoView(view);
+    detach();
+    await expect(playback.startPictureInPicture()).rejects.toThrow("not on screen");
+    expect(view.startPictureInPicture).not.toHaveBeenCalled();
+  });
+
+  it("rejects when no video view is on screen", async () => {
+    await expect(playback.startPictureInPicture()).rejects.toThrow("not on screen");
   });
 });
 

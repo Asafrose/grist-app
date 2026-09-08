@@ -8,6 +8,7 @@ import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/play
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
 import { haptics } from "@/lib/haptics";
+import { startPictureInPicture } from "@/lib/pip";
 import {
   PLAYBACK_RATES,
   playback,
@@ -178,7 +179,7 @@ export function Fullscreen() {
                   label="Picture in picture"
                   testID="fs-pip"
                   onPress={act(() => {
-                    void playback.startPictureInPicture().catch(() => {});
+                    void startPictureInPicture();
                   })}
                 />
               ) : null}

@@ -1,3 +1,4 @@
+import { Alert } from "react-native";
 import { fireEvent, render, screen } from "@/test/render";
 import type { RecordingDetail } from "@/lib/data";
 import { playback, playerStore } from "@/lib/player";
@@ -32,13 +33,15 @@ beforeEach(() => {
 });
 
 describe("PlayerCard picture in picture", () => {
-  it("swallows a rejected start", async () => {
+  it("surfaces a rejected start", async () => {
     const pip = jest
       .spyOn(playback, "startPictureInPicture")
       .mockRejectedValue(new Error("not allowed"));
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
     await render(<PlayerCard rec={rec} />);
     await fireEvent.press(screen.getByTestId("pip"));
     expect(pip).toHaveBeenCalledTimes(1);
+    expect(alert).toHaveBeenCalledWith("Picture in picture unavailable", "not allowed");
   });
 
   it("hides the button when the setting is off", async () => {

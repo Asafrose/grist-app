@@ -103,15 +103,17 @@ let loadSeq = 0;
 const videoViews: VideoView[] = [];
 
 export function attachVideoView(view: VideoView): () => void {
-  videoViews.push(view);
+  if (!videoViews.includes(view)) videoViews.push(view);
   return () => {
     const i = videoViews.indexOf(view);
     if (i >= 0) videoViews.splice(i, 1);
   };
 }
 
-function startPictureInPicture() {
-  return videoViews.at(-1)?.startPictureInPicture() ?? Promise.resolve();
+async function startPictureInPicture() {
+  const view = videoViews.at(-1);
+  if (!view) throw new Error("The video is not on screen.");
+  await view.startPictureInPicture();
 }
 
 type LoadOptions = { autoplay?: boolean; at?: number; until?: number };

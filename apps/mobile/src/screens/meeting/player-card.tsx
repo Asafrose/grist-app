@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import type { RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
+import { startPictureInPicture } from "@/lib/pip";
 import {
   type NowPlaying,
   PLAYBACK_RATES,
@@ -228,7 +229,7 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                       accessibilityLabel="Picture in picture"
                       hitSlop={8}
                       onPress={() => {
-                        void playback.startPictureInPicture().catch(() => {});
+                        void startPictureInPicture();
                       }}
                       className="h-9 w-9 items-center justify-center active:opacity-60"
                     >
