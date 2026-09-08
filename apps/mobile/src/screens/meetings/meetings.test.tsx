@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { authStore } from "@/lib/auth";
 import { countRecordings, listRecordings } from "@/lib/db";
 import { formatDayLabel } from "@/lib/format";
-import { DEMO_ME, resolveMe } from "@/lib/me";
+import { DEMO_ME, meStore, resetMe, resolveMe } from "@/lib/me";
 import { defaultFilters, filters, filtersStore } from "@/lib/filters";
 import { library, libraryKey, libraryReady, libraryStore } from "@/lib/library";
 import { queryClient } from "@/lib/query";
@@ -27,8 +27,12 @@ jest.mock("@/lib/db/open", () => ({
   openDb: jest.fn(async () => jest.requireActual("@/test/db").testDb()),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+var mockLive = { pending: false };
 jest.mock("drizzle-orm/expo-sqlite", () => ({
-  useLiveQuery: (query: { all: () => unknown[] }) => ({ data: query.all(), updatedAt: new Date() }),
+  useLiveQuery: (query: { all: () => unknown[] }) =>
+    mockLive.pending
+      ? { data: undefined, updatedAt: undefined }
+      : { data: query.all(), updatedAt: new Date() },
 }));
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -43,6 +47,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  mockLive.pending = false;
   mockPush.mockClear();
   filters.reset();
 });
@@ -50,6 +55,38 @@ beforeEach(() => {
 const db = () => libraryStore.getState().db!;
 
 describe("Meetings", () => {
+  it("lists nothing until the signed-in profile resolves", async () => {
+    resetMe();
+    meStore.setState({ status: "loading" });
+    await render(<Meetings />);
+    const mine = listRecordings(db(), { participantEmail: DEMO_ME.email });
+    const others = listRecordings(db(), {}).filter((r) => !mine.some((m) => m.id === r.id));
+    expect(others.length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("meetings-list")).toBeNull();
+    for (const r of others) expect(screen.queryByTestId(`meeting-${r.id}`)).toBeNull();
+
+    await act(async () => {
+      await resolveMe(db(), "demo");
+    });
+    await waitFor(() => expect(screen.getByTestId(`meeting-${mine[0].id}`)).toBeOnTheScreen());
+    for (const r of others) expect(screen.queryByTestId(`meeting-${r.id}`)).toBeNull();
+  });
+
+  it("keeps the meetings on screen while the query key changes", async () => {
+    await resolveMe(db(), "demo");
+    await render(<Meetings />);
+    const mine = listRecordings(db(), { participantEmail: DEMO_ME.email });
+    expect(screen.getByTestId(`meeting-${mine[0].id}`)).toBeOnTheScreen();
+
+    mockLive.pending = true;
+    await act(async () => filters.setView({ kind: "workspace" }));
+    expect(screen.getByTestId(`meeting-${mine[0].id}`)).toBeOnTheScreen();
+
+    mockLive.pending = false;
+    await act(async () => filters.setTitle("Roadmap"));
+    await waitFor(() => expect(screen.getAllByText(/Roadmap/).length).toBeGreaterThan(0));
+  });
+
   it("groups the signed-in user's meetings by day with row details", async () => {
     await resolveMe(db(), "demo");
     await render(<Meetings />);

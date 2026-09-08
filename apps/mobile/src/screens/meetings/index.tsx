@@ -15,11 +15,16 @@ import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { meetingCompany } from "@/lib/company";
-import { type RecordingListRow, useRecordings, useWorkspace } from "@/lib/data";
+import {
+  type RecordingListRow,
+  type RecordingsFilter,
+  useRecordings,
+  useWorkspace,
+} from "@/lib/data";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { formatDurationCompact, formatTime } from "@/lib/format";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
-import { useMe } from "@/lib/me";
+import { useMe, useMeStatus } from "@/lib/me";
 import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
@@ -139,6 +144,78 @@ function DayHeader({ label }: { label: string }) {
 const sameView = (a: FilterView, b: FilterView) =>
   a.kind === b.kind && (a.kind !== "team" || b.kind !== "team" || a.id === b.id);
 
+function MeetingList({
+  filter,
+  filtered,
+  sync,
+  pulling,
+  onRefresh,
+  bottom,
+}: {
+  filter: RecordingsFilter;
+  filtered: boolean;
+  sync: ReturnType<typeof useSyncStatus>;
+  pulling: boolean;
+  onRefresh: () => void;
+  bottom: number;
+}) {
+  const colors = useColors();
+  const { data, updatedAt } = useRecordings(filter);
+  const items = useMemo(() => groupByDay(data ?? []), [data]);
+  return (
+    <FlashList
+      testID="meetings-list"
+      data={items}
+      keyExtractor={(it: DayItem<RecordingListRow>) => it.key}
+      getItemType={(it: DayItem<RecordingListRow>) => it.kind}
+      maintainVisibleContentPosition={{ disabled: true }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      contentContainerStyle={{ paddingBottom: bottom + 16 }}
+      renderItem={({ item }: { item: DayItem<RecordingListRow> }) =>
+        item.kind === "header" ? (
+          <DayHeader label={item.label} />
+        ) : (
+          <Row item={item.item} last={item.last} />
+        )
+      }
+      refreshControl={
+        <RefreshControl refreshing={pulling} onRefresh={onRefresh} tintColor={colors.accent} />
+      }
+      ListEmptyComponent={
+        !updatedAt ? null : (
+          <View className="items-center gap-2 px-8 py-20">
+            <Text className="font-jakarta-semibold text-base">
+              {sync === "syncing"
+                ? "Syncing your meetings…"
+                : filtered
+                  ? "No meetings match"
+                  : "No meetings in the last 90 days"}
+            </Text>
+            <Text className="text-center text-[13px] text-muted-foreground">
+              {filtered
+                ? "Try a different title or clear some filters."
+                : "Recordings from your Grain workspace appear here as soon as they sync."}
+            </Text>
+            {filtered ? (
+              <Pressable
+                testID="reset-filters"
+                accessibilityRole="button"
+                onPress={filters.reset}
+                className="mt-2 rounded-full border border-border px-3.5 py-1.5 active:opacity-70"
+              >
+                <Text className="font-jakarta-semibold text-[13px] text-accent-foreground">
+                  Reset filters
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )
+      }
+    />
+  );
+}
+
 export function Meetings() {
   const router = useRouter();
   const colors = useColors();
@@ -149,9 +226,9 @@ export function Meetings() {
 
   const workspace = useWorkspace();
   const meEmail = useMe()?.email ?? null;
+  const meStatus = useMeStatus();
+  const meResolved = meStatus === "ready" || meStatus === "error";
   const filter = useMemo(() => toQuery(state, { meEmail }), [state, meEmail]);
-  const { data, updatedAt } = useRecordings(filter);
-  const items = useMemo(() => groupByDay(data ?? []), [data]);
   const [pulling, setPulling] = useState(false);
   const pull = async () => {
     setPulling(true);
@@ -286,56 +363,18 @@ export function Meetings() {
         </ScrollView>
       ) : null}
 
-      <FlashList
-        testID="meetings-list"
-        data={items}
-        keyExtractor={(it: DayItem<RecordingListRow>) => it.key}
-        getItemType={(it: DayItem<RecordingListRow>) => it.kind}
-        maintainVisibleContentPosition={{ disabled: true }}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-        renderItem={({ item }: { item: DayItem<RecordingListRow> }) =>
-          item.kind === "header" ? (
-            <DayHeader label={item.label} />
-          ) : (
-            <Row item={item.item} last={item.last} />
-          )
-        }
-        refreshControl={
-          <RefreshControl refreshing={pulling} onRefresh={pull} tintColor={colors.accent} />
-        }
-        ListEmptyComponent={
-          !updatedAt ? null : (
-            <View className="items-center gap-2 px-8 py-20">
-              <Text className="font-jakarta-semibold text-base">
-                {sync === "syncing"
-                  ? "Syncing your meetings…"
-                  : filtered
-                    ? "No meetings match"
-                    : "No meetings in the last 90 days"}
-              </Text>
-              <Text className="text-center text-[13px] text-muted-foreground">
-                {filtered
-                  ? "Try a different title or clear some filters."
-                  : "Recordings from your Grain workspace appear here as soon as they sync."}
-              </Text>
-              {filtered ? (
-                <Pressable
-                  testID="reset-filters"
-                  accessibilityRole="button"
-                  onPress={filters.reset}
-                  className="mt-2 rounded-full border border-border px-3.5 py-1.5 active:opacity-70"
-                >
-                  <Text className="font-jakarta-semibold text-[13px] text-accent-foreground">
-                    Reset filters
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          )
-        }
-      />
+      {meResolved ? (
+        <MeetingList
+          filter={filter}
+          filtered={filtered}
+          sync={sync}
+          pulling={pulling}
+          onRefresh={pull}
+          bottom={insets.bottom}
+        />
+      ) : (
+        <View testID="meetings-loading" className="flex-1" />
+      )}
     </View>
   );
 }

@@ -19,7 +19,7 @@ import { toggleTag } from "@/lib/timeline";
 import { currentDb, useLive, useSnapshot } from "./live";
 
 export function useRecordings(filter: RecordingsFilter) {
-  return useLive((db) => recordingsQuery(db, filter), [filter]);
+  return useLive((db) => recordingsQuery(db, filter), [filter], { keepPrevious: true });
 }
 
 export function useRecording(id: string): RecordingDetail | null {

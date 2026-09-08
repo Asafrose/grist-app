@@ -1,5 +1,5 @@
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { Db } from "@/lib/db";
 import { libraryStore, useDb, useLibraryVersion } from "@/lib/library";
 
@@ -11,16 +11,24 @@ export function currentDb(): Db {
 
 type Live<T> = { data: T; updatedAt: Date | undefined };
 
+export type LiveOptions = { keepPrevious?: boolean };
+
 const keyOf = (deps: readonly unknown[]) => JSON.stringify(deps);
 
-export function useLive<T>(make: (db: Db) => { all(): T }, deps: readonly unknown[]): Live<T>;
+export function useLive<T>(
+  make: (db: Db) => { all(): T },
+  deps: readonly unknown[],
+  options?: LiveOptions,
+): Live<T>;
 export function useLive<T>(
   make: (db: Db) => { sync(): T },
   deps: readonly unknown[],
+  options?: LiveOptions,
 ): Live<T | undefined>;
 export function useLive<T>(
   make: (db: Db) => { all(): T } | { sync(): T },
   deps: readonly unknown[],
+  options: LiveOptions = {},
 ): Live<T | undefined> {
   const db = useDb();
   const version = useLibraryVersion();
@@ -28,6 +36,9 @@ export function useLive<T>(
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands in for `deps`
   const query = useMemo(() => make(db), [db, key]);
   const { data, updatedAt } = useLiveQuery(query as never, [db, version, key]);
+  const previous = useRef<Live<T | undefined>>({ data: undefined, updatedAt: undefined });
+  if (data !== undefined) previous.current = { data: data as T, updatedAt };
+  if (options.keepPrevious && data === undefined) return previous.current;
   return { data: data as T | undefined, updatedAt };
 }
 
