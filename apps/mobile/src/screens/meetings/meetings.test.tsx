@@ -141,6 +141,15 @@ describe("Meetings", () => {
     expect(filtersStore.getState()).toEqual(defaultFilters);
   });
 
+  it("keeps the list untouched until the title debounce window elapses", async () => {
+    await render(<Meetings />);
+    expect(screen.queryAllByText(/Relecloud/).length).toBeGreaterThan(0);
+    await fireEvent.changeText(screen.getByTestId("title-filter"), "Fabrikam");
+    expect(screen.getByTestId("title-filter").props.value).toBe("Fabrikam");
+    expect(screen.queryAllByText(/Relecloud/).length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.queryAllByText(/Relecloud/).length).toBe(0));
+  });
+
   it("switches between Mine, Workspace and team views", async () => {
     await render(<Meetings />);
     await fireEvent.press(screen.getByTestId("view-workspace"));

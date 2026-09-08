@@ -22,6 +22,7 @@ import {
   useWorkspace,
 } from "@/lib/data";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatDurationCompact, formatTime } from "@/lib/format";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
 import { useMe } from "@/lib/me";
@@ -227,7 +228,14 @@ export function Meetings() {
 
   const workspace = useWorkspace();
   const meEmail = useMe()?.email ?? null;
-  const filter = useMemo(() => toQuery(state, { meEmail }), [state, meEmail]);
+  const [typed, setTyped] = useState(state.title);
+  const [storeTitle, setStoreTitle] = useState(state.title);
+  if (state.title !== storeTitle) {
+    setStoreTitle(state.title);
+    if (state.title !== typed) setTyped(state.title);
+  }
+  const title = useDebouncedValue(typed);
+  const filter = useMemo(() => toQuery({ ...state, title }, { meEmail }), [state, title, meEmail]);
   const [pulling, setPulling] = useState(false);
   const pull = async () => {
     setPulling(true);
@@ -297,8 +305,11 @@ export function Meetings() {
           <TextInput
             testID="title-filter"
             accessibilityLabel="Filter by title"
-            value={state.title}
-            onChangeText={filters.setTitle}
+            value={typed}
+            onChangeText={(text) => {
+              setTyped(text);
+              filters.setTitle(text);
+            }}
             placeholder="Filter by title"
             placeholderTextColor={colors.ink3}
             autoCapitalize="none"
@@ -307,12 +318,15 @@ export function Meetings() {
             clearButtonMode="never"
             className="flex-1 py-0 font-jakarta text-[15px] text-foreground"
           />
-          {state.title ? (
+          {typed ? (
             <Pressable
               testID="title-filter-clear"
               accessibilityRole="button"
               accessibilityLabel="Clear title filter"
-              onPress={() => filters.setTitle("")}
+              onPress={() => {
+                setTyped("");
+                filters.setTitle("");
+              }}
               hitSlop={8}
             >
               <Icon name="close" size={16} color={colors.ink3} />
