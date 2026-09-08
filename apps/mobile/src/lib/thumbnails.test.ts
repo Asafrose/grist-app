@@ -92,6 +92,23 @@ describe("thumbnails", () => {
     expect(resolveMediaUrl).not.toHaveBeenCalled();
   });
 
+  it("skips generation when the server already supplied a thumbnail", async () => {
+    thumbnails.request({ ...video("s1"), thumbnailUrl: "https://grain/s1.jpg" });
+    expect(thumbnailsStore.getState().byId.s1).toBeNull();
+    await flush();
+    expect(resolveMediaUrl).not.toHaveBeenCalled();
+    expect(getThumbnailAsync).not.toHaveBeenCalled();
+  });
+
+  it("generates when the server thumbnail is missing", async () => {
+    thumbnails.request({ ...video("s2"), thumbnailUrl: null });
+    await flush();
+    await flush();
+    expect(resolveMediaUrl).toHaveBeenCalledWith("s2");
+    expect(getThumbnailAsync).toHaveBeenCalledTimes(1);
+    expect(thumbnailsStore.getState().byId.s2).toBe("cache/thumbnails/s2.jpg");
+  });
+
   it("skips audio and transcript recordings", () => {
     thumbnails.request({ id: "a1", mediaType: "audio", durationMs: 1000 });
     expect(thumbnailsStore.getState().byId.a1).toBeNull();

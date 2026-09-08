@@ -5,7 +5,12 @@ import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
 import { mediaUrl } from "@/lib/media-url";
 
-export type ThumbnailSubject = { id: string; mediaType: string; durationMs: number };
+export type ThumbnailSubject = {
+  id: string;
+  mediaType: string;
+  durationMs: number;
+  thumbnailUrl?: string | null;
+};
 
 type ThumbnailsState = { byId: Record<string, string | null> };
 
@@ -85,7 +90,7 @@ async function drain(): Promise<void> {
 function request(subject: ThumbnailSubject): void {
   const { byId } = thumbnailsStore.getState();
   if (subject.id in byId || queued.has(subject.id)) return;
-  if (subject.mediaType !== "video") {
+  if (subject.mediaType !== "video" || subject.thumbnailUrl) {
     set(subject.id, null);
     return;
   }
@@ -120,10 +125,10 @@ function whenIdle(): Promise<void> {
 
 export const thumbnails = { request, clear, whenIdle, pending: () => queue.length + active };
 
-export function useThumbnail({ id, mediaType, durationMs }: ThumbnailSubject) {
+export function useThumbnail({ id, mediaType, durationMs, thumbnailUrl }: ThumbnailSubject) {
   const uri = useStore(thumbnailsStore, (s) => s.byId[id]);
   useEffect(() => {
-    request({ id, mediaType, durationMs });
-  }, [id, mediaType, durationMs]);
+    request({ id, mediaType, durationMs, thumbnailUrl });
+  }, [id, mediaType, durationMs, thumbnailUrl]);
   return uri;
 }

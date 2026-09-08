@@ -32,8 +32,9 @@ import { useColors } from "@/theme";
 
 function Thumbnail({ item }: { item: RecordingListRow }) {
   const colors = useColors();
-  const generated = useThumbnail(item);
-  const uri = generated ?? item.thumbnailUrl ?? item.highlightThumbnailUrl;
+  const server = item.thumbnailUrl ?? item.highlightThumbnailUrl;
+  const generated = useThumbnail({ ...item, thumbnailUrl: server });
+  const uri = generated ?? server;
   return (
     <View className="h-12 w-[72px] overflow-hidden rounded-[8px] bg-foreground">
       {uri ? (
