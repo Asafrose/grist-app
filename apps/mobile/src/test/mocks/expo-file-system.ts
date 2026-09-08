@@ -1,4 +1,5 @@
 export const mockSizes = new Map<string, number>();
+export const mockTimes = new Map<string, number>();
 
 class Entry {
   uri: string;
@@ -15,9 +16,13 @@ export class File extends Entry {
   get size() {
     return mockSizes.get(this.uri) ?? null;
   }
+  get lastModified() {
+    return mockTimes.get(this.uri) ?? Date.now();
+  }
   create() {}
   delete() {
     mockSizes.delete(this.uri);
+    mockTimes.delete(this.uri);
   }
 }
 
@@ -27,7 +32,11 @@ export class Directory extends Entry {
   }
   create() {}
   delete() {
-    for (const k of mockSizes.keys()) if (k.startsWith(`${this.uri}/`)) mockSizes.delete(k);
+    for (const k of mockSizes.keys())
+      if (k.startsWith(`${this.uri}/`)) {
+        mockSizes.delete(k);
+        mockTimes.delete(k);
+      }
   }
   list() {
     return [...mockSizes.keys()]

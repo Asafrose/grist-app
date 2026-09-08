@@ -70,6 +70,7 @@ async function refresh(force = false): Promise<void> {
   } catch {
     // the failure lives in the query state; useSyncError surfaces it
   }
+  downloads.prune();
 }
 
 let prefetching: Promise<void> | null = null;
@@ -124,6 +125,7 @@ async function hydrate(): Promise<void> {
   const db = await openDb();
   me.hydrate(db);
   hydrateSettings(db);
+  downloads.prune();
   libraryStore.setState({ db });
 }
 

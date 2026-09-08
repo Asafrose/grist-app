@@ -20,6 +20,7 @@ type DownloadOpts = {
 };
 
 const sizes = jest.requireMock("expo-file-system").mockSizes as Map<string, number>;
+const times = jest.requireMock("expo-file-system").mockTimes as Map<string, number>;
 const downloadFileAsync = File.downloadFileAsync as jest.Mock;
 const resolveMediaUrl = jest.fn(async (id: string) => `https://cdn/${id}.mp4`);
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -42,8 +43,9 @@ function scriptedDownload(steps: { bytesWritten: number; totalBytes: number }[])
 beforeEach(() => {
   jest.clearAllMocks();
   sizes.clear();
+  times.clear();
   downloads.clear();
-  settingsStore.setState({ downloadCapBytes: 2 * 1024 ** 3 });
+  settingsStore.setState({ downloadCapBytes: 2 * 1024 ** 3, keepDownloadsDays: 30 });
   authStore.setState({ status: "signed-in", token: "pat" });
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
 });
@@ -171,6 +173,39 @@ describe("downloads", () => {
     downloads.clear();
     expect(sizes.size).toBe(0);
     expect(downloadsStore.getState().byId).toEqual({});
+  });
+
+  it("prunes downloads older than the retention window", () => {
+    const day = 24 * 60 * 60 * 1000;
+    sizes.set("file:///docs/downloads/fresh.mp4", 100);
+    times.set("file:///docs/downloads/fresh.mp4", Date.now() - 29 * day);
+    sizes.set("file:///docs/downloads/stale.mp4", 200);
+    times.set("file:///docs/downloads/stale.mp4", Date.now() - 31 * day);
+    hydrateDownloads();
+    const before = downloadsStore.getState().version;
+    downloads.prune();
+    expect(sizes.has("file:///docs/downloads/stale.mp4")).toBe(false);
+    expect(sizes.has("file:///docs/downloads/fresh.mp4")).toBe(true);
+    expect(Object.keys(downloadsStore.getState().byId)).toEqual(["fresh"]);
+    expect(downloadsStore.getState().version).toBeGreaterThan(before);
+  });
+
+  it("keeps everything and leaves the version alone when nothing has expired", () => {
+    sizes.set("file:///docs/downloads/fresh.mp4", 100);
+    hydrateDownloads();
+    const before = downloadsStore.getState().version;
+    downloads.prune();
+    expect(sizes.has("file:///docs/downloads/fresh.mp4")).toBe(true);
+    expect(downloadsStore.getState().version).toBe(before);
+  });
+
+  it("prunes against the current keepDownloadsDays setting", () => {
+    settingsStore.setState({ keepDownloadsDays: 90 });
+    sizes.set("file:///docs/downloads/old.mp4", 100);
+    times.set("file:///docs/downloads/old.mp4", Date.now() - 60 * 24 * 60 * 60 * 1000);
+    hydrateDownloads();
+    downloads.prune();
+    expect(sizes.has("file:///docs/downloads/old.mp4")).toBe(true);
   });
 
   it("marks demo recordings as available without touching the network", async () => {

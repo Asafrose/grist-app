@@ -1,6 +1,7 @@
 import { GrainApiError } from "@grist/grain-api";
 import * as WebBrowser from "expo-web-browser";
 import { auth, authStore } from "@/lib/auth";
+import { downloads } from "@/lib/data";
 import { indexSize } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
@@ -23,6 +24,8 @@ jest.mock("@/lib/grain", () => ({
   makeClient: jest.fn(),
 }));
 
+const mockSizes = jest.requireMock("expo-file-system").mockSizes as Map<string, number>;
+
 const list = jest.fn();
 const iterate = jest.fn(async function* () {
   yield { cursor: null, recordings: [] };
@@ -41,6 +44,8 @@ beforeEach(async () => {
   jest.clearAllMocks();
   (makeClient as jest.Mock).mockImplementation(api);
   settingsStore.setState(DEFAULT_SETTINGS);
+  mockSizes.clear();
+  downloads.clear();
   await signInDemo();
 });
 
@@ -61,11 +66,6 @@ describe("Settings", () => {
 
   it("writes playback preferences to the settings store and the player", async () => {
     await render(<Settings />);
-    expect(screen.getByTestId("setting-audio-only-value")).toHaveTextContent("Off");
-    await fireEvent.press(screen.getByTestId("setting-audio-only"));
-    expect(screen.getByTestId("setting-audio-only-value")).toHaveTextContent("On");
-    expect(settingsStore.getState().audioOnlyOnCellular).toBe(true);
-
     await fireEvent(screen.getByTestId("setting-pip-switch"), "checkedChange", false);
     expect(settingsStore.getState().pictureInPicture).toBe(false);
 
@@ -101,6 +101,19 @@ describe("Settings", () => {
       expect(screen.getByTestId("index-size")).toHaveTextContent("0 meetings · 0 B"),
     );
     expect(screen.getByTestId("clear-index")).toBeDisabled();
+  });
+
+  it("clears downloads and shows the size drop to zero", async () => {
+    mockSizes.set("file:///docs/downloads/r1.mp4", 2048);
+    downloads.hydrate();
+    await render(<Settings />);
+    expect(screen.getByTestId("downloads-size")).toHaveTextContent("1 meetings · 2.0 KB");
+    expect(screen.getByTestId("clear-downloads")).not.toBeDisabled();
+    await fireEvent.press(screen.getByTestId("clear-downloads"));
+    await waitFor(() =>
+      expect(screen.getByTestId("downloads-size")).toHaveTextContent("0 meetings · 0 B"),
+    );
+    expect(screen.getByTestId("clear-downloads")).toBeDisabled();
   });
 
   it("rejects a bad replacement token with the sign-in copy and keeps the session", async () => {

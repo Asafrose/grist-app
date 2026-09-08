@@ -24,15 +24,18 @@ describe("settings store", () => {
   it("hydrates persisted values and ignores invalid or corrupt ones", () => {
     const db = testDb();
     setMeta(db, SETTINGS_META_KEYS.playbackRate, "1.5");
-    setMeta(db, SETTINGS_META_KEYS.audioOnlyOnCellular, "true");
     setMeta(db, SETTINGS_META_KEYS.keepDownloadsDays, "45");
     setMeta(db, SETTINGS_META_KEYS.downloadCapBytes, "not json");
     hydrateSettings(db);
-    expect(settingsStore.getState()).toEqual({
-      ...DEFAULT_SETTINGS,
-      playbackRate: 1.5,
-      audioOnlyOnCellular: true,
-    });
+    expect(settingsStore.getState()).toEqual({ ...DEFAULT_SETTINGS, playbackRate: 1.5 });
+  });
+
+  it("ignores a setting key that is no longer supported", () => {
+    const db = testDb();
+    setMeta(db, "audio_only_on_cellular", "true");
+    hydrateSettings(db);
+    expect(settingsStore.getState()).toEqual(DEFAULT_SETTINGS);
+    expect(readSettings(db)).toEqual(DEFAULT_SETTINGS);
   });
 
   it("writes through to meta on set and exposes the current value", () => {
@@ -66,7 +69,6 @@ describe("settings store", () => {
     const custom = {
       ...DEFAULT_SETTINGS,
       playbackRate: 1.2 as const,
-      audioOnlyOnCellular: true,
       keepDownloadsDays: 7 as const,
     };
     writeSettings(db, custom);
@@ -80,7 +82,7 @@ describe("settings store", () => {
     });
     settings.set("playbackRate", 1.7);
     settings.set("playbackRate", 1.7);
-    settings.set("audioOnlyOnCellular", true);
+    settings.set("pictureInPicture", false);
     unsub();
     expect(seen).toEqual([1.7]);
   });

@@ -34,12 +34,6 @@ appId: com.asafrose.grist
     text: ".*24 meetings.*"
 - takeScreenshot: settings
 - assertVisible:
-    text: ".*Off.*"
-- tapOn:
-    id: "setting-audio-only"
-- assertVisible:
-    text: ".*On.*"
-- assertVisible:
     text: ".*1×.*"
 - tapOn:
     id: "setting-rate"

@@ -17,7 +17,6 @@ export type DownloadCapBytes = (typeof DOWNLOAD_CAPS_BYTES)[number];
 
 export type Settings = {
   playbackRate: PlaybackRate;
-  audioOnlyOnCellular: boolean;
   pictureInPicture: boolean;
   keepDownloadsDays: KeepDownloadsDays;
   downloadCapBytes: DownloadCapBytes;
@@ -25,7 +24,6 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   playbackRate: 1,
-  audioOnlyOnCellular: false,
   pictureInPicture: true,
   keepDownloadsDays: 30,
   downloadCapBytes: 2 * GB,
@@ -33,7 +31,6 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const SETTINGS_META_KEYS: Record<keyof Settings, string> = {
   playbackRate: "playback_rate",
-  audioOnlyOnCellular: "audio_only_on_cellular",
   pictureInPicture: "picture_in_picture",
   keepDownloadsDays: "keep_downloads_days",
   downloadCapBytes: "download_cap_bytes",
@@ -46,7 +43,6 @@ const oneOf =
 
 const validators: { [K in keyof Settings]: (v: unknown) => v is Settings[K] } = {
   playbackRate: oneOf(PLAYBACK_RATES),
-  audioOnlyOnCellular: (v): v is boolean => typeof v === "boolean",
   pictureInPicture: (v): v is boolean => typeof v === "boolean",
   keepDownloadsDays: oneOf(KEEP_DOWNLOADS_DAYS),
   downloadCapBytes: oneOf(DOWNLOAD_CAPS_BYTES),

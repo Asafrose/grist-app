@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { auth, useAuthToken } from "@/lib/auth";
 import { formatBytes } from "@/lib/format";
-import { transcriptIndex, useStorageStats } from "@/lib/data";
+import { downloads, transcriptIndex, useStorageStats } from "@/lib/data";
 import {
   DOWNLOAD_CAPS_BYTES,
   KEEP_DOWNLOADS_DAYS,
@@ -64,13 +64,6 @@ export function Settings() {
           testID="setting-rate"
         />
         <ToggleRow
-          icon="wifi"
-          label="Audio only on cellular"
-          checked={useSetting("audioOnlyOnCellular")}
-          onChange={(v) => settings.set("audioOnlyOnCellular", v)}
-          testID="setting-audio-only"
-        />
-        <ToggleRow
           icon="pip"
           label="Picture in picture"
           checked={useSetting("pictureInPicture")}
@@ -122,7 +115,7 @@ export function Settings() {
         <Row
           icon="trash"
           label="Clear downloads"
-          onPress={() => {}}
+          onPress={downloads.clear}
           testID="clear-downloads"
           chevron={null}
           destructive

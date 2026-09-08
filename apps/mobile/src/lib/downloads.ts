@@ -170,6 +170,29 @@ function clear(): void {
   downloadsStore.setState((s) => ({ byId: {}, version: s.version + 1 }));
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function prune(): void {
+  const cutoff = Date.now() - settings.get().keepDownloadsDays * DAY_MS;
+  const expired: string[] = [];
+  try {
+    for (const f of listFiles()) {
+      const modified = f.lastModified;
+      if (modified === null || modified >= cutoff) continue;
+      expired.push(idOf(f));
+      safeDelete(f);
+    }
+  } catch {
+    // no downloads directory yet
+  }
+  if (expired.length === 0) return;
+  downloadsStore.setState((s) => {
+    const byId = { ...s.byId };
+    for (const id of expired) delete byId[id];
+    return { byId, version: s.version + 1 };
+  });
+}
+
 export function hydrateDownloads(): void {
   const byId: Record<string, DownloadEntry> = {};
   try {
@@ -184,4 +207,12 @@ export function hydrateDownloads(): void {
 
 hydrateDownloads();
 
-export const downloads = { start, cancel, remove, localUri, clear, hydrate: hydrateDownloads };
+export const downloads = {
+  start,
+  cancel,
+  remove,
+  localUri,
+  clear,
+  prune,
+  hydrate: hydrateDownloads,
+};
