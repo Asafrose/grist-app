@@ -1,6 +1,5 @@
 import type { ActionItemRow, ParticipantRow } from "@/lib/db";
 import {
-  companyFromEmail,
   groupActionItems,
   initials,
   isRecordingStale,
@@ -47,15 +46,6 @@ describe("people helpers", () => {
     expect(initials("Priya")).toBe("P");
     expect(initials("  Ana  Maria  de Souza ")).toBe("AS");
     expect(initials("")).toBe("?");
-  });
-
-  it("derives a company label from a work email and ignores consumer domains", () => {
-    expect(companyFromEmail("zara.lind@acme.example")).toBe("Acme");
-    expect(companyFromEmail("m@northwind.co.uk")).toBe("Northwind");
-    expect(companyFromEmail("someone@gmail.com")).toBeNull();
-    expect(companyFromEmail("broken")).toBeNull();
-    expect(companyFromEmail(null)).toBeNull();
-    expect(companyFromEmail(undefined)).toBeNull();
   });
 });
 

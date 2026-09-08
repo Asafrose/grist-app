@@ -1,6 +1,6 @@
 import type { Recording } from "@grist/grain-api";
+import { companyFromEmail } from "@/lib/company";
 import type { ParticipantRow, TranscriptSegmentRow } from "@/lib/db";
-import { companyFromEmail } from "@/lib/meeting";
 
 export type Range = { start: number; end: number };
 

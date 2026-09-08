@@ -1,5 +1,6 @@
 import {
   companyFromDomain,
+  companyFromEmail,
   dominantCompany,
   emailDomain,
   meetingCompany,
@@ -30,6 +31,24 @@ describe("companyFromDomain", () => {
     ["localhost", null],
   ])("%s -> %s", (domain, expected) => {
     expect(companyFromDomain(domain)).toBe(expected);
+  });
+});
+
+describe("companyFromEmail", () => {
+  it.each([
+    ["zara.lind@acme.example", "Acme"],
+    ["m@northwind.co.uk", "Northwind"],
+    ["p@mail.acme.com", "Acme"],
+    ["Zara.Lind@ACME.Example", "Acme"],
+    ["someone@gmail.com", null],
+    ["someone@aol.com", null],
+    ["broken", null],
+    ["@nolocal.com", null],
+    ["trailing@", null],
+    [null, null],
+    [undefined, null],
+  ])("%s -> %s", (email, expected) => {
+    expect(companyFromEmail(email)).toBe(expected);
   });
 });
 

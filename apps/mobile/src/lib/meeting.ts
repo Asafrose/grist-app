@@ -1,3 +1,4 @@
+import { companyFromEmail } from "@/lib/company";
 import type { ActionItemRow, ParticipantRow } from "@/lib/db";
 
 export const MEETING_TABS = ["summary", "transcript", "timeline", "clips"] as const;
@@ -26,26 +27,6 @@ export function initials(name: string): string {
   const first = parts[0][0] ?? "";
   const last = parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : "";
   return (first + last).toUpperCase();
-}
-
-const GENERIC_DOMAINS = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "hotmail.com",
-  "outlook.com",
-  "live.com",
-  "icloud.com",
-  "me.com",
-  "proton.me",
-  "protonmail.com",
-]);
-
-export function companyFromEmail(email: string | null | undefined): string | null {
-  const domain = email?.split("@")[1]?.toLowerCase();
-  if (!domain || GENERIC_DOMAINS.has(domain)) return null;
-  const label = domain.split(".")[0];
-  return label ? label[0].toUpperCase() + label.slice(1) : null;
 }
 
 export type AssigneeGroup = {

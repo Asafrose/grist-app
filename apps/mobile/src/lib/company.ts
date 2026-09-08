@@ -28,11 +28,15 @@ export function companyFromDomain(domain: string): string | null {
   return name ? name[0].toUpperCase() + name.slice(1) : null;
 }
 
+export function companyFromEmail(email: string | null | undefined): string | null {
+  const domain = emailDomain(email);
+  return domain ? companyFromDomain(domain) : null;
+}
+
 export function dominantCompany(emails: (string | null | undefined)[]): string | null {
   const counts = new Map<string, number>();
   for (const email of emails) {
-    const domain = emailDomain(email);
-    const company = domain ? companyFromDomain(domain) : null;
+    const company = companyFromEmail(email);
     if (company) counts.set(company, (counts.get(company) ?? 0) + 1);
   }
   let best: string | null = null;
