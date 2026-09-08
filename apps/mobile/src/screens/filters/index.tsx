@@ -164,6 +164,7 @@ export function Filters() {
   const title = useFilterTitle();
   const [draft, setDraft] = useState<SheetFilters>(() => sheetFilters(filters.current()));
   const [more, setMore] = useState<More>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
   const [baseView] = useState<FilterView>(() => {
     const view = filters.current().view;
     return view.kind === "team" ? defaultFilters.view : view;
@@ -198,9 +199,11 @@ export function Filters() {
   return (
     <View className="flex-1 bg-card" collapsable={false}>
       <ScrollView
+        testID="filters-scroll"
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
-        contentContainerClassName="gap-[22px] px-5 pt-3 pb-6"
+        contentContainerClassName="gap-[22px] px-5 pt-3"
+        contentContainerStyle={{ paddingBottom: footerHeight + 24 }}
       >
         <View className="flex-row items-center">
           <Text role="heading" className="flex-1 font-jakarta-bold text-[20px] tracking-tight">
@@ -374,7 +377,12 @@ export function Filters() {
         </Section>
       </ScrollView>
 
-      <View className="px-5 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+      <View
+        testID="filters-footer"
+        className="px-5 pt-2"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+      >
         <Button
           testID="filters-apply"
           size="lg"

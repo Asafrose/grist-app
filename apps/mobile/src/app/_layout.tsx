@@ -65,7 +65,7 @@ function Root() {
             name="filters"
             options={{
               presentation: "formSheet",
-              sheetAllowedDetents: [0.82, 1],
+              sheetAllowedDetents: [1],
               sheetGrabberVisible: true,
               sheetCornerRadius: 20,
               contentStyle: { backgroundColor: palette[scheme].surface },

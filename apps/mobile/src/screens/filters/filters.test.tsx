@@ -1,3 +1,4 @@
+import { StyleSheet } from "react-native";
 import { fireEvent, render, screen, within } from "@/test/render";
 import { authStore } from "@/lib/auth";
 import { countRecordings, participantOptions, recorderOptions } from "@/lib/db";
@@ -168,6 +169,20 @@ describe("Filters sheet", () => {
       from: new Date(2026, 8, 20).toISOString(),
       to: null,
     });
+  });
+
+  it("pads the scroll content past the measured footer", async () => {
+    await render(<Filters />);
+    const scroll = screen.getByTestId("filters-scroll");
+    const padding = () =>
+      StyleSheet.flatten(scroll.props.contentContainerStyle).paddingBottom as number;
+    const before = padding();
+
+    await fireEvent(screen.getByTestId("filters-footer"), "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 380, height: 96 } },
+    });
+    expect(padding()).toBeGreaterThan(96);
+    expect(padding()).toBeGreaterThan(before);
   });
 
   it("reset returns the draft to defaults without touching the store until applied", async () => {
