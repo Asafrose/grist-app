@@ -22,8 +22,7 @@ appId: com.asafrose.grist
     visible: ".*Northwind.*"
     timeout: 20000
 - tapOn:
-    id: "meeting-.*"
-    index: 0
+    id: "meeting-demo-0"
 - assertVisible:
     id: "player-start"
 - tapOn:
@@ -80,3 +79,32 @@ appId: com.asafrose.grist
 - assertVisible: "Renamed from the sheet"
 - assertVisible:
     id: "meeting-tabs"
+# The downloaded meeting carries the list glyph and is reachable from Settings
+# Back to the list from the meeting screen (the header back button, not the tab bar)
+- tapOn: "Meetings"
+- assertVisible:
+    id: "meetings-list"
+- assertVisible:
+    id: "downloaded-.*"
+- takeScreenshot: meetings-downloaded
+- tapOn:
+    id: "tab-settings"
+- assertVisible: "Storage"
+- runFlow:
+    when:
+      notVisible:
+        id: "open-downloads"
+    commands:
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 40%
+          duration: 400
+- tapOn:
+    id: "open-downloads"
+- assertVisible:
+    id: "downloads-screen"
+# The row exposes one composite accessibility label, so match the title inside it
+- assertVisible: ".*Renamed from the sheet.*"
+- takeScreenshot: downloads
+- tapOn: "Settings"
+- assertVisible: "Storage"

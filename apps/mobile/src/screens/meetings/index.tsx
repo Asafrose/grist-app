@@ -1,6 +1,5 @@
 import { FlashList } from "@shopify/flash-list";
-import { Image } from "expo-image";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,9 +11,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chip } from "@/components/chip";
+import { DayHeader } from "@/components/day-header";
 import { Icon } from "@/components/icon";
+import { MeetingRow } from "@/components/meeting-row";
 import { Text } from "@/components/ui/text";
-import { meetingCompany } from "@/lib/company";
 import {
   type RecordingListRow,
   type RecordingsFilter,
@@ -23,127 +23,12 @@ import {
 } from "@/lib/data";
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { formatDurationCompact, formatTime } from "@/lib/format";
 import { useTokenRejected } from "@/lib/auth";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
 import { useMe } from "@/lib/me";
-import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
-import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 import { TokenBanner } from "./token-banner";
-
-function Thumbnail({ item }: { item: RecordingListRow }) {
-  const colors = useColors();
-  const server = item.thumbnailUrl ?? item.highlightThumbnailUrl;
-  const generated = useThumbnail({ ...item, thumbnailUrl: server });
-  const uri = generated ?? server;
-  return (
-    <View className="h-12 w-[72px] overflow-hidden rounded-[8px] bg-foreground">
-      {uri ? (
-        <Image
-          source={{ uri }}
-          style={{ width: 72, height: 48 }}
-          contentFit="cover"
-          transition={150}
-        />
-      ) : generated === undefined && item.mediaType === "video" ? (
-        <View testID={`thumb-loading-${item.id}`} className="flex-1 items-center justify-center">
-          <ActivityIndicator size="small" color={colors.ink3} />
-        </View>
-      ) : (
-        <View className="flex-1 items-center justify-center">
-          <Icon name={item.mediaType === "video" ? "video" : "mic"} size={20} color={colors.bg} />
-        </View>
-      )}
-      <View
-        className="absolute bottom-1 left-1 rounded px-[4px] py-px"
-        style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
-      >
-        <Text className="font-mono text-[10px] leading-[14px] text-white">
-          {formatDurationCompact(item.durationMs)}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function Row({ item, last }: { item: RecordingListRow; last: boolean }) {
-  const colors = useColors();
-  const external = item.externalCount > 0;
-  const company = meetingCompany(item);
-  const recorder = item.recorders[0]?.name;
-  return (
-    <View className="bg-background">
-      <Link href={{ pathname: "/meeting/[id]", params: { id: item.id } }} asChild>
-        <Pressable
-          testID={`meeting-${item.id}`}
-          accessibilityRole="button"
-          className="flex-row items-center gap-3.5 px-5 py-3 active:bg-card"
-        >
-          <Thumbnail item={item} />
-          <View className="flex-1 gap-1">
-            <Text numberOfLines={1} className="font-jakarta-bold text-[15px] leading-5">
-              {item.title}
-            </Text>
-            <View className="flex-row items-center gap-2">
-              <Text className="font-mono text-[12px] text-muted-foreground">
-                {formatTime(item.startDatetime)}
-              </Text>
-              <View
-                className={cn(
-                  "h-[22px] justify-center rounded-[6px] px-2",
-                  external ? "bg-external-soft" : "bg-accent",
-                )}
-              >
-                <Text
-                  className={cn(
-                    "font-jakarta-semibold text-[12px]",
-                    external ? "text-external" : "text-accent-foreground",
-                  )}
-                >
-                  {external ? "External" : "Internal"}
-                </Text>
-              </View>
-            </View>
-            {recorder ? (
-              <Text numberOfLines={1} className="text-[12px] text-subtle-foreground">
-                {recorder}
-              </Text>
-            ) : null}
-          </View>
-          <View className="items-end gap-1.5">
-            {company ? (
-              <View className="h-[22px] justify-center rounded-[6px] bg-secondary px-2">
-                <Text
-                  numberOfLines={1}
-                  className="font-jakarta-semibold text-[12px] text-muted-foreground"
-                >
-                  {company}
-                </Text>
-              </View>
-            ) : null}
-            <View className="flex-row items-center gap-1">
-              <Icon name="people" size={16} color={colors.ink2} />
-              <Text className="text-[12px] text-muted-foreground">{item.participantCount}</Text>
-            </View>
-          </View>
-        </Pressable>
-      </Link>
-      {last ? null : <View className="ml-[106px] h-px bg-border" />}
-    </View>
-  );
-}
-
-function DayHeader({ label }: { label: string }) {
-  return (
-    <View className="bg-background px-5 pt-[18px] pb-1">
-      <Text className="font-jakarta-semibold text-[12px] tracking-[0.5px] text-subtle-foreground">
-        {label.toUpperCase()}
-      </Text>
-    </View>
-  );
-}
 
 const sameView = (a: FilterView, b: FilterView) =>
   a.kind === b.kind && (a.kind !== "team" || b.kind !== "team" || a.id === b.id);
@@ -180,7 +65,7 @@ function MeetingList({
         item.kind === "header" ? (
           <DayHeader label={item.label} />
         ) : (
-          <Row item={item.item} last={item.last} />
+          <MeetingRow item={item.item} last={item.last} />
         )
       }
       refreshControl={

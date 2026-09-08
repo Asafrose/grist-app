@@ -1,5 +1,6 @@
 import { GRAIN_TOKEN_SETTINGS_URL } from "@grist/grain-api";
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -27,6 +28,7 @@ export function maskToken(token: string): string {
 
 export function Settings() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const token = useAuthToken() ?? "";
   const rejected = useTokenRejected();
   const [override, setOverride] = useState<boolean | null>(null);
@@ -80,6 +82,8 @@ export function Settings() {
           label="Downloads"
           value={`${stats.downloads.count} meetings · ${formatBytes(stats.downloads.bytes)}`}
           valueTestID="downloads-size"
+          onPress={() => router.push("/downloads")}
+          testID="open-downloads"
         />
         <Row
           icon="text"

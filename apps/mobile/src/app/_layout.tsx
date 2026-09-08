@@ -70,6 +70,10 @@ function Root() {
             }}
           />
           <Stack.Screen
+            name="downloads"
+            options={{ headerShown: true, title: "Downloads", headerBackTitle: "Settings" }}
+          />
+          <Stack.Screen
             name="filters"
             options={{
               presentation: "formSheet",

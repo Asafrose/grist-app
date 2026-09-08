@@ -22,8 +22,7 @@ appId: com.asafrose.grist
     visible: ".*Northwind.*"
     timeout: 20000
 - tapOn:
-    id: "meeting-.*"
-    index: 0
+    id: "meeting-demo-0"
 # Shell: pinned player, tab strip, actions button
 - assertVisible:
     id: "player-start"

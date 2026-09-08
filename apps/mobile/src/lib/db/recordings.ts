@@ -35,6 +35,7 @@ export type RecordingsFilter = {
   participantEmail?: string;
   tag?: string;
   recorderId?: string;
+  ids?: readonly string[];
   workspace?: boolean;
   limit?: number;
 };
@@ -245,6 +246,7 @@ function filterClauses(f: RecordingsFilter): (SQL | undefined)[] {
       ? sql`EXISTS (SELECT 1 FROM json_each(${recordings.recorders}) WHERE json_extract(value, '$.id') = ${f.recorderId})`
       : undefined,
     f.participantEmail ? attendedBy(f.participantEmail) : undefined,
+    f.ids ? (f.ids.length ? inArray(recordings.id, [...f.ids]) : sql`0`) : undefined,
     f.workspace ? eq(recordings.workspaceShared, true) : undefined,
   ];
 }

@@ -21,6 +21,7 @@ export { downloads, useDownload } from "@/lib/downloads";
 export type { StorageStats } from "@/lib/storage";
 export type { Workspace } from "@/lib/workspace";
 export * from "./clips";
+export * from "./downloads";
 export * from "./identity";
 export * from "./playback-positions";
 export * from "./recordings";
