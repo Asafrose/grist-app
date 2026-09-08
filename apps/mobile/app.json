@@ -9,7 +9,6 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.asafrose.grist",
-      "icon": "./assets/expo.icon",
       "supportsTablet": false
     },
     "android": {
@@ -29,9 +28,10 @@
         {
           "backgroundColor": "#F7F6F2",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76,
+          "imageWidth": 120,
           "dark": {
-            "backgroundColor": "#121415"
+            "backgroundColor": "#121415",
+            "image": "./assets/images/splash-icon-dark.png"
           }
         }
       ],

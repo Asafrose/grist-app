@@ -185,10 +185,10 @@ const paths = {
     </>
   ),
   grist: (
-    <>
-      <Circle cx="12" cy="12" r="9" />
-      <Path d="M12 7v10M8 10v4M16 10v4" />
-    </>
+    <Path
+      d="M3 10.5v3M6 8v8M9 5v14M12 2.5v19M15 6v12M18 8.5v7M21 10.5v3"
+      strokeWidth={2.4}
+    />
   ),
 };
 
