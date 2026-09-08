@@ -71,12 +71,13 @@ export function timelineDuration(
   segments: TranscriptSegmentRow[],
   screenshares: Recording["screenshares"] | null | undefined,
 ): number {
-  const ends = [
-    durationMs,
-    ...segments.map((s) => s.end),
-    ...(screenshares ?? []).map((s) => Math.max(s.start, s.end)),
-  ];
-  return Math.max(0, ...ends);
+  let max = Math.max(0, durationMs);
+  for (const s of segments) if (s.end > max) max = s.end;
+  for (const s of screenshares ?? []) {
+    const end = Math.max(s.start, s.end);
+    if (end > max) max = end;
+  }
+  return max;
 }
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;

@@ -84,7 +84,14 @@
             ],
             "patterns": [
               {
-                "group": ["@/lib/db/*", "drizzle-orm", "drizzle-orm/*", "@/lib/data/live"],
+                "group": [
+                  "@/lib/db/*",
+                  "drizzle-orm",
+                  "drizzle-orm/*",
+                  "expo-sqlite",
+                  "expo-sqlite/*",
+                  "@/lib/data/live"
+                ],
                 "message": "Screens read data through the hooks in @/lib/data; the query layer stays in src/lib."
               },
               {

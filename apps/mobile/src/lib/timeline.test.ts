@@ -97,6 +97,14 @@ describe("ranges", () => {
     expect(timelineDuration(0, segments, null)).toBe(382_749);
     expect(timelineDuration(0, [], [{ start: 10, end: 5, participant_id: null }])).toBe(10);
   });
+
+  it("handles a segment list far past the argument-list limit", () => {
+    const { segments } = seed();
+    const one = segments[0];
+    if (!one) throw new Error("no segments");
+    const many = Array.from({ length: 200_000 }, (_, i) => ({ ...one, start: i, end: i + 1 }));
+    expect(timelineDuration(0, many, null)).toBe(200_000);
+  });
 });
 
 describe("talkTime", () => {
