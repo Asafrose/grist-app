@@ -42,8 +42,8 @@ const PRESETS = Object.keys(PRESET_DAYS) as DatePreset[];
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View className="gap-2">
-      <Text className="font-jakarta-semibold text-[12px] tracking-[0.5px] text-subtle-foreground">
-        {title.toUpperCase()}
+      <Text className="font-jakarta-semibold text-xs uppercase tracking-wider text-subtle-foreground">
+        {title}
       </Text>
       {children}
     </View>
