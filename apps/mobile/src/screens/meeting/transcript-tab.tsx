@@ -18,7 +18,7 @@ import {
 } from "@/lib/transcript-reader";
 import { cn } from "@/lib/utils";
 import { type Colors, useColors } from "@/theme";
-import type { TabProps } from "./coming-soon";
+import type { TabProps } from "./types";
 
 type ListRef = RefObject<FlashListRef<TranscriptSegmentRow> | null>;
 

@@ -28,7 +28,7 @@ import {
 } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
-import type { TabProps } from "./coming-soon";
+import type { TabProps } from "./types";
 import { SectionTitle } from "./summary-tab";
 
 const ROLE_LABEL = { host: "Host", attended: "Attended", invited: "Invited" } as const;

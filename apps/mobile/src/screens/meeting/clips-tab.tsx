@@ -11,7 +11,7 @@ import { formatClock } from "@/lib/format";
 import { playback, useIsCurrent, usePlaybackPosition, usePlaybackUntil } from "@/lib/player";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
-import type { TabProps } from "./coming-soon";
+import type { TabProps } from "./types";
 import { toNowPlaying } from "./player-card";
 
 export function clipRange(h: HighlightRow) {
