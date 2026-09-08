@@ -4,13 +4,14 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { type ClipRow, useClips, useTeams } from "@/lib/data";
 import { formatClock, formatShortDate } from "@/lib/format";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
 import { useMe, useMeStatus } from "@/lib/me";
-import { cn } from "@/lib/utils";
+import { shareLink } from "@/lib/share";
 import { useColors } from "@/theme";
 
 export const CLIPS_PAGE = 50;
@@ -22,40 +23,6 @@ export function clipHref(clip: ClipRow) {
     pathname: "/meeting/[id]" as const,
     params: { id: clip.highlight.recordingId, tab: "clips", clip: clip.highlight.id },
   };
-}
-
-function Chip({
-  label,
-  on,
-  onPress,
-  testID,
-}: {
-  label: string;
-  on: boolean;
-  onPress: () => void;
-  testID: string;
-}) {
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
-      onPress={onPress}
-      className={cn(
-        "h-8 justify-center rounded-full border px-3",
-        on ? "border-foreground bg-foreground" : "border-border bg-card",
-      )}
-    >
-      <Text
-        className={cn(
-          "font-jakarta-semibold text-[13px]",
-          on ? "text-background" : "text-muted-foreground",
-        )}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
 }
 
 function ClipCard({ item }: { item: ClipRow }) {
@@ -99,6 +66,16 @@ function ClipCard({ item }: { item: ClipRow }) {
           </Text>
         </View>
       </View>
+      <Pressable
+        testID={`share-clip-${h.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Share clip"
+        hitSlop={8}
+        onPress={() => shareLink(h.url, h.text)}
+        className="p-1 active:opacity-60"
+      >
+        <Icon name="share" size={18} color={colors.ink2} />
+      </Pressable>
     </Pressable>
   );
 }
@@ -167,13 +144,13 @@ export function Clips() {
         <Chip
           testID="chip-workspace"
           label="Workspace"
-          on={filter.kind === "workspace"}
+          selected={filter.kind === "workspace"}
           onPress={() => select({ kind: "workspace" })}
         />
         <Chip
           testID="chip-mine"
           label="Mine"
-          on={filter.kind === "mine"}
+          selected={filter.kind === "mine"}
           onPress={() => select({ kind: "mine" })}
         />
         {teams.map((t) => (
@@ -181,7 +158,7 @@ export function Clips() {
             key={t.id}
             testID={`chip-team-${t.id}`}
             label={t.name}
-            on={filter.kind === "team" && filter.id === t.id}
+            selected={filter.kind === "team" && filter.id === t.id}
             onPress={() => select({ kind: "team", id: t.id })}
           />
         ))}

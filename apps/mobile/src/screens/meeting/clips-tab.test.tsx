@@ -1,6 +1,7 @@
 import type { Recording } from "@grist/grain-api";
 import detail from "@grist/grain-api/fixtures/recording-with-highlights.json";
 import * as WebBrowser from "expo-web-browser";
+import { Share } from "react-native";
 import { getRecording, type RecordingDetail, upsertRecordings } from "@/lib/db";
 import { playback, playerStore } from "@/lib/player";
 import { testDb } from "@/test/db";
@@ -28,6 +29,7 @@ function load(overrides: Partial<Recording> = {}): RecordingDetail {
 }
 
 const loadSpy = jest.spyOn(playback, "load").mockImplementation(async () => {});
+const share = jest.spyOn(Share, "share").mockResolvedValue({ action: "sharedAction" });
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -36,6 +38,17 @@ beforeEach(() => {
 });
 
 describe("ClipsTab", () => {
+  it("shares the clip's own Grain url from the card", async () => {
+    await render(<ClipsTab rec={load()} onSeek={jest.fn()} />);
+    expect(clip.url).toBeTruthy();
+    await fireEvent.press(screen.getByTestId(`share-clip-card-${clip.id}`));
+    expect(share).toHaveBeenCalledWith(
+      { url: clip.url, message: clip.text },
+      { dialogTitle: clip.text },
+    );
+    expect(loadSpy).not.toHaveBeenCalled();
+  });
+
   it("renders a card per highlight with duration, start time and speakers", async () => {
     await render(<ClipsTab rec={load()} onSeek={jest.fn()} />);
     const card = screen.getByTestId(`clip-card-${clip.id}`);

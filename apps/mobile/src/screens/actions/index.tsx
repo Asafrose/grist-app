@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { type ReactNode, useState } from "react";
-import { Platform, Pressable, ScrollView, Share, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 import { useIsDemo } from "@/lib/demo";
 import { formatBytes, formatDuration, formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
+import { shareLink } from "@/lib/share";
 import { useColors } from "@/theme";
 
 const GRAIN_ROWS: { key: string; icon: IconName; label: string }[] = [
@@ -163,12 +164,7 @@ export function Actions({ id }: { id: string }) {
     );
   }
 
-  const share = () => {
-    void Share.share(
-      Platform.OS === "ios" ? { url: rec.url, message: rec.title } : { message: rec.url },
-      { dialogTitle: rec.title },
-    ).catch(() => undefined);
-  };
+  const share = () => shareLink(rec.url, rec.title);
 
   const copyTranscript = async () => {
     if (copy === "copying") return;

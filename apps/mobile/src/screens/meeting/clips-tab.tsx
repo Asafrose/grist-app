@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import type { HighlightRow, RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
 import { playback, useIsCurrent, usePlaybackPosition, usePlaybackUntil } from "@/lib/player";
+import { shareLink } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 import type { TabProps } from "./types";
@@ -92,6 +93,16 @@ function ClipCard({
           {speakers ? ` · ${speakers}` : ""}
         </Text>
       </View>
+      <Pressable
+        testID={`share-clip-card-${clip.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Share clip"
+        hitSlop={8}
+        onPress={() => shareLink(clip.url, clip.text)}
+        className="p-1 active:opacity-60"
+      >
+        <Icon name="share" size={18} color={colors.ink2} />
+      </Pressable>
       {isCurrent ? <ClipProgress start={at} end={until} /> : null}
     </Pressable>
   );

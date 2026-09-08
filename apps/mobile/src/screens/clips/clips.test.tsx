@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { Share } from "react-native";
 import { authStore } from "@/lib/auth";
 import { highlightsQuery, listTeams, listRecordings } from "@/lib/db";
 import { demoRecordings } from "@/lib/demo";
@@ -30,9 +31,12 @@ beforeAll(async () => {
   await library.refresh(true);
 });
 
+const share = jest.spyOn(Share, "share").mockResolvedValue({ action: "sharedAction" });
+
 beforeEach(() => {
   queryClient.setDefaultOptions({ queries: { retry: false } });
   (router.push as jest.Mock).mockClear();
+  share.mockClear();
 });
 
 const db = () => libraryStore.getState().db!;
@@ -104,6 +108,18 @@ describe("Clips", () => {
       params: { id: first.highlight.recordingId, tab: "clips", clip: first.highlight.id },
     });
     expect(clipHref(first).params.clip).toBe(first.highlight.id);
+  });
+
+  it("shares the clip's own Grain url from the row", async () => {
+    await render(<Clips />);
+    const first = highlightsQuery(db()).all()[0];
+    expect(first.highlight.url).toBeTruthy();
+    await fireEvent.press(screen.getByTestId(`share-clip-${first.highlight.id}`));
+    expect(share).toHaveBeenCalledWith(
+      { url: first.highlight.url, message: first.highlight.text },
+      { dialogTitle: first.highlight.text },
+    );
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("shows an empty state for Mine when the user cannot be resolved", async () => {
