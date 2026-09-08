@@ -6,6 +6,7 @@ import { DarkTheme, DefaultTheme, type Theme, ThemeProvider } from "expo-router"
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { Suspense, use, useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MiniPlayer } from "@/components/mini-player";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { authReady, useSignedIn } from "@/lib/auth";
@@ -59,7 +60,14 @@ function Root() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="meeting/[id]"
-            options={{ headerShown: true, title: "", headerBackTitle: "Meetings" }}
+            options={{
+              headerShown: true,
+              title: "",
+              headerBackTitle: "Meetings",
+              // `end` is a max x: on iOS 26 the pop starts anywhere in the content, so cap it
+              // to an edge strip that stops short of the scrubber thumb at 0:00 (~36pt in).
+              gestureResponseDistance: { end: 24 },
+            }}
           />
           <Stack.Screen
             name="filters"
@@ -108,10 +116,12 @@ function Root() {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={null}>
-        <Root />
-      </Suspense>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <Suspense fallback={null}>
+          <Root />
+        </Suspense>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

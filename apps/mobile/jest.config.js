@@ -9,6 +9,7 @@ const extraTransformed = [
   "react-native-marked",
   "marked",
   "github-slugger",
+  "react-native-gesture-handler",
 ];
 
 module.exports = {
@@ -16,6 +17,7 @@ module.exports = {
   transformIgnorePatterns: preset.transformIgnorePatterns.map((pattern) =>
     pattern.replace("node_modules/(?!(", `node_modules/(?!(${extraTransformed.join("|")}|`),
   ),
+  setupFiles: [...(preset.setupFiles ?? []), "react-native-gesture-handler/jestSetup"],
   collectCoverageFrom: ["src/lib/**/*.ts", "!src/lib/db/open.ts", "!src/lib/db/index.ts"],
   coverageThreshold: {
     "src/lib/**/*.ts": { statements: 80, branches: 60, functions: 80, lines: 80 },

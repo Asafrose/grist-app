@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Icon, type IconName } from "@/components/icon";
 import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/player-view";
+import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
 import type { RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
@@ -95,32 +96,6 @@ function Transport({
   );
 }
 
-function Scrubber({ progress, onSeek }: { progress: number; onSeek: (fraction: number) => void }) {
-  const [width, setWidth] = useState(0);
-  const pct = `${Math.max(0, Math.min(1, progress)) * 100}%` as const;
-  return (
-    <Pressable
-      testID="scrubber"
-      accessibilityRole="adjustable"
-      accessibilityLabel="Playback position"
-      hitSlop={{ top: 14, bottom: 14 }}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      onPress={(e) => width && onSeek(e.nativeEvent.locationX / width)}
-      className="h-1 rounded-full"
-      style={{ backgroundColor: TRACK_BG }}
-    >
-      <View
-        className="h-full rounded-full"
-        style={{ width: pct, backgroundColor: PLAYER_ON_SURFACE }}
-      />
-      <View
-        className="absolute -top-[5px] h-3.5 w-3.5 rounded-full"
-        style={{ left: pct, marginLeft: -7, backgroundColor: PLAYER_ON_SURFACE }}
-      />
-    </Pressable>
-  );
-}
-
 function Progress({
   isCurrent,
   fallbackDuration,
@@ -132,19 +107,29 @@ function Progress({
 }) {
   const livePosition = usePlaybackPosition();
   const liveDuration = usePlaybackDuration();
+  const [scrubbing, setScrubbing] = useState<number | null>(null);
   const position = isCurrent ? livePosition : 0;
   const duration = isCurrent && liveDuration ? liveDuration : fallbackDuration;
-  const progress = duration ? position / duration : 0;
   return (
-    <View className="absolute bottom-3.5 left-3.5 right-3.5 gap-2">
-      <Scrubber progress={progress} onSeek={(f) => onSeek(f * duration)} />
+    <View className="absolute bottom-3.5 left-3.5 right-3.5">
+      <Scrubber
+        testID="scrubber"
+        position={position}
+        duration={duration}
+        onSeek={onSeek}
+        onScrub={setScrubbing}
+        trackColor={TRACK_BG}
+        fillColor={PLAYER_ON_SURFACE}
+        labelColor={PLAYER_ON_SURFACE}
+        labels={false}
+      />
       <View className="flex-row justify-between">
         <Text
           testID="position"
           className="font-mono text-[11px]"
           style={{ color: PLAYER_ON_SURFACE, opacity: 0.85 }}
         >
-          {formatClock(position)}
+          {formatClock(scrubbing ?? position)}
         </Text>
         <Text
           testID="duration"
