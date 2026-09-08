@@ -1,10 +1,11 @@
 import { GrainApiError, type Recording } from "@grist/grain-api";
 import page from "@grist/grain-api/fixtures/recordings.json";
-import { focusManager } from "@tanstack/react-query";
+import { focusManager, onlineManager } from "@tanstack/react-query";
 import * as Network from "expo-network";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { auth, authStore } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
+import { downloads } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
 import {
   BUMP_THROTTLE_MS,
@@ -80,6 +81,26 @@ describe("library store", () => {
     expect(iterate).not.toHaveBeenCalled();
     await library.refresh(true);
     expect(iterate).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves without touching the query while offline", async () => {
+    await libraryReady;
+    authStore.setState({ status: "signed-in", token: "pat" });
+    await library.refresh(true);
+    const cached = queryClient.getQueryData(libraryKey("pat"));
+    iterate.mockClear();
+    const prune = jest.spyOn(downloads, "prune");
+    onlineManager.setOnline(false);
+    try {
+      await library.refresh(true);
+    } finally {
+      onlineManager.setOnline(true);
+    }
+    expect(iterate).not.toHaveBeenCalled();
+    expect(prune).toHaveBeenCalled();
+    prune.mockRestore();
+    expect(queryClient.getQueryData(libraryKey("pat"))).toBe(cached);
+    expect(queryClient.getQueryState(libraryKey("pat"))?.fetchStatus).toBe("idle");
   });
 
   it("dedupes concurrent refreshes into one sync", async () => {

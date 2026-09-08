@@ -69,7 +69,11 @@ function MeetingList({
         )
       }
       refreshControl={
-        <RefreshControl refreshing={pulling} onRefresh={onRefresh} tintColor={colors.accent} />
+        <RefreshControl
+          refreshing={pulling && sync === "syncing"}
+          onRefresh={onRefresh}
+          tintColor={colors.accent}
+        />
       }
       ListEmptyComponent={
         !updatedAt ? null : (
@@ -125,15 +129,10 @@ export function Meetings() {
   const title = useDebouncedValue(typed);
   const filter = useMemo(() => toQuery({ ...state, title }, { meEmail }), [state, title, meEmail]);
   const [pulling, setPulling] = useState(false);
-  const pull = async () => {
+  const pull = () => {
     setPulling(true);
-    try {
-      await library.refresh(true);
-    } finally {
-      setPulling(false);
-    }
+    void library.refresh(true).finally(() => setPulling(false));
   };
-
   const chips = activeChips(state, {
     meetingType: workspace.meetingTypes.find((m) => m.id === state.meetingTypeId)?.name,
     recorder: workspace.users.find((u) => u.id === state.recorderId)?.name,

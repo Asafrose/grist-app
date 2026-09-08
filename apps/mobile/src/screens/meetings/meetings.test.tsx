@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { authStore } from "@/lib/auth";
 import { countRecordings, listRecordings } from "@/lib/db";
@@ -42,6 +43,7 @@ beforeEach(() => {
 });
 
 const db = () => libraryStore.getState().db!;
+const refreshing = () => screen.getByTestId("meetings-list").props.refreshControl.props.refreshing;
 
 describe("Meetings", () => {
   it("renders the cached list while the signed-in profile is still idle", async () => {
@@ -125,6 +127,64 @@ describe("Meetings", () => {
       await pending;
     });
     await waitFor(() => expect(screen.queryByTestId("syncing")).toBeNull());
+  });
+
+  it("leaves the refresh control alone while a background sync runs", async () => {
+    await render(<Meetings />);
+    let finish!: () => void;
+    const pending = queryClient.fetchQuery({
+      queryKey: libraryKey("demo"),
+      queryFn: () => new Promise<null>((resolve) => (finish = () => resolve(null))),
+      staleTime: 0,
+    });
+    await waitFor(() => expect(screen.getByTestId("syncing")).toBeOnTheScreen());
+    expect(refreshing()).toBe(false);
+    await act(async () => {
+      finish();
+      await pending;
+    });
+    expect(refreshing()).toBe(false);
+  });
+
+  it("stops the pull-to-refresh spinner while the query is paused offline", async () => {
+    await render(<Meetings />);
+    onlineManager.setOnline(false);
+    try {
+      await act(async () => {
+        fireEvent(screen.getByTestId("meetings-list"), "refresh");
+      });
+      await waitFor(() => expect(refreshing()).toBe(false));
+    } finally {
+      await queryClient.cancelQueries({ queryKey: libraryKey("demo") });
+      onlineManager.setOnline(true);
+    }
+    await waitFor(() => expect(screen.queryByTestId("syncing")).toBeNull());
+    expect(refreshing()).toBe(false);
+  });
+
+  it("leaves no stuck pull behind when a background sync follows an offline pull", async () => {
+    await render(<Meetings />);
+    onlineManager.setOnline(false);
+    try {
+      await act(async () => {
+        fireEvent(screen.getByTestId("meetings-list"), "refresh");
+      });
+      expect(refreshing()).toBe(false);
+    } finally {
+      onlineManager.setOnline(true);
+    }
+    let finish!: () => void;
+    const pending = queryClient.fetchQuery({
+      queryKey: libraryKey("demo"),
+      queryFn: () => new Promise<null>((resolve) => (finish = () => resolve(null))),
+      staleTime: 0,
+    });
+    await waitFor(() => expect(screen.getByTestId("syncing")).toBeOnTheScreen());
+    expect(refreshing()).toBe(false);
+    await act(async () => {
+      finish();
+      await pending;
+    });
   });
 
   it("narrows the list as the title filter is typed and clears it again", async () => {

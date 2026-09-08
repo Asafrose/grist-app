@@ -1,4 +1,4 @@
-import { focusManager, skipToken, useQuery } from "@tanstack/react-query";
+import { focusManager, onlineManager, skipToken, useQuery } from "@tanstack/react-query";
 import * as Network from "expo-network";
 import { create, useStore } from "zustand";
 import { auth, authStore, useAuthToken } from "@/lib/auth";
@@ -101,6 +101,8 @@ async function refresh(force = false): Promise<void> {
   const { db } = libraryStore.getState();
   const token = auth.token();
   if (!db || !token) return;
+  downloads.prune();
+  if (!onlineManager.isOnline()) return;
   const queryKey = libraryKey(token);
   if (force) await queryClient.invalidateQueries({ queryKey, refetchType: "none" });
   try {
@@ -113,7 +115,6 @@ async function refresh(force = false): Promise<void> {
     reportAuthFailure(e);
     // the failure lives in the query state; useSyncError surfaces it
   }
-  downloads.prune();
 }
 
 let prefetching: Promise<void> | null = null;
