@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import type { RecordingDetail } from "@/lib/data";
 import { formatClock } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
+import { perf } from "@/lib/perf";
 import { startPictureInPicture } from "@/lib/pip";
 import {
   type NowPlaying,
@@ -241,7 +242,11 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                     accessibilityRole="button"
                     accessibilityLabel="Fullscreen"
                     hitSlop={8}
-                    onPress={() => router.push("/fullscreen")}
+                    onPress={() => {
+                      perf.mark("fullscreen-enter");
+                      perf.mark("fullscreen-enter-attach");
+                      router.push("/fullscreen");
+                    }}
                     className="h-9 w-9 items-center justify-center active:opacity-60"
                   >
                     <Icon name="fullscreen" size={20} color={PLAYER_ON_SURFACE} />

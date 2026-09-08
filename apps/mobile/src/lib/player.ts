@@ -4,6 +4,7 @@ import { auth, authStore } from "@/lib/auth";
 import { playbackPositions } from "@/lib/data/playback-positions";
 import { downloads, downloadsStore } from "@/lib/downloads";
 import { invalidateMediaUrl, mediaUrl } from "@/lib/media-url";
+import { perf } from "@/lib/perf";
 import {
   isPlaybackRate,
   PLAYBACK_RATES,
@@ -87,6 +88,8 @@ player.addListener("timeUpdate", ({ currentTime }) => {
     return;
   }
   playerStore.setState({ position: currentTime });
+  perf.measure("fullscreen-exit-playback", "fullscreen unmount → card surface playing");
+  perf.measure("surface-attach", "video surface attached (card or fullscreen) → first timeUpdate");
   savePosition();
 });
 player.addListener("sourceLoad", ({ duration }) => playerStore.setState({ duration }));
@@ -104,6 +107,8 @@ const videoViews: VideoView[] = [];
 
 export function attachVideoView(view: VideoView): () => void {
   if (!videoViews.includes(view)) videoViews.push(view);
+  perf.measure("fullscreen-enter-attach", "route push → fullscreen surface attached");
+  perf.mark("surface-attach");
   return () => {
     const i = videoViews.indexOf(view);
     if (i >= 0) videoViews.splice(i, 1);
@@ -258,6 +263,7 @@ function toggle() {
 
 function reset(persist: boolean) {
   if (persist) savePosition(true);
+  perf.clearMarks();
   loadSeq++;
   reresolvedAt = 0;
   reresolveAttempts = 0;

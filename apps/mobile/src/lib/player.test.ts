@@ -17,6 +17,7 @@ import {
   playerStore,
   useIsPlaying,
 } from "@/lib/player";
+import { perf } from "@/lib/perf";
 import { settings, settingsStore } from "@/lib/settings";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
@@ -547,5 +548,23 @@ describe("resume position", () => {
     await playback.load(rec, { autoplay: false });
     expect(playbackPositions.get("r2")).toBe(12);
     expect(playerStore.getState().position).toBe(25);
+  });
+});
+
+describe("transition timing marks", () => {
+  it("drops pending marks when playback resets, so they cannot time a later event", () => {
+    const log = jest.spyOn(console, "log").mockImplementation(() => {});
+    perf.mark("fullscreen-exit-playback");
+    playback.stop();
+
+    fake.emit("timeUpdate", { currentTime: 3 });
+    expect(log).not.toHaveBeenCalled();
+
+    perf.mark("fullscreen-exit-playback");
+    fake.emit("timeUpdate", { currentTime: 4 });
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("fullscreen unmount → card surface playing"),
+    );
+    log.mockRestore();
   });
 });

@@ -9,6 +9,7 @@ import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
 import { useTranscript } from "@/lib/data";
 import { haptics } from "@/lib/haptics";
+import { perf } from "@/lib/perf";
 import { startPictureInPicture } from "@/lib/pip";
 import {
   PLAYBACK_RATES,
@@ -117,6 +118,11 @@ export function Fullscreen() {
     setVisible(true);
     hideLater();
   }, [hideLater]);
+
+  useEffect(() => {
+    perf.measure("fullscreen-enter", "route push → fullscreen mount");
+    return () => perf.mark("fullscreen-exit-playback");
+  }, []);
 
   useEffect(() => {
     hideLater();
