@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react-native";
 import type { VideoView } from "expo-video";
 import { authStore } from "@/lib/auth";
+import { playbackPositions } from "@/lib/data/playback-positions";
 import { downloadsStore } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
 import { queryClient } from "@/lib/query";
@@ -11,6 +12,7 @@ import {
   PLAYBACK_RATES,
   playback,
   player,
+  POSITION_WRITE_INTERVAL_MS,
   RERESOLVE_BACKOFF_MS,
   playerStore,
   useIsPlaying,
@@ -18,6 +20,18 @@ import {
 import { settings, settingsStore } from "@/lib/settings";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/data/playback-positions", () => {
+  const db = jest.requireActual("@/test/db").testDb();
+  const q = jest.requireActual("@/lib/db/playback-positions");
+  return {
+    playbackPositions: {
+      get: (id: string) => q.getPlaybackPosition(db, id),
+      resume: (id: string, duration: number) => q.resumePosition(db, id, duration),
+      save: jest.fn((id: string, position: number) => q.setPlaybackPosition(db, id, position)),
+      clear: (id: string) => q.clearPlaybackPosition(db, id),
+    },
+  };
+});
 jest.mock("expo-video", () => {
   const listeners = new Map<string, Function>();
   const emit = (name: string, payload: unknown) => listeners.get(name)?.(payload);
@@ -64,7 +78,10 @@ beforeEach(() => {
   downloadsStore.setState({ byId: {} });
   playback.stop();
   playback.setRate(1);
+  playbackPositions.clear("r1");
+  playbackPositions.clear("r2");
   fake.replaceAsync.mockClear();
+  (playbackPositions.save as jest.Mock).mockClear();
 });
 
 describe("player store", () => {
@@ -374,5 +391,149 @@ describe("playback rate persistence", () => {
     playback.setRate(2.2);
     expect(settingsStore.getState().playbackRate).toBe(2.2);
     expect(fake.playbackRate).toBe(2.2);
+  });
+});
+
+describe("resume position", () => {
+  const saves = () => (playbackPositions.save as jest.Mock).mock.calls;
+
+  it("throttles position writes to one per interval", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    (playbackPositions.save as jest.Mock).mockClear();
+
+    const base = Date.now();
+    const now = jest.spyOn(Date, "now").mockReturnValue(base);
+    fake.emit("timeUpdate", { currentTime: 10 });
+    fake.emit("timeUpdate", { currentTime: 11 });
+    now.mockReturnValue(base + POSITION_WRITE_INTERVAL_MS - 1);
+    fake.emit("timeUpdate", { currentTime: 14 });
+    expect(saves()).toEqual([["r1", 10]]);
+
+    now.mockReturnValue(base + POSITION_WRITE_INTERVAL_MS);
+    fake.emit("timeUpdate", { currentTime: 20 });
+    expect(saves()).toEqual([
+      ["r1", 10],
+      ["r1", 20],
+    ]);
+    now.mockRestore();
+  });
+
+  it("writes on pause and on stop", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("timeUpdate", { currentTime: 30 });
+    (playbackPositions.save as jest.Mock).mockClear();
+
+    playback.pause();
+    expect(saves()).toEqual([["r1", 30]]);
+    fake.emit("timeUpdate", { currentTime: 31 });
+    playback.stop();
+    expect(saves().at(-1)).toEqual(["r1", 31]);
+    expect(playbackPositions.get("r1")).toBe(31);
+  });
+
+  it("resumes a partially played recording when no explicit position is given", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("timeUpdate", { currentTime: 40 });
+    playback.stop();
+
+    await playback.load(rec, { autoplay: false });
+    expect(playerStore.getState().position).toBe(40);
+    expect(fake.currentTime).toBe(40);
+  });
+
+  it("prefers an explicit position and ignores one near the end", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    playbackPositions.save("r1", 40);
+    await playback.load(rec, { at: 5, autoplay: false });
+    expect(playerStore.getState().position).toBe(5);
+    playback.stop();
+
+    playbackPositions.save("r1", 88);
+    await playback.load(rec, { autoplay: false });
+    expect(playerStore.getState().position).toBe(0);
+  });
+
+  it("does not overwrite the stored position with a timeUpdate during the load", async () => {
+    playbackPositions.save("r1", 40);
+    let release!: (url: string) => void;
+    resolveMediaUrl.mockImplementationOnce(() => new Promise<string>((r) => (release = r)));
+    const loading = playback.load(rec, { autoplay: false });
+    fake.emit("timeUpdate", { currentTime: 0 });
+    fake.emit("timeUpdate", { currentTime: 2 });
+    expect(playbackPositions.get("r1")).toBe(40);
+
+    release("https://cdn/media.mp4");
+    await loading;
+    expect(fake.currentTime).toBe(40);
+    fake.emit("timeUpdate", { currentTime: 41 });
+    expect(playbackPositions.get("r1")).toBe(41);
+  });
+
+  it("does not record a position while a clip range is playing", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { at: 10, until: 20 });
+    fake.emit("timeUpdate", { currentTime: 15 });
+    fake.emit("timeUpdate", { currentTime: 20.3 });
+    expect(playerStore.getState().until).toBeNull();
+
+    fake.emit("playingChange", { isPlaying: false });
+    fake.emit("timeUpdate", { currentTime: 20.8 });
+    expect(playbackPositions.get("r1")).toBeNull();
+
+    playback.play();
+    fake.emit("timeUpdate", { currentTime: 25 });
+    expect(playbackPositions.get("r1")).toBe(25);
+  });
+
+  it("stops playback on sign-out without persisting into the wiped database", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("timeUpdate", { currentTime: 33 });
+    playbackPositions.clear("r1");
+
+    authStore.setState({ status: "signed-out", token: null, rejected: null });
+    expect(playerStore.getState()).toMatchObject({ current: null, status: "idle" });
+    expect(fake.replaceAsync).toHaveBeenCalledWith(null);
+    expect(playbackPositions.get("r1")).toBeNull();
+  });
+
+  it("records again when a scrub leaves the clip range mid-playback", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { at: 10, until: 20 });
+    fake.emit("timeUpdate", { currentTime: 15 });
+    expect(playbackPositions.get("r1")).toBeNull();
+
+    playback.seekTo(50);
+    fake.emit("timeUpdate", { currentTime: 51 });
+    expect(playbackPositions.get("r1")).toBe(51);
+  });
+
+  it("records again when playback resumes from the lock screen after a clip", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { at: 10, until: 20 });
+    fake.emit("timeUpdate", { currentTime: 20.3 });
+    fake.emit("playingChange", { isPlaying: false });
+    expect(playbackPositions.get("r1")).toBeNull();
+
+    fake.emit("playingChange", { isPlaying: true });
+    fake.emit("timeUpdate", { currentTime: 26 });
+    expect(playbackPositions.get("r1")).toBe(26);
+  });
+
+  it("keeps a position per recording and writes the outgoing one on a switch", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("timeUpdate", { currentTime: 25 });
+    await playback.load({ ...rec, id: "r2", title: "Second" }, { autoplay: false });
+    expect(playbackPositions.get("r1")).toBe(25);
+    expect(playerStore.getState().position).toBe(0);
+
+    fake.emit("timeUpdate", { currentTime: 12 });
+    await playback.load(rec, { autoplay: false });
+    expect(playbackPositions.get("r2")).toBe(12);
+    expect(playerStore.getState().position).toBe(25);
   });
 });

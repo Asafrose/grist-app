@@ -93,6 +93,8 @@ non-interactive shells; the `nvm` shell function hangs there.
   and `src/app`. To add data access: write the query in `lib/db/*.ts`, wrap
   it in a hook (or facade) in `lib/data/<domain>.ts`, export from
   `lib/data/index.ts`, cover it in `lib/data/data.test.tsx`.
+  `lib/library.ts` must not import `lib/player.ts` or `lib/data/*`: those
+  import back into it, and `import/no-cycle` rejects the loop.
   SQLite stays the store: screens only ever read the database, so a
   request cache is not a data layer here. TanStack DB was evaluated and
   rejected: in-memory collections and no FTS.

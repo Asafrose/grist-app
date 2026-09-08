@@ -21,6 +21,7 @@
     "oxc/no-map-spread": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/role-has-required-aria-props": "off",
+    "import/no-cycle": "error",
     "import/no-unassigned-import": [
       "error",
       {

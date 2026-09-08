@@ -10,7 +10,6 @@ import { makeClient } from "@/lib/grain";
 import { tokenErrorMessage } from "@/lib/token-error";
 import { clearMediaUrls } from "@/lib/media-url";
 import { me } from "@/lib/me";
-import { playback } from "@/lib/player";
 import { queryClient, reportAuthFailure } from "@/lib/query";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, type RecordingsApi, syncLibrary } from "@/lib/sync";
@@ -112,7 +111,6 @@ async function clear(): Promise<void> {
   await libraryReady;
   const { db } = libraryStore.getState();
   if (!db) return;
-  playback.stop();
   downloads.clear();
   thumbnails.clear();
   me.reset();

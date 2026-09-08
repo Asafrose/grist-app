@@ -17,6 +17,7 @@ import {
   highlights,
   meta,
   participants,
+  playbackPositions,
   recordings,
   summarySections,
   transcriptSegments,
@@ -187,6 +188,7 @@ export function deleteRecordings(db: Db, ids: string[]): void {
       summarySections,
       transcripts,
       transcriptSegments,
+      playbackPositions,
     ]) {
       tx.delete(table).where(inArray(table.recordingId, ids)).run();
     }
@@ -412,6 +414,7 @@ export function clearAll(db: Db): void {
       summarySections,
       transcripts,
       transcriptSegments,
+      playbackPositions,
       recordings,
       meta,
     ]) {

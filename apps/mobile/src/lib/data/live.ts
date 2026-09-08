@@ -3,9 +3,15 @@ import { useMemo, useRef } from "react";
 import type { Db } from "@/lib/db";
 import { libraryStore, useDb, useLibraryVersion } from "@/lib/library";
 
+export class LibraryNotReadyError extends Error {
+  constructor() {
+    super("Library is not ready");
+  }
+}
+
 export function currentDb(): Db {
   const db = libraryStore.getState().db;
-  if (!db) throw new Error("Library is not ready");
+  if (!db) throw new LibraryNotReadyError();
   return db;
 }
 

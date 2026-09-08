@@ -6,6 +6,11 @@ import transcript from "@grist/grain-api/fixtures/transcript.json";
 import {
   clearAll,
   clearIndex,
+  clearPlaybackPosition,
+  getPlaybackPosition,
+  RESUME_END_MARGIN_SECONDS,
+  resumePosition,
+  setPlaybackPosition,
   countRecordings,
   deleteMeta,
   deleteRecordings,
@@ -288,9 +293,46 @@ describe("recordings", () => {
     const db = testDb();
     upsertRecordings(db, recs, NOW);
     setMeta(db, "k", "v");
+    setPlaybackPosition(db, recs[0].id, 42);
     clearAll(db);
     expect(listRecordings(db)).toEqual([]);
     expect(getMeta(db, "k")).toBeNull();
+    expect(getPlaybackPosition(db, recs[0].id)).toBeNull();
+  });
+});
+
+describe("playback positions", () => {
+  it("upserts, reads back whole seconds and clears", () => {
+    const db = testDb();
+    expect(getPlaybackPosition(db, "r1")).toBeNull();
+    setPlaybackPosition(db, "r1", 42.6);
+    expect(getPlaybackPosition(db, "r1")).toBe(43);
+    setPlaybackPosition(db, "r1", -5);
+    expect(getPlaybackPosition(db, "r1")).toBe(0);
+    setPlaybackPosition(db, "r1", 120);
+    expect(getPlaybackPosition(db, "r1")).toBe(120);
+    clearPlaybackPosition(db, "r1");
+    expect(getPlaybackPosition(db, "r1")).toBeNull();
+  });
+
+  it("drops the row when the recording is deleted by the prune", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    setPlaybackPosition(db, recs[0].id, 42);
+    deleteRecordings(db, [recs[0].id]);
+    expect(getPlaybackPosition(db, recs[0].id)).toBeNull();
+  });
+
+  it("resumes a partially played recording but not one played to the end", () => {
+    const db = testDb();
+    expect(resumePosition(db, "r1", 600)).toBe(0);
+    setPlaybackPosition(db, "r1", 300);
+    expect(resumePosition(db, "r1", 600)).toBe(300);
+    expect(resumePosition(db, "r1", 0)).toBe(300);
+    setPlaybackPosition(db, "r1", 600 - RESUME_END_MARGIN_SECONDS);
+    expect(resumePosition(db, "r1", 600)).toBe(0);
+    setPlaybackPosition(db, "r1", 0);
+    expect(resumePosition(db, "r1", 600)).toBe(0);
   });
 });
 

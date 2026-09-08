@@ -16,6 +16,7 @@ import { isoSeconds } from "@/lib/sync";
 import { currentDb, useLive, useSnapshot } from "./live";
 import {
   identity,
+  playbackPositions,
   recentSearches,
   recordings,
   transcriptIndex,
@@ -406,6 +407,42 @@ describe("identity", () => {
   it("choose writes the picked user through the library db", async () => {
     const picked = identity.choose({ id: "u9", name: "Pat", email: "pat@x.io" });
     expect(meStore.getState().me).toEqual(picked);
+  });
+});
+
+describe("playback positions", () => {
+  it("saves, resumes and clears a position through the library db", () => {
+    const id = demo[0].id;
+    expect(playbackPositions.get(id)).toBeNull();
+    playbackPositions.save(id, 61.4);
+    expect(playbackPositions.get(id)).toBe(61);
+    expect(playbackPositions.resume(id, 600)).toBe(61);
+    expect(playbackPositions.resume(id, 62)).toBe(0);
+
+    playbackPositions.clear(id);
+    expect(playbackPositions.get(id)).toBeNull();
+  });
+
+  it("is inert before the library is ready", () => {
+    const saved = libraryStore.getState().db;
+    libraryStore.setState({ db: null });
+    expect(() => playbackPositions.save("r1", 10)).not.toThrow();
+    expect(playbackPositions.get("r1")).toBeNull();
+    expect(playbackPositions.resume("r1", 600)).toBe(0);
+    expect(() => playbackPositions.clear("r1")).not.toThrow();
+    libraryStore.setState({ db: saved });
+  });
+
+  it("surfaces database failures instead of swallowing them", () => {
+    const saved = libraryStore.getState().db;
+    const broken = {
+      select: () => {
+        throw new Error("no such table: playback_positions");
+      },
+    };
+    libraryStore.setState({ db: broken as unknown as typeof saved });
+    expect(() => playbackPositions.get("r1")).toThrow("no such table");
+    libraryStore.setState({ db: saved });
   });
 });
 

@@ -1,6 +1,7 @@
 import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video";
 import { create, useStore } from "zustand";
-import { auth } from "@/lib/auth";
+import { auth, authStore } from "@/lib/auth";
+import { playbackPositions } from "@/lib/data/playback-positions";
 import { downloads, downloadsStore } from "@/lib/downloads";
 import { invalidateMediaUrl, mediaUrl } from "@/lib/media-url";
 import {
@@ -59,9 +60,25 @@ player.staysActiveInBackground = true;
 player.showNowPlayingNotification = true;
 player.timeUpdateEventInterval = 0.5;
 
-player.addListener("playingChange", ({ isPlaying }) =>
-  playerStore.setState({ playing: isPlaying }),
-);
+export const POSITION_WRITE_INTERVAL_MS = 5_000;
+let positionWrittenAt = 0;
+let resumePending = false;
+let inClipRange = false;
+
+function savePosition(force = false) {
+  const { current, position } = playerStore.getState();
+  if (!current || resumePending || inClipRange || position <= 0) return;
+  const now = Date.now();
+  if (!force && now - positionWrittenAt < POSITION_WRITE_INTERVAL_MS) return;
+  positionWrittenAt = now;
+  playbackPositions.save(current.id, position);
+}
+
+player.addListener("playingChange", ({ isPlaying }) => {
+  playerStore.setState({ playing: isPlaying });
+  if (!isPlaying) return savePosition(true);
+  if (playerStore.getState().until === null) inClipRange = false;
+});
 player.addListener("timeUpdate", ({ currentTime }) => {
   const { until } = playerStore.getState();
   if (until !== null && currentTime >= until) {
@@ -70,6 +87,7 @@ player.addListener("timeUpdate", ({ currentTime }) => {
     return;
   }
   playerStore.setState({ position: currentTime });
+  savePosition();
 });
 player.addListener("sourceLoad", ({ duration }) => playerStore.setState({ duration }));
 player.addListener("statusChange", ({ status, error }) => {
@@ -108,6 +126,7 @@ function freshUri(id: string, token: string): Promise<string> {
 }
 
 function restoreAfterReplace(at: number, autoplay: boolean) {
+  resumePending = false;
   player.playbackRate = settings.get().playbackRate;
   player.currentTime = at;
   if (autoplay) player.play();
@@ -117,6 +136,7 @@ async function swapSource(uri: string, resume?: boolean) {
   const { current, position, playing } = playerStore.getState();
   if (!current) return;
   const seq = loadSeq;
+  resumePending = true;
   await player.replaceAsync({ uri, metadata: metadataFor(current) });
   if (seq !== loadSeq) return;
   restoreAfterReplace(position, resume ?? playing);
@@ -166,20 +186,26 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   const until = opts.until ?? null;
   if (current?.id === rec.id) {
     if (opts.at !== undefined) seekTo(opts.at);
+    inClipRange = until !== null;
     playerStore.setState({ until });
     if (opts.autoplay ?? true) player.play();
     return;
   }
+  savePosition(true);
+  inClipRange = until !== null;
   const seq = ++loadSeq;
   const token = auth.token();
   if (!token) throw new Error("Not signed in");
   reresolvedAt = 0;
   reresolveAttempts = 0;
+  positionWrittenAt = 0;
+  resumePending = true;
+  const at = opts.at ?? playbackPositions.resume(rec.id, rec.durationMs / 1000);
   playerStore.setState({
     current: rec,
     status: "loading",
     playing: false,
-    position: opts.at ?? 0,
+    position: at,
     duration: rec.durationMs / 1000,
     until,
     error: null,
@@ -189,9 +215,10 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     if (seq !== loadSeq) return;
     await player.replaceAsync({ uri, metadata: metadataFor(rec) });
     if (seq !== loadSeq) return;
-    restoreAfterReplace(opts.at ?? 0, opts.autoplay ?? true);
+    restoreAfterReplace(at, opts.autoplay ?? true);
   } catch (e) {
     if (seq !== loadSeq) return;
+    resumePending = false;
     playerStore.setState({ status: "error", error: e instanceof Error ? e.message : String(e) });
   }
 }
@@ -200,6 +227,7 @@ function seekTo(seconds: number) {
   const { duration } = playerStore.getState();
   const clamped = Math.max(0, duration ? Math.min(seconds, duration) : seconds);
   player.currentTime = clamped;
+  inClipRange = false;
   playerStore.setState({ position: clamped, until: null });
 }
 
@@ -226,13 +254,26 @@ function toggle() {
   else player.play();
 }
 
-function stop() {
+function reset(persist: boolean) {
+  if (persist) savePosition(true);
   loadSeq++;
   reresolvedAt = 0;
   reresolveAttempts = 0;
+  positionWrittenAt = 0;
+  resumePending = false;
+  inClipRange = false;
   void player.replaceAsync(null);
   playerStore.setState(initial);
 }
+
+function stop() {
+  reset(true);
+}
+
+authStore.subscribe((s, prev) => {
+  if (prev.status !== "signed-in" || s.token === prev.token) return;
+  reset(false);
+});
 
 export const playback = {
   load,
