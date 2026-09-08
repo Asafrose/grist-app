@@ -51,12 +51,16 @@ function cached<T>(db: Db, key: string): T[] | null {
   }
 }
 
+export function getTeams(db: Db): Team[] {
+  return cached<Team>(db, META_TEAMS) ?? teamOptions(db).map(({ id, name }) => ({ id, name }));
+}
+
 export function getWorkspace(db: Db): Workspace {
   return {
     users:
       cached<User>(db, META_USERS) ??
       recorderOptions(db).map((r) => ({ id: r.id, name: r.name, email: r.email ?? "" })),
-    teams: cached<Team>(db, META_TEAMS) ?? teamOptions(db).map(({ id, name }) => ({ id, name })),
+    teams: getTeams(db),
     meetingTypes:
       cached<MeetingType>(db, META_MEETING_TYPES) ??
       meetingTypeOptions(db).map(({ id, name, scope }) => ({ id, name, scope })),

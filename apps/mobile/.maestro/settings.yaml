@@ -24,6 +24,7 @@ appId: com.asafrose.grist
 - tapOn:
     id: "tab-settings"
 - assertVisible: "Settings"
+- assertVisible: "Default view"
 - assertVisible: "Playback"
 - assertVisible: "Storage"
 - extendedWaitUntil:
@@ -41,6 +42,25 @@ appId: com.asafrose.grist
     id: "setting-rate-option-1.5"
 - assertVisible:
     text: ".*1.5×.*"
+# Default view: pick a team, then see the meetings screen open on it.
+- tapOn:
+    id: "setting-default-view"
+- tapOn:
+    id: "setting-default-view-option-team:demo-team-1"
+- assertVisible:
+    id: "setting-default-view-value"
+    text: "Customer Success"
+- takeScreenshot: settings-default-view
+- tapOn:
+    id: "tab-index"
+- assertVisible:
+    id: "view-team-demo-team-1"
+- tapOn:
+    id: "tab-settings"
+- tapOn:
+    id: "setting-default-view"
+- tapOn:
+    id: "setting-default-view-option-mine"
 - tapOn:
     id: "clear-index"
 - assertVisible:

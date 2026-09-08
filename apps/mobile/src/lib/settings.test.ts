@@ -1,6 +1,8 @@
 import { getMeta, setMeta } from "@/lib/db";
 import {
   DEFAULT_SETTINGS,
+  defaultViewKey,
+  parseDefaultView,
   hydrateSettings,
   persistSettings,
   readSettings,
@@ -73,6 +75,23 @@ describe("settings store", () => {
     };
     writeSettings(db, custom);
     expect(readSettings(db)).toEqual(custom);
+  });
+
+  it("serializes the default view as a string key and rejects unusable ones", () => {
+    const db = testDb();
+    hydrateSettings(db);
+    expect(defaultViewKey({ kind: "mine" })).toBe("mine");
+    expect(defaultViewKey({ kind: "team", id: "t1" })).toBe("team:t1");
+    settings.set("defaultView", { kind: "team", id: "t1" });
+    expect(getMeta(db, SETTINGS_META_KEYS.defaultView)).toBe('"team:t1"');
+    expect(readSettings(db).defaultView).toEqual({ kind: "team", id: "t1" });
+
+    for (const raw of ['"team:"', '"nope"', "42", "[]"]) {
+      setMeta(db, SETTINGS_META_KEYS.defaultView, raw);
+      expect(readSettings(db).defaultView).toEqual({ kind: "mine" });
+    }
+    expect(parseDefaultView("workspace")).toEqual({ kind: "workspace" });
+    expect(parseDefaultView(null)).toBeNull();
   });
 
   it("notifies subscribers when a value changes", () => {

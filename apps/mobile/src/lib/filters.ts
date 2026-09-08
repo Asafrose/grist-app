@@ -1,7 +1,9 @@
 import { create, useStore } from "zustand";
-import type { RecordingsFilter } from "@/lib/db";
+import type { Db, RecordingsFilter } from "@/lib/db";
+import { type DefaultView, defaultViewKey, settings, settingsStore } from "@/lib/settings";
+import { getTeams } from "@/lib/workspace";
 
-export type View = { kind: "mine" } | { kind: "workspace" } | { kind: "team"; id: string };
+export type View = DefaultView;
 export type Scope = "all" | "external" | "internal";
 export type DatePreset = "7d" | "30d" | "90d";
 export type DateFilter =
@@ -35,6 +37,43 @@ export const filtersStore = create<FilterState>(() => defaultFilters);
 
 export const useFilters = () => useStore(filtersStore);
 export const useFilterTitle = () => useStore(filtersStore, (s) => s.title);
+export const useFilterView = () => useStore(filtersStore, (s) => s.view);
+
+let teamIds: string[] = [];
+
+export function resolveView(view: DefaultView, ids: readonly string[]): View {
+  return view.kind === "team" && ids.length > 0 && !ids.includes(view.id) ? { kind: "mine" } : view;
+}
+
+const initialView = (): View => resolveView(settingsStore.getState().defaultView, teamIds);
+
+let teamsDb: Db | null = null;
+
+function readTeamIds(db: Db): void {
+  teamIds = getTeams(db).map((t) => t.id);
+}
+
+export function hydrateFilters(db: Db): void {
+  teamsDb = db;
+  readTeamIds(db);
+  const stored = settingsStore.getState().defaultView;
+  if (resolveView(stored, teamIds) !== stored) settings.set("defaultView", { kind: "mine" });
+  filtersStore.setState({ view: initialView() });
+}
+
+export function syncFilterTeams(db: Db): void {
+  const { view } = filtersStore.getState();
+  if (view.kind !== "team" && settingsStore.getState().defaultView.kind !== "team") return;
+  readTeamIds(db);
+  const resolved = resolveView(view, teamIds);
+  if (resolved !== view) filtersStore.setState({ view: resolved });
+}
+
+settingsStore.subscribe((s, prev) => {
+  if (s.defaultView === prev.defaultView) return;
+  if (s.defaultView.kind === "team" && teamsDb) readTeamIds(teamsDb);
+  filtersStore.setState({ view: initialView() });
+});
 
 export const filters = {
   setTitle: (title: string) => filtersStore.setState({ title }),
@@ -42,11 +81,51 @@ export const filters = {
   apply: (sheet: SheetFilters) => filtersStore.setState(sheet),
   clear: (key: keyof SheetFilters) =>
     filtersStore.setState({
-      [key]: key === "view" ? defaultFilters.view : key === "scope" ? "all" : null,
+      [key]: key === "view" ? initialView() : key === "scope" ? "all" : null,
     }),
-  reset: () => filtersStore.setState(defaultFilters),
+  reset: () => filtersStore.setState({ ...defaultFilters, view: initialView() }),
   current: () => filtersStore.getState(),
+  hydrate: hydrateFilters,
+  syncTeams: syncFilterTeams,
 };
+
+export const sameView = (a: View, b: View): boolean =>
+  a.kind === b.kind && (a.kind !== "team" || b.kind !== "team" || a.id === b.id);
+
+export type ViewOption = { view: View; label: string; key: string; testID: string };
+
+const viewOption = (view: View, label: string): ViewOption => ({
+  view,
+  label,
+  key: defaultViewKey(view),
+  testID: view.kind === "team" ? `view-team-${view.id}` : `view-${view.kind}`,
+});
+
+export function viewOptions(teams: readonly { id: string; name: string }[]): ViewOption[] {
+  return [
+    viewOption({ kind: "mine" }, "Mine"),
+    viewOption({ kind: "workspace" }, "Workspace"),
+    ...teams.map((t) => viewOption({ kind: "team", id: t.id }, t.name)),
+  ];
+}
+
+export function visibleViews(
+  options: readonly ViewOption[],
+  selected: View,
+  maxTeams = 1,
+): { shown: ViewOption[]; hidden: number } {
+  const teams = options.filter((o) => o.view.kind === "team");
+  const selectedTeam = teams.find((o) => sameView(o.view, selected));
+  const rest = teams.filter((o) => o !== selectedTeam).slice(0, maxTeams - (selectedTeam ? 1 : 0));
+  return {
+    shown: [
+      ...options.filter((o) => o.view.kind !== "team"),
+      ...(selectedTeam ? [selectedTeam] : []),
+      ...rest,
+    ],
+    hidden: teams.length - (selectedTeam ? 1 : 0) - rest.length,
+  };
+}
 
 export function sheetFilters(f: FilterState): SheetFilters {
   const { title: _title, ...sheet } = f;

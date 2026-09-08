@@ -54,6 +54,21 @@ appId: com.asafrose.grist
 - assertVisible: ".*Northwind.*"
 - tapOn:
     id: "view-mine"
+# With six demo teams the header collapses the rest behind a +N chip.
+- assertVisible:
+    id: "view-more"
+- tapOn:
+    id: "view-more"
+- assertVisible:
+    id: "view-picker"
+- takeScreenshot: view-picker
+- tapOn:
+    id: "picker-view-team-demo-team-5"
+- assertVisible:
+    id: "view-team-demo-team-5"
+- takeScreenshot: meetings-view-overflow
+- tapOn:
+    id: "view-mine"
 # Filters sheet: choose External, apply, see count and chip.
 - tapOn:
     id: "open-filters"

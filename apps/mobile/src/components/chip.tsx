@@ -52,7 +52,7 @@ export function Chip({
       <Text
         numberOfLines={1}
         className={cn(
-          "font-jakarta-semibold",
+          "shrink font-jakarta-semibold",
           size === "md" ? "text-[13px]" : "text-[12px]",
           accent
             ? "text-accent-foreground"

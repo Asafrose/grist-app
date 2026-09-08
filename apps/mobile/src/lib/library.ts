@@ -11,6 +11,7 @@ import { tokenErrorMessage } from "@/lib/token-error";
 import { clearMediaUrls } from "@/lib/media-url";
 import { me } from "@/lib/me";
 import { queryClient, reportAuthFailure } from "@/lib/query";
+import { hydrateFilters, syncFilterTeams } from "@/lib/filters";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, type RecordingsApi, syncLibrary } from "@/lib/sync";
 import { thumbnails } from "@/lib/thumbnails";
@@ -36,6 +37,8 @@ export const libraryStore = create<LibraryState>(() => ({
 
 function bump() {
   libraryStore.setState((s) => ({ version: s.version + 1 }));
+  const db = libraryStore.getState().db;
+  if (db) syncFilterTeams(db);
 }
 
 type BumpThrottle = { bump: () => void; cancel: () => void };
@@ -169,6 +172,7 @@ async function hydrate(): Promise<void> {
   const db = await openDb();
   me.hydrate(db);
   hydrateSettings(db);
+  hydrateFilters(db);
   downloads.prune();
   libraryStore.setState({ db });
 }

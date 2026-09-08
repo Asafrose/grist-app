@@ -21,7 +21,15 @@ import {
   useRecordings,
   useWorkspace,
 } from "@/lib/data";
-import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
+import {
+  activeChips,
+  filters,
+  sameView,
+  toQuery,
+  useFilters,
+  viewOptions,
+  visibleViews,
+} from "@/lib/filters";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useTokenRejected } from "@/lib/auth";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
@@ -29,9 +37,6 @@ import { useMe } from "@/lib/me";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { useColors } from "@/theme";
 import { TokenBanner } from "./token-banner";
-
-const sameView = (a: FilterView, b: FilterView) =>
-  a.kind === b.kind && (a.kind !== "team" || b.kind !== "team" || a.id === b.id);
 
 function MeetingList({
   filter,
@@ -137,15 +142,7 @@ export function Meetings() {
     meetingType: workspace.meetingTypes.find((m) => m.id === state.meetingTypeId)?.name,
     recorder: workspace.users.find((u) => u.id === state.recorderId)?.name,
   });
-  const views: { view: FilterView; label: string; testID: string }[] = [
-    { view: { kind: "mine" }, label: "Mine", testID: "view-mine" },
-    { view: { kind: "workspace" }, label: "Workspace", testID: "view-workspace" },
-    ...workspace.teams.map((t) => ({
-      view: { kind: "team", id: t.id } as FilterView,
-      label: t.name,
-      testID: `view-team-${t.id}`,
-    })),
-  ];
+  const { shown, hidden } = visibleViews(viewOptions(workspace.teams), state.view);
   const filtered = chips.length > 0 || state.title.trim().length > 0;
   const openFilters = () => router.push("/filters");
 
@@ -224,23 +221,27 @@ export function Meetings() {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        className="grow-0"
-        contentContainerClassName="flex-row gap-2 px-5 pt-3 pb-1"
-      >
-        {views.map((v) => (
+      <View className="flex-row items-center gap-2 px-5 pt-3 pb-1">
+        {shown.map((v) => (
           <Chip
-            key={v.testID}
+            key={v.key}
             testID={v.testID}
             label={v.label}
             selected={sameView(state.view, v.view)}
             onPress={() => filters.setView(v.view)}
+            className={v.view.kind === "team" ? "max-w-[100px] shrink" : "shrink-0"}
           />
         ))}
-      </ScrollView>
+        {hidden > 0 ? (
+          <Chip
+            testID="view-more"
+            label={`+${hidden}`}
+            trailing="chevronDown"
+            onPress={() => router.push("/view-picker")}
+            className="shrink-0"
+          />
+        ) : null}
+      </View>
 
       {chips.length ? (
         <ScrollView

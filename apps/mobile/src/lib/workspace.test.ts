@@ -26,7 +26,7 @@ describe("workspace", () => {
     const db = testDb();
     seedDemo(db, NOW);
     const ws = getWorkspace(db);
-    expect(ws.teams.map((t) => t.name)).toContain("Lamna team");
+    expect(ws.teams.map((t) => t.name)).toContain("Customer Success");
     expect(ws.meetingTypes.map((m) => m.name)).toEqual(
       expect.arrayContaining(["Sales", "Internal"]),
     );

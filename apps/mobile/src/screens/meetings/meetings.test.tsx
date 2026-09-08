@@ -222,6 +222,26 @@ describe("Meetings", () => {
     expect(filtersStore.getState().view).toEqual({ kind: "team", id: team.id });
   });
 
+  it("collapses the extra team chips into a picker chip", async () => {
+    await render(<Meetings />);
+    const teams = getWorkspace(db()).teams;
+    expect(teams.length).toBeGreaterThan(4);
+    expect(screen.getByText(`+${teams.length - 1}`)).toBeOnTheScreen();
+    for (const t of teams.slice(0, 1)) {
+      expect(screen.getByTestId(`view-team-${t.id}`)).toBeOnTheScreen();
+    }
+    for (const t of teams.slice(1)) {
+      expect(screen.queryByTestId(`view-team-${t.id}`)).toBeNull();
+    }
+    await fireEvent.press(screen.getByTestId("view-more"));
+    expect(mockPush).toHaveBeenCalledWith("/view-picker");
+
+    const hidden = teams[teams.length - 1];
+    await act(async () => filters.setView({ kind: "team", id: hidden.id }));
+    expect(await screen.findByTestId(`view-team-${hidden.id}`)).toBeSelected();
+    expect(screen.getByText(`+${teams.length - 1}`)).toBeOnTheScreen();
+  });
+
   it("shows active filter chips that open the Filters sheet", async () => {
     await render(<Meetings />);
     expect(screen.queryByTestId("active-scope")).toBeNull();

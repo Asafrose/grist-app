@@ -15,11 +15,27 @@ const GB = 1024 ** 3;
 export const DOWNLOAD_CAPS_BYTES = [1 * GB, 2 * GB, 5 * GB] as const;
 export type DownloadCapBytes = (typeof DOWNLOAD_CAPS_BYTES)[number];
 
+export type DefaultView = { kind: "mine" } | { kind: "workspace" } | { kind: "team"; id: string };
+
+const TEAM_PREFIX = "team:";
+
+export function defaultViewKey(view: DefaultView): string {
+  return view.kind === "team" ? `${TEAM_PREFIX}${view.id}` : view.kind;
+}
+
+export function parseDefaultView(key: unknown): DefaultView | null {
+  if (typeof key !== "string") return null;
+  if (key === "mine" || key === "workspace") return { kind: key };
+  const id = key.startsWith(TEAM_PREFIX) ? key.slice(TEAM_PREFIX.length) : "";
+  return id === "" ? null : { kind: "team", id };
+}
+
 export type Settings = {
   playbackRate: PlaybackRate;
   pictureInPicture: boolean;
   keepDownloadsDays: KeepDownloadsDays;
   downloadCapBytes: DownloadCapBytes;
+  defaultView: DefaultView;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pictureInPicture: true,
   keepDownloadsDays: 30,
   downloadCapBytes: 2 * GB,
+  defaultView: { kind: "mine" },
 };
 
 export const SETTINGS_META_KEYS: Record<keyof Settings, string> = {
@@ -34,6 +51,7 @@ export const SETTINGS_META_KEYS: Record<keyof Settings, string> = {
   pictureInPicture: "picture_in_picture",
   keepDownloadsDays: "keep_downloads_days",
   downloadCapBytes: "download_cap_bytes",
+  defaultView: "default_view",
 };
 
 const oneOf =
@@ -41,12 +59,24 @@ const oneOf =
   (v: unknown): v is T =>
     allowed.includes(v as T);
 
-const validators: { [K in keyof Settings]: (v: unknown) => v is Settings[K] } = {
-  playbackRate: oneOf(PLAYBACK_RATES),
-  pictureInPicture: (v): v is boolean => typeof v === "boolean",
-  keepDownloadsDays: oneOf(KEEP_DOWNLOADS_DAYS),
-  downloadCapBytes: oneOf(DOWNLOAD_CAPS_BYTES),
+type Codec<T> = { encode: (value: T) => unknown; decode: (raw: unknown) => T | null };
+
+const guard = <T>(ok: (v: unknown) => v is T): Codec<T> => ({
+  encode: (value) => value,
+  decode: (raw) => (ok(raw) ? raw : null),
+});
+
+const codecs: { [K in keyof Settings]: Codec<Settings[K]> } = {
+  playbackRate: guard(oneOf(PLAYBACK_RATES)),
+  pictureInPicture: guard((v): v is boolean => typeof v === "boolean"),
+  keepDownloadsDays: guard(oneOf(KEEP_DOWNLOADS_DAYS)),
+  downloadCapBytes: guard(oneOf(DOWNLOAD_CAPS_BYTES)),
+  defaultView: { encode: defaultViewKey, decode: parseDefaultView },
 };
+
+function encode<K extends keyof Settings>(key: K, value: Settings[K]): string {
+  return JSON.stringify((codecs[key].encode as (v: Settings[K]) => unknown)(value));
+}
 
 const keys = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[];
 
@@ -61,13 +91,14 @@ export function readSettings(db: Db): Settings {
     } catch {
       continue;
     }
-    if (validators[key](parsed)) (out as Record<keyof Settings, unknown>)[key] = parsed;
+    const value = codecs[key].decode(parsed);
+    if (value !== null) (out as Record<keyof Settings, unknown>)[key] = value;
   }
   return out;
 }
 
 export function writeSettings(db: Db, s: Settings): void {
-  for (const key of keys) setMeta(db, SETTINGS_META_KEYS[key], JSON.stringify(s[key]));
+  for (const key of keys) setMeta(db, SETTINGS_META_KEYS[key], encode(key, s[key]));
 }
 
 export const settingsStore = create<Settings>(() => DEFAULT_SETTINGS);
@@ -88,7 +119,7 @@ export function persistSettings(): void {
 
 function set<K extends keyof Settings>(key: K, value: Settings[K]): void {
   settingsStore.setState({ [key]: value } as Pick<Settings, K>);
-  if (store) setMeta(store, SETTINGS_META_KEYS[key], JSON.stringify(value));
+  if (store) setMeta(store, SETTINGS_META_KEYS[key], encode(key, value));
 }
 
 export const settings = {

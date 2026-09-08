@@ -8,8 +8,19 @@ import {
   sheetFilters,
   toQuery,
   filtersStore,
+  hydrateFilters,
+  resolveView,
+  syncFilterTeams,
+  sameView,
+  viewOptions,
+  visibleViews,
   withCustomDate,
 } from "@/lib/filters";
+import { seedDemo } from "@/lib/demo";
+import { DEFAULT_SETTINGS, settingsStore } from "@/lib/settings";
+import { META_TEAMS } from "@/lib/workspace";
+import { setMeta } from "@/lib/db";
+import { testDb } from "@/test/db";
 
 const NOW = Date.parse("2026-09-06T10:00:00Z");
 const DAY = 24 * 60 * 60 * 1000;
@@ -216,5 +227,108 @@ describe("activeChips", () => {
     expect(dateLabel({ preset: "custom", from: null, to })).toMatch(/^Until Sep 3$/);
     expect(dateLabel({ preset: "custom", from: null, to: null })).toBe("Custom dates");
     expect(dateLabel(null)).toBeNull();
+  });
+});
+
+describe("default view", () => {
+  const db = testDb();
+  seedDemo(db, NOW);
+  afterEach(() => {
+    settingsStore.setState(DEFAULT_SETTINGS);
+    hydrateFilters(db);
+  });
+
+  it("takes the initial view from the setting on hydrate", () => {
+    settingsStore.setState({ defaultView: { kind: "team", id: "demo-team-1" } });
+    hydrateFilters(db);
+    expect(filtersStore.getState().view).toEqual({ kind: "team", id: "demo-team-1" });
+  });
+
+  it("falls back to Mine and clears the stale setting once teams are loaded", () => {
+    settingsStore.setState({ defaultView: { kind: "team", id: "gone" } });
+    hydrateFilters(db);
+    expect(filtersStore.getState().view).toEqual({ kind: "mine" });
+    expect(settingsStore.getState().defaultView).toEqual({ kind: "mine" });
+    expect(resolveView({ kind: "team", id: "gone" }, [])).toEqual({ kind: "team", id: "gone" });
+  });
+
+  it("keeps a selected team through a bump while a stale default is still stored", () => {
+    hydrateFilters(db);
+    settingsStore.setState({ defaultView: { kind: "team", id: "gone" } });
+    filters.setView({ kind: "team", id: "demo-team-2" });
+    syncFilterTeams(db);
+    expect(filtersStore.getState().view).toEqual({ kind: "team", id: "demo-team-2" });
+    expect(settingsStore.getState().defaultView).toEqual({ kind: "team", id: "gone" });
+  });
+
+  it("honours a team that only appeared after hydrate", () => {
+    const fresh = testDb();
+    setMeta(fresh, META_TEAMS, JSON.stringify([{ id: "old", name: "Old" }]));
+    hydrateFilters(fresh);
+    setMeta(
+      fresh,
+      META_TEAMS,
+      JSON.stringify([
+        { id: "old", name: "Old" },
+        { id: "new", name: "New" },
+      ]),
+    );
+    settingsStore.setState({ defaultView: { kind: "team", id: "new" } });
+    expect(filtersStore.getState().view).toEqual({ kind: "team", id: "new" });
+  });
+
+  it("re-resolves the current view when a team disappears from the workspace", () => {
+    hydrateFilters(db);
+    filters.setView({ kind: "team", id: "demo-team-2" });
+    syncFilterTeams(db);
+    expect(filtersStore.getState().view).toEqual({ kind: "team", id: "demo-team-2" });
+
+    filters.setView({ kind: "team", id: "gone" });
+    syncFilterTeams(db);
+    expect(filtersStore.getState().view).toEqual({ kind: "mine" });
+  });
+
+  it("follows the setting when it changes and on reset", () => {
+    hydrateFilters(db);
+    settingsStore.setState({ defaultView: { kind: "workspace" } });
+    expect(filtersStore.getState().view).toEqual({ kind: "workspace" });
+    filters.setView({ kind: "mine" });
+    filters.reset();
+    expect(filtersStore.getState().view).toEqual({ kind: "workspace" });
+    filters.setView({ kind: "mine" });
+    filters.clear("view");
+    expect(filtersStore.getState().view).toEqual({ kind: "workspace" });
+  });
+});
+
+describe("view options", () => {
+  const teams = [1, 2, 3, 4, 5, 6].map((n) => ({ id: `t${n}`, name: `Team ${n}` }));
+
+  it("lists Mine, Workspace and every team with stable keys", () => {
+    const options = viewOptions(teams);
+    expect(options.map((o) => o.label)).toEqual(["Mine", "Workspace", ...teams.map((t) => t.name)]);
+    expect(options.map((o) => o.testID)).toEqual([
+      "view-mine",
+      "view-workspace",
+      ...teams.map((t) => `view-team-${t.id}`),
+    ]);
+    expect(sameView({ kind: "team", id: "t1" }, { kind: "team", id: "t2" })).toBe(false);
+    expect(sameView({ kind: "team", id: "t1" }, { kind: "team", id: "t1" })).toBe(true);
+    expect(sameView({ kind: "mine" }, { kind: "workspace" })).toBe(false);
+  });
+
+  it("keeps the selected team visible and hides the overflow", () => {
+    const options = viewOptions(teams);
+    const mine = visibleViews(options, { kind: "mine" });
+    expect(mine.shown.map((o) => o.label)).toEqual(["Mine", "Workspace", "Team 1"]);
+    expect(mine.hidden).toBe(5);
+
+    const selected = visibleViews(options, { kind: "team", id: "t6" });
+    expect(selected.shown.map((o) => o.label)).toEqual(["Mine", "Workspace", "Team 6"]);
+    expect(selected.hidden).toBe(5);
+
+    const few = visibleViews(viewOptions(teams.slice(0, 1)), { kind: "mine" });
+    expect(few.hidden).toBe(0);
+    expect(few.shown).toHaveLength(3);
   });
 });

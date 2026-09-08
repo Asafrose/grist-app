@@ -8,10 +8,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { auth, useAuthToken, useTokenRejected } from "@/lib/auth";
 import { formatBytes } from "@/lib/format";
-import { downloads, transcriptIndex, useStorageStats } from "@/lib/data";
+import { downloads, transcriptIndex, useStorageStats, useWorkspace } from "@/lib/data";
+import { viewOptions } from "@/lib/filters";
 import {
   DOWNLOAD_CAPS_BYTES,
+  defaultViewKey,
   KEEP_DOWNLOADS_DAYS,
+  parseDefaultView,
   PLAYBACK_RATES,
   settings,
   useSetting,
@@ -36,6 +39,8 @@ export function Settings() {
   const stats = useStorageStats();
   const appVersion = Constants.expoConfig?.version ?? "dev";
 
+  const views = viewOptions(useWorkspace().teams);
+
   const clearTranscriptIndex = transcriptIndex.clear;
 
   return (
@@ -56,6 +61,18 @@ export function Settings() {
       </View>
 
       <ProfileCard />
+
+      <Section title="Meetings">
+        <PickerRow
+          icon="people"
+          label="Default view"
+          options={views.map((v) => v.key)}
+          value={defaultViewKey(useSetting("defaultView"))}
+          format={(key) => views.find((v) => v.key === key)?.label ?? "Mine"}
+          onSelect={(key) => settings.set("defaultView", parseDefaultView(key) ?? { kind: "mine" })}
+          testID="setting-default-view"
+        />
+      </Section>
 
       <Section title="Playback">
         <PickerRow

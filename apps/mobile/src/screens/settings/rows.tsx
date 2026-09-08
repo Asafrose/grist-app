@@ -134,6 +134,7 @@ export function PickerRow<T extends string | number>({
   testID: string;
 }) {
   const [open, setOpen] = useState(false);
+  const wrap = options.length > 3;
   return (
     <View>
       <Row
@@ -146,7 +147,12 @@ export function PickerRow<T extends string | number>({
         chevron={open ? "chevronDown" : "chevronRight"}
       />
       {open ? (
-        <View className="mx-3.5 mb-3 flex-row gap-1 rounded-md bg-secondary p-1">
+        <View
+          className={cn(
+            "mx-3.5 mb-3 flex-row gap-1 rounded-md bg-secondary p-1",
+            wrap && "flex-wrap",
+          )}
+        >
           {options.map((option) => {
             const selected = option === value;
             return (
@@ -160,7 +166,8 @@ export function PickerRow<T extends string | number>({
                   setOpen(false);
                 }}
                 className={cn(
-                  "h-[34px] flex-1 items-center justify-center rounded-[9px]",
+                  "h-[34px] items-center justify-center rounded-[9px]",
+                  wrap ? "px-3" : "flex-1",
                   selected && "bg-card shadow-sm shadow-black/10",
                 )}
               >

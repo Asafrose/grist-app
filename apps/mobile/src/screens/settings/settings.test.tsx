@@ -3,9 +3,11 @@ import * as WebBrowser from "expo-web-browser";
 import { auth, authStore } from "@/lib/auth";
 import { downloads } from "@/lib/data";
 import { indexSize } from "@/lib/db";
+import { filtersStore } from "@/lib/filters";
 import { makeClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { queryClient } from "@/lib/query";
+import { getWorkspace } from "@/lib/workspace";
 import { DEFAULT_SETTINGS, settingsStore } from "@/lib/settings";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import { maskToken, Settings } from "./index";
@@ -75,6 +77,22 @@ describe("Settings", () => {
     expect(screen.getByTestId("setting-rate-value")).toHaveTextContent("1.5×");
     expect(settingsStore.getState().playbackRate).toBe(1.5);
     expect(screen.queryByTestId("setting-rate-option-1.5")).toBeNull();
+  });
+
+  it("picks a default meetings view from Mine, Workspace and the teams", async () => {
+    await render(<Settings />);
+    expect(screen.getByText("Meetings")).toBeOnTheScreen();
+    expect(screen.getByTestId("setting-default-view-value")).toHaveTextContent("Mine");
+    await fireEvent.press(screen.getByTestId("setting-default-view"));
+    const teams = getWorkspace(libraryStore.getState().db!).teams;
+    expect(screen.getByTestId("setting-default-view-option-workspace")).toBeOnTheScreen();
+    for (const t of teams) {
+      expect(screen.getByTestId(`setting-default-view-option-team:${t.id}`)).toBeOnTheScreen();
+    }
+    await fireEvent.press(screen.getByTestId(`setting-default-view-option-team:${teams[1].id}`));
+    expect(settingsStore.getState().defaultView).toEqual({ kind: "team", id: teams[1].id });
+    expect(screen.getByTestId("setting-default-view-value")).toHaveTextContent(teams[1].name);
+    expect(filtersStore.getState().view).toEqual({ kind: "team", id: teams[1].id });
   });
 
   it("changes the storage caps through pickers", async () => {

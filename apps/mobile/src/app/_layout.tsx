@@ -84,6 +84,16 @@ function Root() {
             }}
           />
           <Stack.Screen
+            name="view-picker"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.6, 1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 20,
+              contentStyle: { backgroundColor: palette[scheme].surface },
+            }}
+          />
+          <Stack.Screen
             name="actions"
             options={{
               presentation: "formSheet",

@@ -38,6 +38,9 @@ const topics = [
   "Weekly sync",
 ];
 const internal = ["Design review", "Sprint planning", "Hiring sync", "Roadmap check-in"];
+const teams = ["Sales", "Customer Success", "Engineering", "Design", "Marketing", "Support"].map(
+  (name, i) => ({ id: `demo-team-${i}`, name }),
+);
 
 const HOUR = 3_600_000;
 const offsetsHours = [
@@ -85,6 +88,7 @@ export function demoRecordings(now = Date.now()): Recording[] {
       start_datetime: isoSeconds(start),
       end_datetime: isoSeconds(start + durationMs),
       participants,
+      teams: [teams[i % teams.length]],
       recorders: base.recorders.map((r) => ({
         ...r,
         id: recorder.id,
