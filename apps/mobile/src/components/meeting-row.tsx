@@ -5,7 +5,7 @@ import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { meetingCompany } from "@/lib/company";
 import { type RecordingListRow, useDownload } from "@/lib/data";
-import { formatDurationCompact, formatTime } from "@/lib/format";
+import { formatDurationCompact, formatTime, watchProgress } from "@/lib/format";
 import { useThumbnail } from "@/lib/thumbnails";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
@@ -15,6 +15,7 @@ function Thumbnail({ item }: { item: RecordingListRow }) {
   const server = item.thumbnailUrl ?? item.highlightThumbnailUrl;
   const generated = useThumbnail({ ...item, thumbnailUrl: server });
   const uri = generated ?? server;
+  const progress = watchProgress(item.positionSeconds, item.durationMs);
   return (
     <View className="h-12 w-[72px] overflow-hidden rounded-[8px] bg-foreground">
       {uri ? (
@@ -34,13 +35,34 @@ function Thumbnail({ item }: { item: RecordingListRow }) {
         </View>
       )}
       <View
-        className="absolute bottom-1 left-1 rounded px-[4px] py-px"
+        className={cn(
+          "absolute left-1 rounded px-[4px] py-px",
+          progress ? "bottom-[7px]" : "bottom-1",
+        )}
         style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
       >
-        <Text className="font-mono text-[10px] leading-[14px] text-white">
-          {formatDurationCompact(item.durationMs)}
+        <Text
+          testID={progress ? `time-left-${item.id}` : undefined}
+          className={cn(
+            "text-[10px] leading-[14px] text-white",
+            progress ? "font-jakarta-semibold" : "font-mono",
+          )}
+        >
+          {progress ? progress.timeLeft : formatDurationCompact(item.durationMs)}
         </Text>
       </View>
+      {progress ? (
+        <View
+          testID={`progress-${item.id}`}
+          className="absolute bottom-0 left-0 right-0 h-[3px]"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        >
+          <View
+            className="h-full bg-primary"
+            style={{ width: `${Math.round(progress.fraction * 100)}%` }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

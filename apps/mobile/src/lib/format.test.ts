@@ -6,6 +6,7 @@ import {
   formatMeetingDate,
   formatShortDate,
   formatTime,
+  watchProgress,
 } from "@/lib/format";
 
 describe("formatClock", () => {
@@ -109,5 +110,32 @@ describe("formatDurationCompact", () => {
     [-5000, "0s"],
   ])("formats %s ms as %s", (ms, expected) => {
     expect(formatDurationCompact(ms)).toBe(expected);
+  });
+});
+
+describe("watchProgress", () => {
+  const thirtyMinutes = 30 * 60_000;
+
+  it("returns nothing without a usable position", () => {
+    expect(watchProgress(null, thirtyMinutes)).toBeNull();
+    expect(watchProgress(undefined, thirtyMinutes)).toBeNull();
+    expect(watchProgress(0, thirtyMinutes)).toBeNull();
+    expect(watchProgress(-10, thirtyMinutes)).toBeNull();
+    expect(watchProgress(60, 0)).toBeNull();
+  });
+
+  it("returns nothing within the end margin", () => {
+    expect(watchProgress(30 * 60 - 30, thirtyMinutes)).toBeNull();
+    expect(watchProgress(30 * 60 - 1, thirtyMinutes)).toBeNull();
+    expect(watchProgress(30 * 60 + 120, thirtyMinutes)).toBeNull();
+  });
+
+  it("reports the fraction watched and the rounded minutes left", () => {
+    expect(watchProgress(10 * 60, thirtyMinutes)).toEqual({
+      fraction: 1 / 3,
+      timeLeft: "20 min left",
+    });
+    expect(watchProgress(29 * 60 + 20, thirtyMinutes)?.timeLeft).toBe("1 min left");
+    expect(watchProgress(60, thirtyMinutes)?.timeLeft).toBe("29 min left");
   });
 });

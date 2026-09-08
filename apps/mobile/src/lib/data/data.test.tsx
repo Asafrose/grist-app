@@ -423,6 +423,19 @@ describe("playback positions", () => {
     expect(playbackPositions.get(id)).toBeNull();
   });
 
+  it("bumps the library version once per minute of playback and on clear", () => {
+    const id = demo[1].id;
+    playbackPositions.save(id, 121);
+    const first = libraryStore.getState().version;
+    playbackPositions.save(id, 130);
+    playbackPositions.save(id, 179);
+    expect(libraryStore.getState().version).toBe(first);
+    playbackPositions.save(id, 181);
+    expect(libraryStore.getState().version).toBe(first + 1);
+    playbackPositions.clear(id);
+    expect(libraryStore.getState().version).toBe(first + 2);
+  });
+
   it("is inert before the library is ready", () => {
     const saved = libraryStore.getState().db;
     libraryStore.setState({ db: null });

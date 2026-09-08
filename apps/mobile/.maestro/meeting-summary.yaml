@@ -67,6 +67,11 @@ appId: com.asafrose.grist
 - tapOn: "Meetings"
 - assertVisible:
     id: "meetings-list"
+# The seeked recording shows its remaining time in the list.
+- extendedWaitUntil:
+    visible: ".*min left.*"
+    timeout: 15000
+- takeScreenshot: meetings-progress
 # Mini player: hidden on the playing meeting, present elsewhere, taps back into it.
 - assertVisible:
     id: "mini-player"

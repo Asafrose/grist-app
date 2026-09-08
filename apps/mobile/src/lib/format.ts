@@ -1,3 +1,21 @@
+export const PROGRESS_END_MARGIN_SECONDS = 30;
+
+export type WatchProgress = { fraction: number; timeLeft: string };
+
+export function watchProgress(
+  positionSeconds: number | null | undefined,
+  durationMs: number,
+): WatchProgress | null {
+  if (!positionSeconds || positionSeconds <= 0 || durationMs <= 0) return null;
+  const duration = durationMs / 1000;
+  const remaining = duration - positionSeconds;
+  if (remaining <= PROGRESS_END_MARGIN_SECONDS) return null;
+  return {
+    fraction: Math.min(1, positionSeconds / duration),
+    timeLeft: `${Math.max(1, Math.round(remaining / 60))} min left`,
+  };
+}
+
 export function formatClock(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   const h = Math.floor(s / 3600);

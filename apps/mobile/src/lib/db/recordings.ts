@@ -263,9 +263,17 @@ const highlightThumbnailUrl = sql<string | null>`(SELECT h.thumbnail_url FROM hi
   WHERE h.recording_id = recordings.id AND h.thumbnail_url IS NOT NULL
   ORDER BY h.timestamp LIMIT 1)`.as("highlight_thumbnail_url");
 
+const positionSeconds = sql<number | null>`(SELECT p.position_seconds FROM playback_positions p
+  WHERE p.recording_id = recordings.id)`.as("position_seconds");
+
 export function recordingsQuery(db: Db, f: RecordingsFilter = {}) {
   return db
-    .select({ ...getTableColumns(recordings), externalEmails, highlightThumbnailUrl })
+    .select({
+      ...getTableColumns(recordings),
+      externalEmails,
+      highlightThumbnailUrl,
+      positionSeconds,
+    })
     .from(recordings)
     .where(and(...filterClauses(f)))
     .orderBy(desc(recordings.startDatetime))

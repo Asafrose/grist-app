@@ -315,6 +315,18 @@ describe("playback positions", () => {
     expect(getPlaybackPosition(db, "r1")).toBeNull();
   });
 
+  it("joins the stored position onto the recordings list", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    expect(listRecordings(db).map((r) => r.positionSeconds)).toEqual(recs.map(() => null));
+    setPlaybackPosition(db, recs[1].id, 90);
+    const rows = listRecordings(db);
+    expect(rows.find((r) => r.id === recs[1].id)?.positionSeconds).toBe(90);
+    expect(rows.filter((r) => r.positionSeconds !== null)).toHaveLength(1);
+    clearPlaybackPosition(db, recs[1].id);
+    expect(listRecordings(db).every((r) => r.positionSeconds === null)).toBe(true);
+  });
+
   it("drops the row when the recording is deleted by the prune", () => {
     const db = testDb();
     upsertRecordings(db, recs, NOW);
