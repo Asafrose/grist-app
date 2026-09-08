@@ -1,3 +1,5 @@
+import { GrainApiError } from "@grist/grain-api";
+import { auth, authStore } from "@/lib/auth";
 import { DEMO_MEDIA_URL } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
 import {
@@ -67,6 +69,14 @@ describe("mediaUrl", () => {
     invalidateMediaUrl("r1");
     await mediaUrl("r2", "pat");
     expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects the token when the media URL comes back 401", async () => {
+    authStore.setState({ status: "signed-in", token: "pat", rejected: null });
+    resolveMediaUrl.mockRejectedValueOnce(new GrainApiError("Unauthorized", 401));
+    await expect(mediaUrl("r1", "pat")).rejects.toThrow("Unauthorized");
+    expect(auth.rejected()).toBe("Grain didn't accept that token. Check it and try again.");
+    auth.accept();
   });
 
   it("clear drops every cached URL", async () => {

@@ -6,7 +6,7 @@ const mockStore = (SecureStore as unknown as { mockKeychain: Map<string, string>
 beforeEach(() => {
   mockStore.clear();
   jest.clearAllMocks();
-  authStore.setState({ status: "loading", token: null });
+  authStore.setState({ status: "loading", token: null, rejected: null });
 });
 
 describe("auth store", () => {
@@ -47,6 +47,35 @@ describe("auth store", () => {
     (SecureStore.setItemAsync as jest.Mock).mockRejectedValueOnce(new Error("keychain locked"));
     await expect(auth.signIn("bad")).rejects.toThrow("keychain locked");
     expect(authStore.getState().status).toBe("loading");
+  });
+
+  it("holds the token when Grain rejects it and clears the rejection on the next success", async () => {
+    await auth.signIn("grain_pat_xyz");
+    auth.reject("Grain didn't accept that token. Check it and try again.");
+    expect(authStore.getState()).toMatchObject({
+      status: "signed-in",
+      token: "grain_pat_xyz",
+      rejected: "Grain didn't accept that token. Check it and try again.",
+    });
+    expect(auth.rejected()).toBe("Grain didn't accept that token. Check it and try again.");
+    auth.accept();
+    expect(auth.rejected()).toBeNull();
+    auth.accept();
+    expect(auth.rejected()).toBeNull();
+  });
+
+  it("ignores a rejection while signed out and clears it on sign-in and sign-out", async () => {
+    auth.reject("nope");
+    expect(auth.rejected()).toBeNull();
+    await auth.signIn("t");
+    auth.reject("nope");
+    auth.reject("nope");
+    expect(auth.rejected()).toBe("nope");
+    await auth.signIn("t2");
+    expect(auth.rejected()).toBeNull();
+    auth.reject("nope");
+    await auth.signOut();
+    expect(auth.rejected()).toBeNull();
   });
 
   it("notifies subscribers on every transition", async () => {

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
-import { auth, useAuthToken } from "@/lib/auth";
+import { auth, useAuthToken, useTokenRejected } from "@/lib/auth";
 import { formatBytes } from "@/lib/format";
 import { downloads, transcriptIndex, useStorageStats } from "@/lib/data";
 import {
@@ -28,7 +28,9 @@ export function maskToken(token: string): string {
 export function Settings() {
   const insets = useSafeAreaInsets();
   const token = useAuthToken() ?? "";
-  const [replacing, setReplacing] = useState(false);
+  const rejected = useTokenRejected();
+  const [override, setOverride] = useState<boolean | null>(null);
+  const replacing = override ?? rejected !== null;
   const stats = useStorageStats();
   const appVersion = Constants.expoConfig?.version ?? "dev";
 
@@ -130,11 +132,17 @@ export function Settings() {
             label="Personal access token"
             value={replacing ? undefined : maskToken(token)}
             valueTestID="token-masked"
-            onPress={() => setReplacing((r) => !r)}
+            onPress={() => setOverride(!replacing)}
             testID="token-row"
             chevron={replacing ? "chevronDown" : "chevronRight"}
+            destructive={rejected !== null}
           />
-          {replacing ? <ReplaceToken onDone={() => setReplacing(false)} /> : null}
+          {rejected !== null ? (
+            <Text testID="token-rejected" className="px-4 pb-2 text-[13px] text-destructive">
+              {rejected}
+            </Text>
+          ) : null}
+          {replacing ? <ReplaceToken onDone={() => setOverride(false)} /> : null}
         </View>
         <Row
           icon="external"

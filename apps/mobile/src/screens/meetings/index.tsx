@@ -24,12 +24,14 @@ import {
 import { activeChips, filters, toQuery, useFilters, type View as FilterView } from "@/lib/filters";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatDurationCompact, formatTime } from "@/lib/format";
+import { useTokenRejected } from "@/lib/auth";
 import { library, useSyncError, useSyncStatus } from "@/lib/library";
 import { useMe } from "@/lib/me";
 import { useThumbnail } from "@/lib/thumbnails";
 import { type DayItem, groupByDay } from "@/lib/sections";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
+import { TokenBanner } from "./token-banner";
 
 function Thumbnail({ item }: { item: RecordingListRow }) {
   const colors = useColors();
@@ -224,6 +226,7 @@ export function Meetings() {
   const insets = useSafeAreaInsets();
   const sync = useSyncStatus();
   const error = useSyncError();
+  const rejected = useTokenRejected();
   const state = useFilters();
 
   const workspace = useWorkspace();
@@ -272,7 +275,7 @@ export function Meetings() {
           Meetings
         </Text>
         <View className="flex-row items-center gap-2">
-          {sync === "error" ? (
+          {sync === "error" && !rejected ? (
             <Text className="max-w-[160px] text-[12px] text-destructive" numberOfLines={1}>
               {error ?? "Sync failed"}
             </Text>
@@ -298,6 +301,8 @@ export function Meetings() {
           </Pressable>
         </View>
       </View>
+
+      <TokenBanner />
 
       <View className="px-5 pt-1.5">
         <View className="h-11 flex-row items-center gap-2.5 rounded-md bg-secondary px-3.5">

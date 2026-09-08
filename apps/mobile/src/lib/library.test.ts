@@ -1,9 +1,9 @@
-import type { Recording } from "@grist/grain-api";
+import { GrainApiError, type Recording } from "@grist/grain-api";
 import page from "@grist/grain-api/fixtures/recordings.json";
 import { focusManager } from "@tanstack/react-query";
 import * as Network from "expo-network";
 import { renderHook, waitFor } from "@testing-library/react-native";
-import { authStore } from "@/lib/auth";
+import { auth, authStore } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
 import {
@@ -113,10 +113,38 @@ describe("library store", () => {
     expect(result.current).toEqual({ status: "idle", error: null });
     await library.refresh(true);
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.error).toBe("rate limited");
+    expect(result.current.error).toBe("Couldn't reach Grain. Check your connection and try again.");
     iterate.mockImplementation(async function* () {
       yield { cursor: null, recordings: recs };
     });
+  });
+
+  it("flips auth into the rejected state when a background refresh gets a 401", async () => {
+    await libraryReady;
+    const before = listRecordings(libraryStore.getState().db!).length;
+    authStore.setState({ status: "signed-in", token: "pat-401", rejected: null });
+    await new Promise((r) => setTimeout(r, 0));
+    auth.accept();
+    iterate.mockImplementation(async function* () {
+      yield* [];
+      throw new GrainApiError("Unauthorized", 401);
+    });
+    const { result } = await renderHook(() => useSyncError());
+    await library.refresh(true);
+    await waitFor(() =>
+      expect(result.current).toBe("Grain didn't accept that token. Check it and try again."),
+    );
+    expect(authStore.getState()).toMatchObject({
+      status: "signed-in",
+      token: "pat-401",
+      rejected: "Grain didn't accept that token. Check it and try again.",
+    });
+    expect(listRecordings(libraryStore.getState().db!)).toHaveLength(before);
+    iterate.mockImplementation(async function* () {
+      yield { cursor: null, recordings: recs };
+    });
+    auth.accept();
+    authStore.setState({ status: "signed-in", token: "pat", rejected: null });
   });
 
   it("refreshes when the app returns to the foreground", async () => {

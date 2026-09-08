@@ -3,6 +3,7 @@ import { create, useStore } from "zustand";
 import { auth } from "@/lib/auth";
 import { DEMO_MEDIA_URL, isDemoToken } from "@/lib/demo";
 import { makeClient } from "@/lib/grain";
+import { reportAuthFailure } from "@/lib/query";
 import { settings } from "@/lib/settings";
 import { downloadsDirectory } from "@/lib/storage";
 
@@ -129,6 +130,7 @@ async function start(id: string, mediaType = "video"): Promise<void> {
     if (capHit) {
       set(id, { ...IDLE_DOWNLOAD, status: "error", error: CAP_EXCEEDED });
     } else if (!controller.signal.aborted) {
+      reportAuthFailure(e);
       set(id, {
         ...IDLE_DOWNLOAD,
         status: "error",

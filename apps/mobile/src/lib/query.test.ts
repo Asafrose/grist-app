@@ -2,8 +2,10 @@ import { GrainApiError } from "@grist/grain-api";
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import * as Network from "expo-network";
 import { AppState } from "react-native";
+import { auth, authStore } from "@/lib/auth";
 import {
   isAuthError,
+  reportAuthFailure,
   onAppStateChange,
   QUERY_RETRIES,
   queryClient,
@@ -38,6 +40,23 @@ describe("query client defaults", () => {
     expect(shouldRetry(0, unauthorized)).toBe(false);
     expect(isAuthError(new GrainApiError("Server error", 500))).toBe(false);
     expect(isAuthError(new Error("offline"))).toBe(false);
+  });
+});
+
+describe("reportAuthFailure", () => {
+  beforeEach(() => {
+    authStore.setState({ status: "signed-in", token: "pat", rejected: null });
+  });
+
+  it("moves a signed-in token into the rejected state with user-facing copy", () => {
+    expect(reportAuthFailure(new GrainApiError("Unauthorized", 401))).toBe(true);
+    expect(auth.rejected()).toBe("Grain didn't accept that token. Check it and try again.");
+  });
+
+  it("leaves other failures alone", () => {
+    expect(reportAuthFailure(new GrainApiError("boom", 500))).toBe(false);
+    expect(reportAuthFailure(new TypeError("offline"))).toBe(false);
+    expect(auth.rejected()).toBeNull();
   });
 });
 

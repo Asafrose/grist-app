@@ -147,6 +147,18 @@ describe("Settings", () => {
     await waitFor(() => expect(queryClient.isFetching({ queryKey: ["library"] })).toBe(0));
   });
 
+  it("opens the token row already expanded while the current token is rejected", async () => {
+    auth.reject("Grain didn't accept that token. Check it and try again.");
+    await render(<Settings />);
+    expect(screen.getByTestId("token-rejected")).toHaveTextContent(
+      "Grain didn't accept that token. Check it and try again.",
+    );
+    expect(screen.getByTestId("replace-token-input")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("token-row"));
+    expect(screen.queryByTestId("replace-token-input")).toBeNull();
+    auth.accept();
+  });
+
   it("opens Grain settings and the source repo, and signs out", async () => {
     await render(<Settings />);
     await fireEvent.press(screen.getByTestId("open-grain-settings"));

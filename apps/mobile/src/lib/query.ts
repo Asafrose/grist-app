@@ -2,6 +2,8 @@ import { GrainApiError } from "@grist/grain-api";
 import * as Network from "expo-network";
 import { focusManager, onlineManager, QueryClient } from "@tanstack/react-query";
 import { AppState, type AppStateStatus } from "react-native";
+import { auth } from "@/lib/auth";
+import { tokenErrorMessage } from "@/lib/token-error";
 
 export const QUERY_RETRIES = 2;
 export const RETRY_BASE_MS = 1_000;
@@ -9,6 +11,12 @@ export const RETRY_MAX_MS = 30_000;
 
 export function isAuthError(error: unknown): boolean {
   return error instanceof GrainApiError && (error.isAuth || error.status === 401);
+}
+
+export function reportAuthFailure(error: unknown): boolean {
+  if (!isAuthError(error)) return false;
+  auth.reject(tokenErrorMessage(error));
+  return true;
 }
 
 export function shouldRetry(failureCount: number, error: unknown): boolean {

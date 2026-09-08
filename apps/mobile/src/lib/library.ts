@@ -7,10 +7,11 @@ import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
 import { downloads } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
+import { tokenErrorMessage } from "@/lib/token-error";
 import { clearMediaUrls } from "@/lib/media-url";
 import { me } from "@/lib/me";
 import { playback } from "@/lib/player";
-import { queryClient } from "@/lib/query";
+import { queryClient, reportAuthFailure } from "@/lib/query";
 import { hydrateSettings, persistSettings } from "@/lib/settings";
 import { META_LAST_SYNC, prefetchTranscripts, type RecordingsApi, syncLibrary } from "@/lib/sync";
 import { thumbnails } from "@/lib/thumbnails";
@@ -49,6 +50,7 @@ async function runSync(db: Db, token: string): Promise<string> {
   const api = client.recordings;
   await syncLibrary(db, api, { onPage: () => bump() });
   await syncWorkspace(db, client, token).catch(() => undefined);
+  auth.accept();
   bump();
   void prefetchInBackground(db, api, token);
   return getMeta(db, META_LAST_SYNC) ?? new Date().toISOString();
@@ -67,7 +69,8 @@ async function refresh(force = false): Promise<void> {
       queryFn: () => runSync(db, token),
       staleTime: LIBRARY_STALE_MS,
     });
-  } catch {
+  } catch (e) {
+    reportAuthFailure(e);
     // the failure lives in the query state; useSyncError surfaces it
   }
   downloads.prune();
@@ -163,7 +166,7 @@ export const useSyncStatus = (): "idle" | "syncing" | "error" => {
 export const useSyncError = (): string | null => {
   const { error } = useLibraryQuery();
   if (!error) return null;
-  return error instanceof Error ? error.message : String(error);
+  return tokenErrorMessage(error);
 };
 
 export function useDb(): Db {
