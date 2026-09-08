@@ -16,6 +16,7 @@ import {
   usePlaybackPosition,
   usePlaybackRate,
 } from "@/lib/player";
+import { useSetting } from "@/lib/settings";
 
 export const CONTROLS_HIDE_MS = 3000;
 
@@ -77,6 +78,7 @@ export function Fullscreen() {
   const current = useNowPlaying();
   const playing = useIsPlaying();
   const rate = usePlaybackRate();
+  const pipEnabled = useSetting("pictureInPicture");
   const [visible, setVisible] = useState(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -166,12 +168,14 @@ export function Fullscreen() {
                   {rate}×
                 </Text>
               </Pressable>
-              {isPictureInPictureSupported() ? (
+              {pipEnabled && isPictureInPictureSupported() ? (
                 <Control
                   icon="pip"
                   label="Picture in picture"
                   testID="fs-pip"
-                  onPress={act(() => void playback.startPictureInPicture())}
+                  onPress={act(() => {
+                    void playback.startPictureInPicture().catch(() => {});
+                  })}
                 />
               ) : null}
             </View>

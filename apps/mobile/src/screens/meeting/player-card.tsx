@@ -21,6 +21,7 @@ import {
   usePlaybackRate,
   usePlaybackStatus,
 } from "@/lib/player";
+import { useSetting } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 const TAG_BG = "rgba(255,255,255,0.14)";
@@ -151,6 +152,7 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
   const error = usePlaybackError();
   const loading = status === "loading" && isCurrent;
   const rate = usePlaybackRate();
+  const pipEnabled = useSetting("pictureInPicture");
   const [ratesOpen, setRatesOpen] = useState(false);
   const hasMedia = rec.mediaType !== "transcript";
   const nowPlaying = toNowPlaying(rec);
@@ -217,13 +219,15 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
             {rec.mediaType === "video" ? (
               isCurrent ? (
                 <View className="flex-row items-center">
-                  {isPictureInPictureSupported() ? (
+                  {pipEnabled && isPictureInPictureSupported() ? (
                     <Pressable
                       testID="pip"
                       accessibilityRole="button"
                       accessibilityLabel="Picture in picture"
                       hitSlop={8}
-                      onPress={() => playback.startPictureInPicture()}
+                      onPress={() => {
+                        void playback.startPictureInPicture().catch(() => {});
+                      }}
                       className="h-9 w-9 items-center justify-center active:opacity-60"
                     >
                       <Icon name="pip" size={20} color={PLAYER_ON_SURFACE} />

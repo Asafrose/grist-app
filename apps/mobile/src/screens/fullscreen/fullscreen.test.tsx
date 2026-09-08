@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@/test/render";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
+import { settings } from "@/lib/settings";
 import { CONTROLS_HIDE_MS, Fullscreen } from "./index";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
@@ -21,6 +22,7 @@ const video: NowPlaying = {
 beforeEach(() => {
   jest.restoreAllMocks();
   mockBack.mockClear();
+  settings.set("pictureInPicture", true);
   playerStore.setState({
     current: video,
     status: "ready",
@@ -75,6 +77,22 @@ describe("Fullscreen", () => {
     expect(setRate).toHaveBeenCalledWith(1.2);
     await fireEvent.press(screen.getByTestId("fs-pip"));
     expect(pip).toHaveBeenCalledTimes(1);
+  });
+
+  it("swallows a rejected picture in picture start", async () => {
+    const pip = jest
+      .spyOn(playback, "startPictureInPicture")
+      .mockRejectedValue(new Error("not allowed"));
+    await render(<Fullscreen />);
+    await fireEvent.press(screen.getByTestId("fs-pip"));
+    expect(pip).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the picture in picture button when the setting is off", async () => {
+    settings.set("pictureInPicture", false);
+    await render(<Fullscreen />);
+    expect(screen.queryByTestId("fs-pip")).toBeNull();
+    expect(screen.getByTestId("fs-rate")).toBeOnTheScreen();
   });
 
   it("hides the controls after a few seconds and brings them back on tap", async () => {
