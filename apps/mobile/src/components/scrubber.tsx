@@ -112,7 +112,11 @@ export function Scrubber({
       </GestureDetector>
       {labels ? (
         <View className="flex-row justify-between">
-          <Text className="font-mono text-[12px]" style={{ color: labelColor }}>
+          <Text
+            testID={`${testID ?? "scrubber"}-position`}
+            className="font-mono text-[12px]"
+            style={{ color: labelColor }}
+          >
             {formatClock(shown)}
           </Text>
           <Text className="font-mono text-[12px]" style={{ color: labelColor }}>

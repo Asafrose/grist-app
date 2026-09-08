@@ -16,6 +16,23 @@ export function segmentAt<T extends Timed>(segments: readonly T[], ms: number): 
   return found < 0 ? null : segments[found];
 }
 
+const MIN_ADVANCE_MS = 500;
+
+export function nextSpeakerStart<T extends Timed & { speaker: string }>(
+  segments: readonly T[],
+  positionMs: number,
+  leadMs = 1000,
+): number | null {
+  let speaker = segmentAt(segments, positionMs)?.speaker ?? null;
+  for (const s of segments) {
+    if (s.start <= positionMs || s.speaker === speaker) continue;
+    const target = Math.max(0, Math.min(s.start, Math.max(positionMs + 1, s.start - leadMs)));
+    if (target - positionMs >= MIN_ADVANCE_MS) return target;
+    speaker = s.speaker;
+  }
+  return null;
+}
+
 export function speakers(segments: readonly { speaker: string }[]): string[] {
   const seen: string[] = [];
   for (const s of segments) if (!seen.includes(s.speaker)) seen.push(s.speaker);

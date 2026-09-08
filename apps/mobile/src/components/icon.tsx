@@ -117,6 +117,13 @@ const paths = {
       <Path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
     </>
   ),
+  nextSpeaker: (
+    <>
+      <Circle cx="8" cy="7" r="3" />
+      <Path d="M3 19a5 5 0 0 1 10 0" />
+      <Path d="M16 8l4 4-4 4" />
+    </>
+  ),
   text: <Path d="M4 6h16M4 10h16M4 14h10M4 18h7" />,
   check: <Path d="M5 12l5 5L20 7" />,
   close: <Path d="M6 6l12 12M18 6L6 18" />,

@@ -52,6 +52,28 @@ appId: com.asafrose.grist
     id: "fs-seek-forward"
 - tapOn:
     id: "fs-seek-back"
+# Rewind to the start, walk forward to 0:40 (Mia is speaking from 35.9s to 43.5s in the
+# demo transcript), then jump to a second before Marcus starts at 44.276s
+- tapOn:
+    id: "fs-seek-back"
+    repeat: 8
+    delay: 200
+- assertVisible:
+    id: "fs-scrubber-position"
+    text: "0:00"
+- tapOn:
+    id: "fs-seek-forward"
+    repeat: 4
+    delay: 200
+- assertVisible:
+    id: "fs-scrubber-position"
+    text: "0:40"
+- tapOn:
+    id: "fs-next-speaker"
+- assertVisible:
+    id: "fs-scrubber-position"
+    text: "0:43"
+- takeScreenshot: fullscreen-next-speaker
 # Playing again: controls auto-hide after ~3s
 - tapOn:
     id: "fs-play-pause"

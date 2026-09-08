@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/icon";
 import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/player-view";
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
+import { useTranscript } from "@/lib/data";
 import { haptics } from "@/lib/haptics";
 import { startPictureInPicture } from "@/lib/pip";
 import {
@@ -19,6 +20,7 @@ import {
   usePlaybackRate,
 } from "@/lib/player";
 import { useSetting } from "@/lib/settings";
+import { nextSpeakerStart } from "@/lib/transcript";
 
 export const CONTROLS_HIDE_MS = 3000;
 
@@ -50,6 +52,27 @@ function Control({
     >
       <Icon name={icon} size={size >= 64 ? 30 : 22} color={PLAYER_ON_SURFACE} />
     </Pressable>
+  );
+}
+
+function NextSpeaker({
+  recordingId,
+  onPress,
+}: {
+  recordingId: string;
+  onPress: (targetMs: number) => void;
+}) {
+  const segments = useTranscript(recordingId);
+  const position = usePlaybackPosition();
+  const target = nextSpeakerStart(segments ?? [], position * 1000);
+  if (target === null) return null;
+  return (
+    <Control
+      icon="nextSpeaker"
+      label="Next speaker"
+      testID="fs-next-speaker"
+      onPress={() => onPress(target)}
+    />
   );
 }
 
@@ -208,6 +231,18 @@ export function Fullscreen() {
               label="Forward 10 seconds"
               testID="fs-seek-forward"
               onPress={act(() => playback.seekBy(10))}
+            />
+          </View>
+
+          <View className="absolute right-5 bottom-24 items-end" pointerEvents="box-none">
+            <NextSpeaker
+              recordingId={current.id}
+              onPress={(ms) =>
+                act(() => {
+                  haptics.selection();
+                  playback.seekTo(ms / 1000);
+                })()
+              }
             />
           </View>
 

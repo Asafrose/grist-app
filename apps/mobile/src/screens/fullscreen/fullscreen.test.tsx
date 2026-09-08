@@ -1,6 +1,8 @@
 import { Alert } from "react-native";
 import { act, fireEvent, render, screen } from "@/test/render";
+import { setTranscript } from "@/lib/db";
 import { haptics } from "@/lib/haptics";
+import { libraryReady, libraryStore } from "@/lib/library";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 import { settings } from "@/lib/settings";
 import { CONTROLS_HIDE_MS, Fullscreen } from "./index";
@@ -21,6 +23,24 @@ const video: NowPlaying = {
   thumbnailUrl: null,
   durationMs: 600_000,
 };
+
+const seedTranscript = (segments: { start: number; end: number; speaker: string }[]) =>
+  act(async () =>
+    setTranscript(
+      libraryStore.getState().db!,
+      video.id,
+      segments.map((s) => ({ ...s, text: "line", participant_id: null })),
+      "2026-09-06T10:00:00Z",
+    ),
+  );
+
+beforeAll(async () => {
+  await libraryReady;
+});
+
+afterEach(async () => {
+  await seedTranscript([]);
+});
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -45,7 +65,12 @@ const tick = async (ms: number) => {
 
 describe("Fullscreen", () => {
   it("renders the shared video view with our overlay controls", async () => {
+    await seedTranscript([
+      { start: 100_000, end: 125_000, speaker: "Ana Lima" },
+      { start: 130_000, end: 140_000, speaker: "Ben Ortiz" },
+    ]);
     await render(<Fullscreen />);
+    await screen.findByTestId("fs-next-speaker");
     expect(screen.getByTestId("video-view")).toBeOnTheScreen();
     expect(screen.getByTestId("fs-controls")).toBeOnTheScreen();
     for (const id of [
@@ -56,6 +81,7 @@ describe("Fullscreen", () => {
       "fs-rate",
       "fs-pip",
       "fs-scrubber",
+      "fs-next-speaker",
     ]) {
       expect(screen.getByTestId(id)).toBeOnTheScreen();
     }
@@ -144,6 +170,25 @@ describe("Fullscreen", () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
     expect(stop).not.toHaveBeenCalled();
     expect(playerStore.getState()).toMatchObject({ current: video, position: 120, playing: true });
+  });
+
+  it("seeks a second before the next speaker starts", async () => {
+    const seekTo = jest.spyOn(playback, "seekTo").mockImplementation(() => {});
+    await seedTranscript([
+      { start: 100_000, end: 125_000, speaker: "Ana Lima" },
+      { start: 130_000, end: 140_000, speaker: "Ben Ortiz" },
+    ]);
+    await render(<Fullscreen />);
+    jest.mocked(haptics.selection).mockClear();
+    await fireEvent.press(await screen.findByTestId("fs-next-speaker"));
+    expect(seekTo).toHaveBeenCalledWith(129);
+    expect(haptics.selection).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the next speaker control without a later speaker change", async () => {
+    await seedTranscript([{ start: 100_000, end: 400_000, speaker: "Ana Lima" }]);
+    await render(<Fullscreen />);
+    expect(screen.queryByTestId("fs-next-speaker")).toBeNull();
   });
 
   it("offers only a way out when nothing is playing", async () => {
