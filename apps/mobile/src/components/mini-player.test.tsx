@@ -39,7 +39,6 @@ jest.mock("react-native-gesture-handler", () => {
   return {
     Gesture: { Pan: () => pan },
     GestureDetector: ({ children }: { children: React.ReactNode }) => children,
-    GestureHandlerRootView: jest.requireActual("react-native").View,
   };
 });
 
@@ -48,7 +47,15 @@ jest.mock("react-native-reanimated", () => ({
   __esModule: true,
   default: { View: jest.requireActual("react-native").View },
   useSharedValue: (initial: number) => {
-    const shared = { value: initial };
+    const shared = {
+      value: initial,
+      get() {
+        return shared.value;
+      },
+      set(next: number) {
+        shared.value = next;
+      },
+    };
     mockShared.push(shared);
     return shared;
   },

@@ -1,9 +1,8 @@
-// oxlint-disable react/immutability -- reanimated shared values are mutated by design
 import { Image } from "expo-image";
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -101,7 +100,7 @@ export function MiniPlayer() {
 
   const dismiss = useCallback(() => {
     playback.stop();
-    translateY.value = 0;
+    translateY.set(0);
   }, [translateY]);
 
   const swipeDown = useMemo(
@@ -110,23 +109,25 @@ export function MiniPlayer() {
         .activeOffsetY(12)
         .failOffsetY(-12)
         .onUpdate((e) => {
-          translateY.value = Math.max(0, e.translationY);
+          translateY.set(Math.max(0, e.translationY));
         })
         .onEnd((e) => {
           if (e.translationY > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY) {
-            translateY.value = withTiming(EXIT_TRANSLATE, { duration: 180 }, (finished) => {
-              if (finished) runOnJS(dismiss)();
-            });
+            translateY.set(
+              withTiming(EXIT_TRANSLATE, { duration: 180 }, (finished) => {
+                if (finished) runOnJS(dismiss)();
+              }),
+            );
           } else {
-            translateY.value = withSpring(0);
+            translateY.set(withSpring(0));
           }
         }),
     [dismiss, translateY],
   );
 
   const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: 1 - Math.min(1, translateY.value / EXIT_TRANSLATE),
+    transform: [{ translateY: translateY.get() }],
+    opacity: 1 - Math.min(1, translateY.get() / EXIT_TRANSLATE),
   }));
 
   if (!visible || !current) return null;
@@ -135,11 +136,7 @@ export function MiniPlayer() {
   const bottom = insets.bottom + (onTab ? TAB_BAR_HEIGHT : 0) + MINI_PLAYER_GAP;
 
   return (
-    <GestureHandlerRootView
-      pointerEvents="box-none"
-      className="absolute right-3 left-3"
-      style={{ bottom }}
-    >
+    <View pointerEvents="box-none" className="absolute right-3 left-3" style={{ bottom }}>
       <GestureDetector gesture={swipeDown}>
         <Animated.View style={cardStyle}>
           <Pressable
@@ -223,6 +220,6 @@ export function MiniPlayer() {
           </Pressable>
         </Animated.View>
       </GestureDetector>
-    </GestureHandlerRootView>
+    </View>
   );
 }
