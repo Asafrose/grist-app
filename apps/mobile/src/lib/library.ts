@@ -18,6 +18,7 @@ import { syncWorkspace } from "@/lib/workspace";
 
 export const LIBRARY_STALE_MS = 60_000;
 export const PREFETCH_YIELD_MS = 8_000;
+export const BUMP_THROTTLE_MS = 500;
 
 export const libraryKey = (token: string) => ["library", token] as const;
 
@@ -37,6 +38,39 @@ function bump() {
   libraryStore.setState((s) => ({ version: s.version + 1 }));
 }
 
+type BumpThrottle = { bump: () => void; cancel: () => void };
+
+function makeBumpThrottle(): BumpThrottle {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let pending = false;
+  const open = () => {
+    timer = setTimeout(() => {
+      timer = null;
+      if (!pending) return;
+      pending = false;
+      bump();
+      open();
+    }, BUMP_THROTTLE_MS);
+  };
+  return {
+    bump: () => {
+      if (timer) {
+        pending = true;
+        return;
+      }
+      bump();
+      open();
+    },
+    cancel: () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      pending = false;
+    },
+  };
+}
+
+let activeThrottle: BumpThrottle | null = null;
+
 async function runSync(db: Db, token: string): Promise<string> {
   if (isDemoToken(token)) {
     void me.resolve(db, token);
@@ -47,10 +81,17 @@ async function runSync(db: Db, token: string): Promise<string> {
   const client = makeClient(token);
   void me.resolve(db, token, client);
   const api = client.recordings;
-  await syncLibrary(db, api, { onPage: () => bump() });
-  await syncWorkspace(db, client, token).catch(() => undefined);
-  auth.accept();
-  bump();
+  const throttle = makeBumpThrottle();
+  activeThrottle = throttle;
+  try {
+    await syncLibrary(db, api, { onPage: () => throttle.bump() });
+    await syncWorkspace(db, client, token).catch(() => undefined);
+    auth.accept();
+    bump();
+  } finally {
+    throttle.cancel();
+    if (activeThrottle === throttle) activeThrottle = null;
+  }
   void prefetchInBackground(db, api, token);
   return getMeta(db, META_LAST_SYNC) ?? new Date().toISOString();
 }
@@ -111,6 +152,7 @@ async function clear(): Promise<void> {
   await libraryReady;
   const { db } = libraryStore.getState();
   if (!db) return;
+  activeThrottle?.cancel();
   downloads.clear();
   thumbnails.clear();
   me.reset();

@@ -7,6 +7,7 @@ import { auth, authStore } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
 import {
+  BUMP_THROTTLE_MS,
   library,
   libraryKey,
   libraryReady,
@@ -196,6 +197,59 @@ describe("library store", () => {
     expect(afterSync).toBeGreaterThan(start);
     await library.clear();
     expect(libraryStore.getState().version).toBe(afterSync + 1);
+  });
+
+  it("coalesces the version bump across sync pages and fires the trailing edge", async () => {
+    await libraryReady;
+    await library.clear();
+    authStore.setState({ status: "signed-in", token: "pat" });
+    const pages = 8;
+    iterate.mockImplementation(async function* () {
+      for (let i = 0; i < pages; i++) {
+        yield { cursor: null, recordings: [] };
+        if (i === 3) jest.advanceTimersByTime(BUMP_THROTTLE_MS + 100);
+      }
+    });
+    jest.useFakeTimers();
+    try {
+      const start = libraryStore.getState().version;
+      await library.refresh(true);
+      const settled = libraryStore.getState().version;
+      expect(settled - start).toBe(3);
+      jest.advanceTimersByTime(BUMP_THROTTLE_MS * 4);
+      expect(libraryStore.getState().version).toBe(settled);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+      iterate.mockImplementation(async function* () {
+        yield { cursor: null, recordings: recs };
+      });
+    }
+  });
+
+  it("cancels the pending bump when the sync fails", async () => {
+    await libraryReady;
+    authStore.setState({ status: "signed-in", token: "pat" });
+    iterate.mockImplementation(async function* () {
+      yield { cursor: null, recordings: [] };
+      yield { cursor: null, recordings: [] };
+      throw new Error("rate limited");
+    });
+    jest.useFakeTimers();
+    try {
+      const start = libraryStore.getState().version;
+      await library.refresh(true);
+      const settled = libraryStore.getState().version;
+      expect(settled - start).toBe(1);
+      jest.advanceTimersByTime(BUMP_THROTTLE_MS * 4);
+      expect(libraryStore.getState().version).toBe(settled);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+      iterate.mockImplementation(async function* () {
+        yield { cursor: null, recordings: recs };
+      });
+    }
   });
 
   it("wipes the database and the cached sync on sign-out", async () => {
