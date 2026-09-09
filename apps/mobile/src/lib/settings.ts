@@ -15,6 +15,9 @@ const GB = 1024 ** 3;
 export const DOWNLOAD_CAPS_BYTES = [1 * GB, 2 * GB, 5 * GB] as const;
 export type DownloadCapBytes = (typeof DOWNLOAD_CAPS_BYTES)[number];
 
+export const PREBUFFER_DAYS = [0, 1, 2] as const;
+export type PrebufferDays = (typeof PREBUFFER_DAYS)[number];
+
 export type DefaultView = { kind: "mine" } | { kind: "workspace" } | { kind: "team"; id: string };
 
 const TEAM_PREFIX = "team:";
@@ -35,6 +38,7 @@ export type Settings = {
   pictureInPicture: boolean;
   keepDownloadsDays: KeepDownloadsDays;
   downloadCapBytes: DownloadCapBytes;
+  prebufferDays: PrebufferDays;
   defaultView: DefaultView;
 };
 
@@ -43,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pictureInPicture: true,
   keepDownloadsDays: 30,
   downloadCapBytes: 2 * GB,
+  prebufferDays: 1,
   defaultView: { kind: "mine" },
 };
 
@@ -51,6 +56,7 @@ export const SETTINGS_META_KEYS: Record<keyof Settings, string> = {
   pictureInPicture: "picture_in_picture",
   keepDownloadsDays: "keep_downloads_days",
   downloadCapBytes: "download_cap_bytes",
+  prebufferDays: "prebuffer_days",
   defaultView: "default_view",
 };
 
@@ -71,6 +77,7 @@ const codecs: { [K in keyof Settings]: Codec<Settings[K]> } = {
   pictureInPicture: guard((v): v is boolean => typeof v === "boolean"),
   keepDownloadsDays: guard(oneOf(KEEP_DOWNLOADS_DAYS)),
   downloadCapBytes: guard(oneOf(DOWNLOAD_CAPS_BYTES)),
+  prebufferDays: guard(oneOf(PREBUFFER_DAYS)),
   defaultView: { encode: defaultViewKey, decode: parseDefaultView },
 };
 

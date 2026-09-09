@@ -1,5 +1,7 @@
 jest.mock("expo-secure-store", () => require("@/test/mocks/expo-secure-store"));
 
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
+
 jest.mock("expo-haptics", () => require("@/test/mocks/expo-haptics"));
 
 jest.mock("expo-sqlite", () => ({

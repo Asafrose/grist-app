@@ -1,4 +1,9 @@
-import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video";
+import {
+  createVideoPlayer,
+  type VideoPlayer,
+  type VideoPlayerEvents,
+  type VideoView,
+} from "expo-video";
 import { create, useStore } from "zustand";
 import { auth, authStore } from "@/lib/auth";
 import { playbackPositions } from "@/lib/data/playback-positions";
@@ -6,6 +11,15 @@ import { RESUME_END_MARGIN_SECONDS } from "@/lib/db";
 import { downloads, downloadsStore } from "@/lib/downloads";
 import { invalidateMediaUrl, mediaUrl } from "@/lib/media-url";
 import { perf } from "@/lib/perf";
+import { prebufferIdle, wasPrebuffered } from "@/lib/prebuffer";
+import { cancelPrewarm, prewarmDone } from "@/lib/prewarm";
+import {
+  cachedSource,
+  clearVideoCache,
+  configureVideoCache,
+  isCacheableUri,
+  uncachedSource,
+} from "@/lib/video-cache";
 import {
   isPlaybackRate,
   PLAYBACK_RATES,
@@ -57,10 +71,49 @@ export const usePlaybackDuration = () => useStore(playerStore, (s) => s.duration
 export const usePlaybackUntil = () => useStore(playerStore, (s) => s.until);
 export const usePlaybackRate = () => useSetting("playbackRate");
 
-export const player: VideoPlayer = createVideoPlayer(null);
-player.staysActiveInBackground = true;
-player.showNowPlayingNotification = true;
-player.timeUpdateEventInterval = 0.5;
+let instance: VideoPlayer | null = null;
+let starting: Promise<VideoPlayer> | null = null;
+
+export function videoPlayer(): VideoPlayer | null {
+  return instance;
+}
+
+// The native cache size and clear calls are refused while any player is registered, so the
+// shared player is created only after the size is applied and is released again on sign-out.
+export function playerReady(): Promise<VideoPlayer> {
+  // A refused size call leaves the previously stored bound in place, which is not worth reporting.
+  starting ??= configureVideoCache()
+    .catch(() => undefined)
+    .then(() => (instance ??= build()))
+    .catch((e: unknown) => {
+      starting = null;
+      throw e;
+    });
+  return starting;
+}
+
+function build(): VideoPlayer {
+  const p = createVideoPlayer(null);
+  p.staysActiveInBackground = true;
+  p.showNowPlayingNotification = true;
+  p.timeUpdateEventInterval = 0.5;
+  p.playbackRate = settings.get().playbackRate;
+  p.addListener("playingChange", onPlayingChange);
+  p.addListener("timeUpdate", onTimeUpdate);
+  p.addListener("sourceLoad", onSourceLoad);
+  p.addListener("statusChange", onStatusChange);
+  return p;
+}
+
+async function releasePlayer(): Promise<void> {
+  const p = instance;
+  instance = null;
+  starting = null;
+  if (!p) return;
+  p.pause();
+  await p.replaceAsync(null).catch(() => undefined);
+  p.release();
+}
 
 export const POSITION_WRITE_INTERVAL_MS = 5_000;
 export const SEEK_END_EPSILON_SECONDS = 0.5;
@@ -77,7 +130,7 @@ function atSourceEnd(seconds: number) {
 
 function rewindToStart() {
   pendingRestoreAt = null;
-  player.currentTime = 0;
+  if (instance) instance.currentTime = 0;
   inClipRange = false;
   playerStore.setState({ position: 0, until: null });
 }
@@ -91,38 +144,73 @@ function savePosition(force = false) {
   playbackPositions.save(current.id, atSourceEnd(position) ? 0 : position);
 }
 
-player.addListener("playingChange", ({ isPlaying }) => {
+const onPlayingChange: VideoPlayerEvents["playingChange"] = ({ isPlaying }) => {
   playerStore.setState({ playing: isPlaying });
   if (!isPlaying) return savePosition(true);
   if (playerStore.getState().until === null) inClipRange = false;
-});
-player.addListener("timeUpdate", ({ currentTime }) => {
+};
+const onTimeUpdate: VideoPlayerEvents["timeUpdate"] = ({ currentTime }) => {
   const { until } = playerStore.getState();
   if (until !== null && currentTime >= until) {
-    player.pause();
+    instance?.pause();
     playerStore.setState({ position: currentTime, until: null });
     return;
   }
   playerStore.setState({ position: currentTime });
+  perf.measure(TTFF_MARK, ttffLabel);
   perf.measure("fullscreen-exit-playback", "fullscreen unmount → card surface playing");
   perf.measure("surface-attach", "video surface attached (card or fullscreen) → first timeUpdate");
   savePosition();
-});
-player.addListener("sourceLoad", ({ duration }) => {
+};
+const onSourceLoad: VideoPlayerEvents["sourceLoad"] = ({ duration }) => {
   sourceDuration = duration;
   playerStore.setState({ duration });
   const at = pendingRestoreAt;
   if (at === null || restoreSeq !== loadSeq || !atSourceEnd(at)) return;
   rewindToStart();
-});
-player.addListener("statusChange", ({ status, error }) => {
+};
+const onStatusChange: VideoPlayerEvents["statusChange"] = ({ status, error }) => {
+  if (status !== "loading") cancelCacheFallback();
   if (playerStore.getState().status === "idle") return;
   playerStore.setState({
     status: status === "readyToPlay" ? "ready" : status === "error" ? "error" : "loading",
     error: error?.message ?? null,
   });
   if (status === "error") void reresolveSource();
-});
+};
+
+export const CACHE_FALLBACK_MS = 8_000;
+let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+let uncachedLoad = false;
+
+function cancelCacheFallback() {
+  if (fallbackTimer) clearTimeout(fallbackTimer);
+  fallbackTimer = null;
+}
+
+// A cached source that stalls before it buffers anything is retried once without the cache. A
+// stalled item never reports playing, so the retry carries the load's own autoplay intent.
+function armCacheFallback(uri: string, autoplay: boolean) {
+  cancelCacheFallback();
+  if (!isCacheableUri(uri)) return;
+  const seq = loadSeq;
+  fallbackTimer = setTimeout(() => {
+    fallbackTimer = null;
+    const p = instance;
+    if (seq !== loadSeq || !p) return;
+    if (playerStore.getState().status !== "loading" || p.bufferedPosition > 0) return;
+    uncachedLoad = true;
+    void swapSource(uri, autoplay, false).catch(() => undefined);
+  }, CACHE_FALLBACK_MS);
+}
+
+export const TTFF_MARK = "media-load";
+let ttffLabel = "";
+
+function ttffState(local: string | null, uri: string): string {
+  if (local) return "downloaded";
+  return wasPrebuffered(uri) ? "pre-buffered" : "cold";
+}
 
 let loadSeq = 0;
 const videoViews: VideoView[] = [];
@@ -162,34 +250,38 @@ function freshUri(id: string, token: string): Promise<string> {
   return mediaUrl(id, token);
 }
 
-function restoreAfterReplace(at: number, autoplay: boolean) {
-  player.playbackRate = settings.get().playbackRate;
+function restoreAfterReplace(p: VideoPlayer, at: number, autoplay: boolean) {
+  p.playbackRate = settings.get().playbackRate;
   restoreSeq = loadSeq;
   if (atSourceEnd(at)) {
     rewindToStart();
   } else {
     pendingRestoreAt = at;
-    player.currentTime = at;
+    p.currentTime = at;
   }
-  if (autoplay) player.play();
-  else player.pause();
+  if (autoplay) p.play();
+  else p.pause();
   resumePending = false;
 }
 
-async function swapSource(uri: string, resume?: boolean) {
+async function swapSource(uri: string, resume?: boolean, cache = true) {
   const { current, position, playing } = playerStore.getState();
-  if (!current) return;
+  const p = instance;
+  if (!current || !p) return;
   const seq = loadSeq;
   resumePending = true;
   try {
-    await player.replaceAsync({ uri, metadata: metadataFor(current) });
+    const source = cache
+      ? cachedSource(uri, metadataFor(current))
+      : uncachedSource(uri, metadataFor(current));
+    await p.replaceAsync(source);
   } catch (e) {
     // A newer sequence owns the flag and clears it itself.
     if (seq === loadSeq) resumePending = false;
     throw e;
   }
   if (seq !== loadSeq) return;
-  restoreAfterReplace(position, resume ?? playing);
+  restoreAfterReplace(p, position, resume ?? playing);
 }
 
 export const RERESOLVE_BACKOFF_MS = 10_000;
@@ -209,12 +301,13 @@ async function reresolveSource() {
   reresolvedAt = now;
   reresolveAttempts++;
   reresolving = true;
+  cancelCacheFallback();
   const seq = loadSeq;
   try {
     const uri = await freshUri(current.id, token);
     if (seq !== loadSeq) return;
     playerStore.setState({ status: "loading", error: null });
-    await swapSource(uri, playing);
+    await swapSource(uri, playing, !uncachedLoad);
   } catch {
     // the store keeps the original playback error
   } finally {
@@ -239,10 +332,11 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     const range = at !== undefined && at !== opts.at ? null : until;
     inClipRange = range !== null;
     playerStore.setState({ until: range });
-    if (opts.autoplay ?? true) player.play();
+    if (opts.autoplay ?? true) instance?.play();
     return;
   }
   savePosition(true);
+  const p = await playerReady();
   inClipRange = until !== null;
   const seq = ++loadSeq;
   const token = auth.token();
@@ -251,8 +345,11 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   reresolveAttempts = 0;
   positionWrittenAt = 0;
   resumePending = true;
+  uncachedLoad = false;
   sourceDuration = 0;
   pendingRestoreAt = null;
+  const local = downloads.localUri(rec.id);
+  perf.mark(TTFF_MARK);
   const at = opts.at ?? playbackPositions.resume(rec.id, rec.durationMs / 1000);
   playerStore.setState({
     current: rec,
@@ -264,11 +361,13 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     error: null,
   });
   try {
-    const uri = downloads.localUri(rec.id) ?? (await mediaUrl(rec.id, token));
+    const uri = local ?? (await mediaUrl(rec.id, token));
     if (seq !== loadSeq) return;
-    await player.replaceAsync({ uri, metadata: metadataFor(rec) });
+    ttffLabel = `time to first frame (${ttffState(local, uri)})`;
+    await p.replaceAsync(cachedSource(uri, metadataFor(rec)));
     if (seq !== loadSeq) return;
-    restoreAfterReplace(at, opts.autoplay ?? true);
+    armCacheFallback(uri, opts.autoplay ?? true);
+    restoreAfterReplace(p, at, opts.autoplay ?? true);
   } catch (e) {
     if (seq !== loadSeq) return;
     resumePending = false;
@@ -292,7 +391,7 @@ function seekTo(seconds: number) {
   const duration = sourceDuration || playerStore.getState().duration;
   const last = duration ? duration - SEEK_END_EPSILON_SECONDS : 0;
   const clamped = Math.max(0, duration ? Math.min(seconds, last) : seconds);
-  player.currentTime = clamped;
+  if (instance) instance.currentTime = clamped;
   pendingRestoreAt = null;
   inClipRange = false;
   playerStore.setState({ position: clamped, until: null });
@@ -304,7 +403,7 @@ function seekBy(seconds: number) {
 }
 
 settingsStore.subscribe((s, prev) => {
-  if (s.playbackRate !== prev.playbackRate) player.playbackRate = s.playbackRate;
+  if (s.playbackRate !== prev.playbackRate && instance) instance.playbackRate = s.playbackRate;
 });
 
 function setRate(rate: PlaybackRate) {
@@ -318,12 +417,14 @@ function retry() {
 }
 
 function toggle() {
-  if (playerStore.getState().playing) player.pause();
-  else player.play();
+  if (playerStore.getState().playing) instance?.pause();
+  else instance?.play();
 }
 
 function reset(persist: boolean) {
   if (persist) savePosition(true);
+  cancelCacheFallback();
+  uncachedLoad = false;
   perf.clearMarks();
   loadSeq++;
   reresolvedAt = 0;
@@ -333,7 +434,7 @@ function reset(persist: boolean) {
   inClipRange = false;
   sourceDuration = 0;
   pendingRestoreAt = null;
-  void player.replaceAsync(null);
+  void instance?.replaceAsync(null);
   playerStore.setState(initial);
 }
 
@@ -344,13 +445,22 @@ function stop() {
 authStore.subscribe((s, prev) => {
   if (prev.status !== "signed-in" || s.token === prev.token) return;
   reset(false);
+  void forgetCachedMedia();
 });
+
+async function forgetCachedMedia(): Promise<void> {
+  cancelPrewarm();
+  await prewarmDone();
+  await prebufferIdle();
+  await releasePlayer();
+  await clearVideoCache().catch(() => undefined);
+}
 
 export const playback = {
   load,
   preload,
-  play: () => player.play(),
-  pause: () => player.pause(),
+  play: () => instance?.play(),
+  pause: () => instance?.pause(),
   toggle,
   seekTo,
   seekBy,

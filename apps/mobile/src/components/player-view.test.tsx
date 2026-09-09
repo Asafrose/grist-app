@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { PlayerView } from "@/components/player-view";
 import { perf } from "@/lib/perf";
-import { type NowPlaying, playback, playerStore } from "@/lib/player";
+import { type NowPlaying, playback, playerReady, playerStore } from "@/lib/player";
 import { videoViewPictureInPicture } from "@/test/mocks/expo-video";
 
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
@@ -16,7 +16,8 @@ const video: NowPlaying = {
   durationMs: 600_000,
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await playerReady();
   playerStore.setState({ current: video, status: "ready" });
   videoViewPictureInPicture.mockClear();
 });

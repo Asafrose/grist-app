@@ -5,10 +5,10 @@ import { Animated, useAnimatedValue, View } from "react-native";
 import { Icon } from "@/components/icon";
 import {
   attachVideoView,
-  player,
   type PlayerSurface,
   useNowPlaying,
   usePlaybackStatus,
+  videoPlayer,
   videoSurfaceRendered,
 } from "@/lib/player";
 import { useSetting } from "@/lib/settings";
@@ -61,7 +61,8 @@ export function PlayerView({
   const current = useNowPlaying();
   const status = usePlaybackStatus();
   const pip = useSetting("pictureInPicture");
-  const isVideo = current?.mediaType === "video";
+  const player = videoPlayer();
+  const isVideo = current?.mediaType === "video" && player !== null;
 
   const attach = useCallback(
     (view: VideoView | null) => (view ? attachVideoView(view) : undefined),

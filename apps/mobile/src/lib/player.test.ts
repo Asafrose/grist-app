@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react-native";
-import type { VideoView } from "expo-video";
+import type { VideoPlayer, VideoView } from "expo-video";
 import { authStore } from "@/lib/auth";
 import { playbackPositions } from "@/lib/data/playback-positions";
 import { downloadsStore } from "@/lib/downloads";
@@ -7,11 +7,12 @@ import { makeClient } from "@/lib/grain";
 import { queryClient } from "@/lib/query";
 import {
   attachVideoView,
+  CACHE_FALLBACK_MS,
   isPlaybackRate,
+  playerReady,
   type NowPlaying,
   PLAYBACK_RATES,
   playback,
-  player,
   POSITION_WRITE_INTERVAL_MS,
   RERESOLVE_BACKOFF_MS,
   SEEK_END_EPSILON_SECONDS,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/player";
 import { perf } from "@/lib/perf";
 import { settings, settingsStore } from "@/lib/settings";
+import { VIDEO_CACHE_BYTES } from "@/lib/video-cache";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("@/lib/data/playback-positions", () => {
@@ -35,33 +37,69 @@ jest.mock("@/lib/data/playback-positions", () => {
   };
 });
 jest.mock("expo-video", () => {
-  const listeners = new Map<string, Function>();
-  const emit = (name: string, payload: unknown) => listeners.get(name)?.(payload);
-  const fake = {
-    listeners,
-    emit,
-    playing: false,
-    currentTime: 0,
-    playbackRate: 1,
-    staysActiveInBackground: false,
-    showNowPlayingNotification: false,
-    timeUpdateEventInterval: 0,
-    addListener: jest.fn((name: string, fn: Function) => listeners.set(name, fn)),
-    replaceAsync: jest.fn(async () => {}),
-    replace: jest.fn(),
-    play: jest.fn(() => emit("playingChange", { isPlaying: true })),
-    pause: jest.fn(() => emit("playingChange", { isPlaying: false })),
+  const players: Record<string, unknown>[] = [];
+  const build = () => {
+    const listeners = new Map<string, Function>();
+    const emit = (name: string, payload: unknown) => listeners.get(name)?.(payload);
+    const p = {
+      listeners,
+      emit,
+      playing: false,
+      currentTime: 0,
+      bufferedPosition: 0,
+      playbackRate: 1,
+      staysActiveInBackground: false,
+      showNowPlayingNotification: false,
+      timeUpdateEventInterval: 0,
+      addListener: jest.fn((name: string, fn: Function) => listeners.set(name, fn)),
+      replaceAsync: jest.fn(async () => {}),
+      replace: jest.fn(),
+      play: jest.fn(() => emit("playingChange", { isPlaying: true })),
+      pause: jest.fn(() => emit("playingChange", { isPlaying: false })),
+      release: jest.fn(),
+    };
+    players.push(p);
+    return p;
   };
-  return { createVideoPlayer: jest.fn(() => fake) };
+  return {
+    players,
+    createVideoPlayer: jest.fn(() => build()),
+    setVideoCacheSizeAsync: jest.fn(async () => {}),
+    clearVideoCacheAsync: jest.fn(async () => {}),
+  };
 });
 
-type Fake = typeof player & {
+type Fake = VideoPlayer & {
   emit: (name: string, payload: unknown) => void;
   replaceAsync: jest.Mock;
+  release: jest.Mock;
+  play: jest.Mock;
+  pause: jest.Mock;
 };
-const fake = player as Fake;
+const video = jest.requireMock("expo-video") as {
+  players: Fake[];
+  createVideoPlayer: jest.Mock;
+  setVideoCacheSizeAsync: jest.Mock;
+  clearVideoCacheAsync: jest.Mock;
+};
+
+// Every construction returns a distinct instance, so the tests read through to the live one.
+const live = () => video.players.at(-1) as unknown as Record<string, unknown>;
+const fake = new Proxy({} as Fake, {
+  get: (_target, key) => live()[key as string],
+  set: (_target, key, value) => {
+    live()[key as string] = value;
+    return true;
+  },
+}) as Fake;
 const resolveMediaUrl = jest.fn();
 (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
+
+async function signOut(): Promise<void> {
+  authStore.setState({ status: "signed-out", token: null });
+  await new Promise((r) => setTimeout(r, 0));
+  authStore.setState({ status: "signed-in", token: "pat" });
+}
 
 const rec: NowPlaying = {
   id: "r1",
@@ -71,8 +109,9 @@ const rec: NowPlaying = {
   durationMs: 90_000,
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
+  await playerReady();
   queryClient.setDefaultOptions({ queries: { retry: false } });
   queryClient.clear();
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
@@ -87,9 +126,66 @@ beforeEach(() => {
 });
 
 describe("player store", () => {
-  it("configures the shared player for background audio and lock-screen controls", () => {
-    expect(player.staysActiveInBackground).toBe(true);
-    expect(player.showNowPlayingNotification).toBe(true);
+  it("configures the shared player for background audio and lock-screen controls", async () => {
+    const p = await playerReady();
+    expect(p.staysActiveInBackground).toBe(true);
+    expect(p.showNowPlayingNotification).toBe(true);
+  });
+
+  it("bounds the video cache before the shared player is registered", async () => {
+    await signOut();
+    let applySize = () => undefined as void;
+    video.setVideoCacheSizeAsync.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          applySize = () => resolve();
+        }),
+    );
+    video.createVideoPlayer.mockClear();
+    const ready = playerReady();
+    await Promise.resolve();
+    expect(video.setVideoCacheSizeAsync).toHaveBeenCalledWith(VIDEO_CACHE_BYTES);
+    expect(video.createVideoPlayer).not.toHaveBeenCalled();
+    applySize();
+    await ready;
+    expect(video.createVideoPlayer).toHaveBeenCalled();
+  });
+
+  it("keeps the shared player when the cache size call is refused", async () => {
+    await signOut();
+    video.setVideoCacheSizeAsync.mockRejectedValueOnce(new Error("active players"));
+    expect(await playerReady()).toBe(video.players.at(-1));
+  });
+
+  it("releases the shared player before clearing the cache on sign-out", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    await signOut();
+    expect(fake.release).toHaveBeenCalled();
+    expect(video.clearVideoCacheAsync).toHaveBeenCalled();
+    expect(fake.release.mock.invocationCallOrder[0]).toBeLessThan(
+      video.clearVideoCacheAsync.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("builds a fresh, fully configured shared player after a sign-out", async () => {
+    settings.set("playbackRate", 1.5);
+    const released = await playerReady();
+    await signOut();
+    const rebuilt = await playerReady();
+    expect(rebuilt).not.toBe(released);
+    expect(rebuilt.staysActiveInBackground).toBe(true);
+    expect(rebuilt.playbackRate).toBe(1.5);
+    expect((rebuilt as Fake & { listeners: Map<string, unknown> }).listeners.size).toBe(4);
+  });
+
+  it("retries the shared player build after it fails", async () => {
+    await signOut();
+    video.createVideoPlayer.mockImplementationOnce(() => {
+      throw new Error("no native player");
+    });
+    await expect(playerReady()).rejects.toThrow("no native player");
+    await expect(playerReady()).resolves.toBeDefined();
   });
 
   it("resolves the media url, sets lock-screen metadata and autoplays", async () => {
@@ -99,6 +195,7 @@ describe("player store", () => {
     expect(fake.replaceAsync).toHaveBeenCalledWith({
       uri: "https://cdn/media.mp4",
       metadata: { title: "Pricing review", artist: "Grain", artwork: "https://thumb/1" },
+      useCaching: true,
     });
     expect(fake.play).toHaveBeenCalled();
     expect(playerStore.getState()).toMatchObject({ current: rec, playing: true, duration: 90 });
@@ -125,13 +222,115 @@ describe("player store", () => {
     expect(playerStore.getState().current?.id).toBe("r2");
   });
 
-  it("plays the public sample stream in demo mode without resolving a media url", async () => {
+  it("plays the public sample stream in demo mode uncached and without resolving a media url", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
     authStore.setState({ status: "signed-in", token: "demo" });
     await playback.load(rec);
     expect(resolveMediaUrl).not.toHaveBeenCalled();
     expect(fake.replaceAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ uri: expect.stringContaining("devstreaming-cdn.apple.com") }),
+      expect.objectContaining({
+        uri: expect.stringContaining("devstreaming-cdn.apple.com"),
+        useCaching: false,
+      }),
     );
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("reloads a stalled cached source once without the cache", async () => {
+    jest.useFakeTimers();
+    try {
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+      await playback.load(rec);
+      fake.replaceAsync.mockClear();
+      await jest.advanceTimersByTimeAsync(CACHE_FALLBACK_MS);
+      expect(fake.replaceAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ uri: "https://cdn/media.mp4", useCaching: false }),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("keeps the load's autoplay intent when it reloads a stalled cached source", async () => {
+    jest.useFakeTimers();
+    // A stalled item never reaches playing on iOS, so the store cannot supply the intent.
+    fake.play.mockImplementation(() => undefined);
+    try {
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+      await playback.load(rec);
+      expect(playerStore.getState().playing).toBe(false);
+      fake.play.mockClear();
+      fake.pause.mockClear();
+      await jest.advanceTimersByTimeAsync(CACHE_FALLBACK_MS);
+      expect(fake.play).toHaveBeenCalled();
+      expect(fake.pause).not.toHaveBeenCalled();
+    } finally {
+      fake.play.mockImplementation(() => fake.emit("playingChange", { isPlaying: true }));
+      jest.useRealTimers();
+    }
+  });
+
+  it("stays off the cache when a late error follows the fallback", async () => {
+    jest.useFakeTimers();
+    try {
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+      await playback.load(rec);
+      await jest.advanceTimersByTimeAsync(CACHE_FALLBACK_MS);
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/fresh.mp4");
+      fake.replaceAsync.mockClear();
+      fake.emit("statusChange", { status: "error", error: { message: "boom" } });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(fake.replaceAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ uri: "https://cdn/fresh.mp4", useCaching: false }),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("drops the pending fallback once a re-resolve takes over", async () => {
+    jest.useFakeTimers();
+    try {
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+      await playback.load(rec);
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/fresh.mp4");
+      await playback.retry();
+      expect(fake.replaceAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ uri: "https://cdn/fresh.mp4", useCaching: true }),
+      );
+      fake.replaceAsync.mockClear();
+      await jest.advanceTimersByTimeAsync(CACHE_FALLBACK_MS);
+      expect(fake.replaceAsync).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("leaves a cached source alone once it reports ready", async () => {
+    jest.useFakeTimers();
+    try {
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+      await playback.load(rec);
+      fake.emit("statusChange", { status: "readyToPlay" });
+      fake.replaceAsync.mockClear();
+      await jest.advanceTimersByTimeAsync(CACHE_FALLBACK_MS);
+      expect(fake.replaceAsync).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("does not retry an adaptive stream that cannot be cached", async () => {
+    jest.useFakeTimers();
+    try {
+      resolveMediaUrl.mockResolvedValueOnce("https://cdn/master.m3u8");
+      await playback.load(rec);
+      fake.replaceAsync.mockClear();
+      await jest.advanceTimersByTimeAsync(CACHE_FALLBACK_MS);
+      expect(fake.replaceAsync).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("surfaces load failures without touching the player", async () => {
@@ -289,6 +488,7 @@ describe("offline downloads", () => {
     expect(fake.replaceAsync).toHaveBeenCalledWith({
       uri: "file:///docs/downloads/r1.mp4",
       metadata: { title: "Pricing review", artist: "Grain", artwork: "https://thumb/1" },
+      useCaching: false,
     });
     expect(fake.currentTime).toBe(42);
     expect(playerStore.getState().playing).toBe(true);
@@ -335,6 +535,7 @@ describe("expired media urls", () => {
     expect(fake.replaceAsync).toHaveBeenCalledWith({
       uri: "https://cdn/fresh.mp4",
       metadata: { title: "Pricing review", artist: "Grain", artwork: "https://thumb/1" },
+      useCaching: true,
     });
     expect(fake.currentTime).toBe(55);
     expect(playerStore.getState()).toMatchObject({ playing: true, error: null });
@@ -516,6 +717,7 @@ describe("resume position", () => {
     let release!: (url: string) => void;
     resolveMediaUrl.mockImplementationOnce(() => new Promise<string>((r) => (release = r)));
     const loading = playback.load(rec, { autoplay: false });
+    await Promise.resolve();
     fake.emit("timeUpdate", { currentTime: 0 });
     fake.emit("timeUpdate", { currentTime: 2 });
     expect(playbackPositions.get("r1")).toBe(40);

@@ -5,11 +5,19 @@ import { authStore } from "@/lib/auth";
 import { upsertRecordings } from "@/lib/db";
 import { makeClient } from "@/lib/grain";
 import { clearMediaUrls, mediaUrlKey } from "@/lib/media-url";
+import { runPrebuffer } from "@/lib/prebuffer";
 import { cancelPrewarm, PREWARM_PER_PASS, prewarmWindowStart, runPrewarm } from "@/lib/prewarm";
 import { queryClient } from "@/lib/query";
+import { DEFAULT_SETTINGS, settings, settingsStore } from "@/lib/settings";
 import { testDb } from "@/test/db";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
+jest.mock("expo-file-system", () => require("@/test/mocks/expo-file-system"));
+jest.mock("@/lib/prebuffer", () => ({
+  ...jest.requireActual("@/lib/prebuffer"),
+  runPrebuffer: jest.fn(async () => undefined),
+}));
 
 const DAY = 24 * 60 * 60 * 1000;
 const base = (page.recordings as Recording[])[0];
@@ -33,10 +41,12 @@ beforeEach(() => {
   clearMediaUrls();
   queryClient.setDefaultOptions({ queries: { retry: false } });
   resolveMediaUrl.mockClear();
+  (runPrebuffer as jest.Mock).mockClear();
   resolveMediaUrl.mockImplementation(async (id: string) => `https://cdn/${id}.mp4?sig=1`);
   (makeClient as jest.Mock).mockImplementation(() => ({ recordings: { resolveMediaUrl } }));
   authStore.setState({ status: "signed-in", token: "pat" });
   onlineManager.setOnline(true);
+  settingsStore.setState(DEFAULT_SETTINGS);
 });
 
 afterAll(() => onlineManager.setOnline(true));
@@ -140,6 +150,33 @@ describe("runPrewarm", () => {
     seed(db, 1);
     await runPrewarm(db);
     expect(resolveMediaUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the resolved recent recordings to the pre-buffer runner", async () => {
+    const db = testDb();
+    seed(db, 2);
+    await runPrewarm(db);
+    expect(runPrebuffer).toHaveBeenCalledWith(
+      [
+        { id: "r0", uri: "https://cdn/r0.mp4?sig=1" },
+        { id: "r1", uri: "https://cdn/r1.mp4?sig=1" },
+      ],
+      expect.any(Function),
+    );
+  });
+
+  it("pre-buffers nothing when the window setting is off", async () => {
+    const db = testDb();
+    seed(db, 1);
+    settings.set("prebufferDays", 0);
+    await runPrewarm(db);
+    expect(runPrebuffer).toHaveBeenCalledWith([], expect.any(Function));
+  });
+
+  it("widens the url window to cover a two day pre-buffer window", () => {
+    const now = Date.parse("2026-09-06T10:00:00Z");
+    settings.set("prebufferDays", 2);
+    expect(prewarmWindowStart(now)).toBe("2026-09-04T10:00:00.000Z");
   });
 
   it("computes the window start a day back", () => {
