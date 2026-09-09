@@ -29,11 +29,13 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 type LibraryState = {
   db: Db | null;
   version: number;
+  offlineHint: boolean;
 };
 
 export const libraryStore = create<LibraryState>(() => ({
   db: null,
   version: 0,
+  offlineHint: false,
 }));
 
 function bump() {
@@ -106,7 +108,10 @@ async function refresh(force = false): Promise<void> {
   const token = auth.token();
   if (!db || !token) return;
   downloads.prune();
-  if (!onlineManager.isOnline()) return;
+  if (!onlineManager.isOnline()) {
+    if (force) libraryStore.setState({ offlineHint: true });
+    return;
+  }
   const queryKey = libraryKey(token);
   if (force) await queryClient.invalidateQueries({ queryKey, refetchType: "none" });
   try {
@@ -115,6 +120,7 @@ async function refresh(force = false): Promise<void> {
       queryFn: () => runSync(db, token),
       staleTime: LIBRARY_STALE_MS,
     });
+    libraryStore.setState({ offlineHint: false });
     void runPrewarm(db);
   } catch (e) {
     reportAuthFailure(e);
@@ -168,6 +174,7 @@ async function clear(): Promise<void> {
   queryClient.removeQueries({ queryKey: ["library"] });
   queryClient.removeQueries({ queryKey: ["workspace"] });
   clearMediaUrls();
+  libraryStore.setState({ offlineHint: false });
   bump();
 }
 
@@ -198,7 +205,13 @@ focusManager.subscribe((focused) => {
   if (focused) void refresh();
 });
 
+onlineManager.subscribe((online) => {
+  if (online) void refresh();
+});
+
 export const useLibraryVersion = () => useStore(libraryStore, (s) => s.version);
+
+export const useOfflineHint = () => useStore(libraryStore, (s) => s.offlineHint);
 
 function useLibraryQuery() {
   const token = useAuthToken();

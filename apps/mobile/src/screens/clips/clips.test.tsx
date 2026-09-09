@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Share } from "react-native";
 import { authStore } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { demoRecordings } from "@/lib/demo";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { DEMO_ME, resolveMe } from "@/lib/me";
 import { queryClient } from "@/lib/query";
-import { fireEvent, render, screen, waitFor, within } from "@/test/render";
+import { act, fireEvent, render, screen, waitFor, within } from "@/test/render";
 import { Clips, clipHref } from "./index";
 
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
@@ -37,6 +38,7 @@ beforeEach(() => {
   queryClient.setDefaultOptions({ queries: { retry: false } });
   (router.push as jest.Mock).mockClear();
   share.mockClear();
+  libraryStore.setState({ offlineHint: false });
 });
 
 const db = () => libraryStore.getState().db!;
@@ -120,6 +122,29 @@ describe("Clips", () => {
       { dialogTitle: first.highlight.text },
     );
     expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("shows the offline hint after an offline pull and drops it on the next sync", async () => {
+    await render(<Clips />);
+    expect(screen.queryByTestId("offline-hint")).toBeNull();
+    const pull = screen.getByTestId("clips-list").props.refreshControl.props.onRefresh;
+    onlineManager.setOnline(false);
+    try {
+      await act(async () => {
+        await pull();
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId("offline-hint")).toHaveTextContent(
+          "Offline. Showing saved clips.",
+        ),
+      );
+    } finally {
+      onlineManager.setOnline(true);
+    }
+    await act(async () => {
+      await library.refresh(true);
+    });
+    await waitFor(() => expect(screen.queryByTestId("offline-hint")).toBeNull());
   });
 
   it("shows an empty state for Mine when the user cannot be resolved", async () => {

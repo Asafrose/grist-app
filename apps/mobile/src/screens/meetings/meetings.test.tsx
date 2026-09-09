@@ -40,6 +40,7 @@ beforeEach(() => {
   mockLive.pending = false;
   mockPush.mockClear();
   filters.reset();
+  libraryStore.setState({ offlineHint: false });
 });
 
 const db = () => libraryStore.getState().db!;
@@ -160,6 +161,28 @@ describe("Meetings", () => {
     }
     await waitFor(() => expect(screen.queryByTestId("syncing")).toBeNull());
     expect(refreshing()).toBe(false);
+  });
+
+  it("shows the offline hint after an offline pull and drops it on the next sync", async () => {
+    await render(<Meetings />);
+    expect(screen.queryByTestId("offline-hint")).toBeNull();
+    onlineManager.setOnline(false);
+    try {
+      await act(async () => {
+        fireEvent(screen.getByTestId("meetings-list"), "refresh");
+      });
+    } finally {
+      onlineManager.setOnline(true);
+    }
+    await waitFor(() =>
+      expect(screen.getByTestId("offline-hint")).toHaveTextContent(
+        "Offline. Showing saved meetings.",
+      ),
+    );
+    await act(async () => {
+      await library.refresh(true);
+    });
+    await waitFor(() => expect(screen.queryByTestId("offline-hint")).toBeNull());
   });
 
   it("leaves no stuck pull behind when a background sync follows an offline pull", async () => {

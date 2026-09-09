@@ -14,6 +14,7 @@ import { Chip } from "@/components/chip";
 import { DayHeader } from "@/components/day-header";
 import { Icon } from "@/components/icon";
 import { MeetingRow } from "@/components/meeting-row";
+import { OfflineHint } from "@/components/offline-hint";
 import { Text } from "@/components/ui/text";
 import {
   type RecordingListRow,
@@ -161,6 +162,7 @@ export function Meetings() {
               {error ?? "Sync failed"}
             </Text>
           ) : null}
+          <OfflineHint noun="meetings" />
           {sync === "syncing" && !pulling ? (
             <View testID="syncing" className="flex-row items-center gap-1.5">
               <ActivityIndicator size="small" color={colors.ink3} />

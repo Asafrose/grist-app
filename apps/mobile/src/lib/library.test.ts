@@ -15,6 +15,7 @@ import {
   libraryReady,
   libraryStore,
   useDb,
+  useOfflineHint,
   useSyncError,
   useSyncStatus,
 } from "@/lib/library";
@@ -106,6 +107,47 @@ describe("library store", () => {
     prune.mockRestore();
     expect(queryClient.getQueryData(libraryKey("pat"))).toBe(cached);
     expect(queryClient.getQueryState(libraryKey("pat"))?.fetchStatus).toBe("idle");
+  });
+
+  it("raises an offline hint on a forced refresh and clears it on the next sync", async () => {
+    await libraryReady;
+    authStore.setState({ status: "signed-in", token: "pat" });
+    await library.refresh(true);
+    const { result } = await renderHook(() => useOfflineHint());
+    expect(result.current).toBe(false);
+    onlineManager.setOnline(false);
+    try {
+      await library.refresh(true);
+    } finally {
+      onlineManager.setOnline(true);
+    }
+    await waitFor(() => expect(result.current).toBe(true));
+    await library.refresh(true);
+    await waitFor(() => expect(result.current).toBe(false));
+  });
+
+  it("refreshes and drops the offline hint when the device comes back online", async () => {
+    await libraryReady;
+    authStore.setState({ status: "signed-in", token: "pat" });
+    await library.refresh(true);
+    onlineManager.setOnline(false);
+    await library.refresh(true);
+    expect(libraryStore.getState().offlineHint).toBe(true);
+    iterate.mockClear();
+    onlineManager.setOnline(true);
+    await waitFor(() => expect(libraryStore.getState().offlineHint).toBe(false));
+  });
+
+  it("leaves the offline hint alone on a background refresh", async () => {
+    await libraryReady;
+    authStore.setState({ status: "signed-in", token: "pat" });
+    onlineManager.setOnline(false);
+    try {
+      await library.refresh();
+    } finally {
+      onlineManager.setOnline(true);
+    }
+    expect(libraryStore.getState().offlineHint).toBe(false);
   });
 
   it("pre-resolves media urls after a sync but not after one that failed", async () => {

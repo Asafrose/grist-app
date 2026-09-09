@@ -120,8 +120,11 @@ non-interactive shells; the `nvm` shell function hangs there.
   next to the query, since the token is part of the key sign-out just
   removes the queries; write → a mutation so retry is inherited. Query
   state, not zustand, holds sync status: `useSyncStatus`/`useSyncError`
-  derive from the library query, while `libraryStore` keeps only `db` and
-  `version` (the change signal for SQLite readers).
+  derive from the library query, while `libraryStore` keeps `db`,
+  `version` (the change signal for SQLite readers) and `offlineHint`
+  (`useOfflineHint`, raised by a forced refresh that finds `onlineManager`
+  offline, cleared by the next successful sync — not derivable from query
+  state, since the pull never reaches the query).
 - Sync (`lib/sync.ts`, pure functions over `Db` + the recordings API):
   `after_datetime` incremental with a 2-day overlap on every foreground,
   full reconcile of the 90-day window every 7 days (deletes local rows the

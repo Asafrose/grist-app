@@ -6,6 +6,7 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
+import { OfflineHint } from "@/components/offline-hint";
 import { Text } from "@/components/ui/text";
 import { type ClipRow, useClips, useTeams } from "@/lib/data";
 import { formatClock, formatShortDate } from "@/lib/format";
@@ -129,11 +130,14 @@ export function Clips() {
         >
           Clips
         </Text>
-        {sync === "error" ? (
-          <Text className="text-[12px] text-destructive" numberOfLines={1}>
-            {error ?? "Sync failed"}
-          </Text>
-        ) : null}
+        <View className="flex-row items-center gap-2">
+          {sync === "error" ? (
+            <Text className="max-w-[180px] text-[12px] text-destructive" numberOfLines={1}>
+              {error ?? "Sync failed"}
+            </Text>
+          ) : null}
+          <OfflineHint noun="clips" />
+        </View>
       </View>
       <ScrollView
         horizontal
