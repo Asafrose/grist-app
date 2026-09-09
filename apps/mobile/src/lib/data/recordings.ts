@@ -16,10 +16,11 @@ import { library } from "@/lib/library";
 import { queryClient } from "@/lib/query";
 import { refreshRecording, type RecordingsApi } from "@/lib/sync";
 import { toggleTag } from "@/lib/timeline";
-import { currentDb, useLive, useSnapshot } from "./live";
+import { currentDb, useLive, usePositionsVersion, useSnapshot } from "./live";
 
 export function useRecordings(filter: RecordingsFilter) {
-  return useLive((db) => recordingsQuery(db, filter), [filter], { keepPrevious: true });
+  const version = usePositionsVersion();
+  return useLive((db) => recordingsQuery(db, filter), [filter], { keepPrevious: true, version });
 }
 
 export function useRecording(id: string): RecordingDetail | null {

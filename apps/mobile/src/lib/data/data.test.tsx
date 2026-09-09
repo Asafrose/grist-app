@@ -13,7 +13,7 @@ import { queryClient } from "@/lib/query";
 import { meStore } from "@/lib/me";
 import { getRecentSearches, RECENT_SEARCHES_MAX } from "@/lib/recent-searches";
 import { isoSeconds } from "@/lib/sync";
-import { currentDb, useLive, useSnapshot } from "./live";
+import { currentDb, positionsStore, useLive, useSnapshot } from "./live";
 import {
   identity,
   playbackPositions,
@@ -458,17 +458,18 @@ describe("playback positions", () => {
     expect(playbackPositions.get(id)).toBeNull();
   });
 
-  it("bumps the library version once per minute of playback and on clear", () => {
+  it("bumps the positions version on every save, and the library version on clear", () => {
     const id = demo[1].id;
+    const library0 = libraryStore.getState().version;
+    const positions0 = positionsStore.getState().version;
     playbackPositions.save(id, 121);
-    const first = libraryStore.getState().version;
     playbackPositions.save(id, 130);
     playbackPositions.save(id, 179);
-    expect(libraryStore.getState().version).toBe(first);
-    playbackPositions.save(id, 181);
-    expect(libraryStore.getState().version).toBe(first + 1);
+    expect(positionsStore.getState().version).toBe(positions0 + 3);
+    expect(libraryStore.getState().version).toBe(library0);
     playbackPositions.clear(id);
-    expect(libraryStore.getState().version).toBe(first + 2);
+    expect(positionsStore.getState().version).toBe(positions0 + 4);
+    expect(libraryStore.getState().version).toBe(library0 + 1);
   });
 
   it("is inert before the library is ready", () => {
