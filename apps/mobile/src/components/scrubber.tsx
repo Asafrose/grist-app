@@ -5,6 +5,9 @@ import { Text } from "@/components/ui/text";
 import { formatClock } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 
+export const SEEK_HANDOVER_SECONDS = 0.5;
+export const SEEK_HANDOVER_TIMEOUT_MS = 2000;
+
 export function scrubRatio(x: number, width: number): number {
   if (width <= 0) return 0;
   return Math.min(1, Math.max(0, x / width));
@@ -68,19 +71,35 @@ export function Scrubber({
   // flight, so it is built once and only calls setters; the seek runs below with current props.
   const [gesture] = useState(() => makeGesture(testID, setDragX, (x) => setReleased({ x })));
 
+  const [handed, setHanded] = useState<{ x: number } | null>(null);
+
   useEffect(() => {
     if (released) onSeek(scrubRatio(released.x, width) * duration);
     // Each release is a fresh object, so the seek runs once per gesture with the current props.
   }, [released]);
 
   const drag = dragX === null ? null : scrubRatio(dragX, width);
+  const sought =
+    released === null || handed === released ? null : scrubRatio(released.x, width) * duration;
+  if (sought !== null && (drag !== null || Math.abs(position - sought) <= SEEK_HANDOVER_SECONDS)) {
+    setHanded(released);
+  }
+
+  // A seek the player never reaches (a failed load) must not freeze the thumb on the target.
+  useEffect(() => {
+    if (released === null || handed === released) return;
+    const give = setTimeout(() => setHanded(released), SEEK_HANDOVER_TIMEOUT_MS);
+    return () => clearTimeout(give);
+  }, [released, handed]);
+
+  const held = drag !== null ? drag * duration : sought;
 
   useEffect(() => {
-    onScrub?.(dragX === null ? null : scrubRatio(dragX, width) * duration);
-  }, [dragX]);
+    onScrub?.(held);
+  }, [held]);
 
-  const ratio = drag ?? (duration ? Math.min(1, position / duration) : 0);
-  const shown = drag === null ? position : drag * duration;
+  const shown = held ?? position;
+  const ratio = duration ? Math.min(1, shown / duration) : 0;
 
   return (
     <View className="w-full">

@@ -29,14 +29,26 @@ env:
     id: "meetings-list"
 - tapOn:
     id: "meeting-demo-0"
-- assertVisible:
-    id: "player-start"
-- tapOn:
-    id: "player-start"
+# A meeting played in an earlier run opens preloaded and paused, so start from whichever
+# control the card is showing.
+- runFlow:
+    when:
+      visible:
+        id: "player-start"
+    commands:
+      - tapOn:
+          id: "player-start"
 - extendedWaitUntil:
     visible:
       id: "play-pause"
     timeout: 30000
+- runFlow:
+    when:
+      visible: "Play"
+    commands:
+      - tapOn:
+          id: "play-pause"
+- assertVisible: "Pause"
 - takeScreenshot: meeting-playing
 - tapOn:
     id: "rate"

@@ -87,9 +87,57 @@ appId: com.asafrose.grist
 - assertNotVisible:
     id: "mini-player"
 - tapOn: "Meetings"
+- tapOn:
+    id: "tab-index"
 - assertVisible:
     id: "mini-player"
 - tapOn:
     id: "mini-close"
 - assertNotVisible:
     id: "mini-player"
+# Reopening the meeting we seeked shows the resume time before play, paused on that frame.
+- tapOn:
+    id: "meeting-demo-0"
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- assertVisible: "Play"
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: meeting-resume-preplay
+# Seeking a meeting that has never been started leaves it paused at the new position.
+- tapOn: "Meetings"
+- tapOn:
+    id: "meeting-demo-1"
+- assertVisible:
+    id: "player-start"
+- tapOn:
+    id: "seek-forward"
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- assertVisible: "Play"
+- assertNotVisible:
+    id: "position"
+    text: "0:00"
+- takeScreenshot: meeting-seek-paused
+# The thumbnail poster covers the video surface while the next meeting loads.
+# demo-2 is the fixture with a thumbnail, so the poster is visible here.
+- tapOn: "Meetings"
+- tapOn:
+    id: "meeting-demo-2"
+- assertVisible:
+    id: "player-start"
+- tapOn:
+    id: "player-start"
+- takeScreenshot: meeting-poster
+- extendedWaitUntil:
+    visible:
+      id: "play-pause"
+    timeout: 30000
+- tapOn:
+    id: "play-pause"
+- assertVisible: "Play"

@@ -173,7 +173,7 @@ describe("Fullscreen", () => {
   });
 
   it("seeks a second before the next speaker starts", async () => {
-    const seekTo = jest.spyOn(playback, "seekTo").mockImplementation(() => {});
+    const seekTo = jest.spyOn(playback, "seekTo").mockImplementation(() => 0);
     await seedTranscript([
       { start: 100_000, end: 125_000, speaker: "Ana Lima" },
       { start: 130_000, end: 140_000, speaker: "Ben Ortiz" },

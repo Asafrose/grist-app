@@ -14,6 +14,7 @@ import {
   player,
   POSITION_WRITE_INTERVAL_MS,
   RERESOLVE_BACKOFF_MS,
+  SEEK_END_EPSILON_SECONDS,
   playerStore,
   useIsPlaying,
 } from "@/lib/player";
@@ -148,7 +149,7 @@ describe("player store", () => {
     fake.emit("timeUpdate", { currentTime: 100 });
     expect(playerStore.getState()).toMatchObject({ status: "ready", duration: 120, position: 100 });
     playback.seekBy(30);
-    expect(playerStore.getState().position).toBe(120);
+    expect(playerStore.getState().position).toBe(120 - SEEK_END_EPSILON_SECONDS);
     playback.seekBy(-200);
     expect(playerStore.getState().position).toBe(0);
     playback.setRate(1.5);
@@ -228,6 +229,22 @@ describe("clip ranges", () => {
     expect(fake.pause).toHaveBeenCalledTimes(1);
   });
 
+  it("clamps a clip start past the end of the source and drops the range", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.preload(rec, 30);
+    fake.emit("sourceLoad", { duration: 600 });
+    fake.emit("statusChange", { status: "readyToPlay" });
+
+    await playback.load(rec, { at: 1800, until: 1830 });
+    expect(fake.currentTime).toBe(600 - SEEK_END_EPSILON_SECONDS);
+    expect(playerStore.getState()).toMatchObject({
+      status: "ready",
+      position: 600 - SEEK_END_EPSILON_SECONDS,
+      playing: true,
+      until: null,
+    });
+  });
+
   it("replaces the range on the loaded recording and clears it on seek or plain load", async () => {
     resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
     await playback.load(rec, { at: 10, until: 20 });
@@ -277,6 +294,18 @@ describe("offline downloads", () => {
     expect(playerStore.getState().playing).toBe(true);
   });
 
+  it("keeps recording positions after a failed swap to a local file", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    fake.emit("timeUpdate", { currentTime: 42 });
+    fake.replaceAsync.mockRejectedValueOnce(new Error("corrupt file"));
+    downloadsStore.setState({ byId: { r1: done("file:///docs/downloads/r1.mp4") } });
+    await new Promise((r) => setTimeout(r, 0));
+
+    fake.emit("timeUpdate", { currentTime: 60 });
+    playback.pause();
+    expect(playbackPositions.get("r1")).toBe(60);
+  });
   it("ignores downloads for other recordings", async () => {
     resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
     await playback.load(rec);
@@ -446,6 +475,19 @@ describe("resume position", () => {
     expect(playbackPositions.get("r1")).toBe(31);
   });
 
+  it("stores a finished recording at the start, however long its metadata claims it is", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("sourceLoad", { duration: 600 });
+    fake.emit("timeUpdate", { currentTime: 600 });
+    playback.pause();
+    expect(playbackPositions.get("r1")).toBe(0);
+
+    playback.stop();
+    await playback.load(rec, { autoplay: false });
+    expect(playerStore.getState().position).toBe(0);
+  });
+
   it("resumes a partially played recording when no explicit position is given", async () => {
     resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
     await playback.load(rec, { autoplay: false });
@@ -566,5 +608,136 @@ describe("transition timing marks", () => {
       expect.stringContaining("fullscreen unmount → card surface playing"),
     );
     log.mockRestore();
+  });
+});
+
+describe("seeking before playback", () => {
+  it("loads paused at the resume point without starting playback", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    playbackPositions.save("r1", 45);
+    await playback.load(rec, { autoplay: false });
+    expect(fake.play).not.toHaveBeenCalled();
+    expect(fake.currentTime).toBe(45);
+    expect(playerStore.getState()).toMatchObject({ position: 45, playing: false });
+  });
+
+  it("loads paused at an explicit seek position and stays paused", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { at: 12, autoplay: false });
+    expect(fake.play).not.toHaveBeenCalled();
+    expect(fake.currentTime).toBe(12);
+    expect(playerStore.getState()).toMatchObject({ position: 12, playing: false });
+  });
+
+  it("pauses the source it just replaced when the new one is loaded paused", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { at: 12, autoplay: false });
+    expect(fake.pause).toHaveBeenCalled();
+    expect(playerStore.getState().playing).toBe(false);
+  });
+
+  it("leaves a renderable frame when a seek lands past the end of the source", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("sourceLoad", { duration: 600 });
+    fake.emit("statusChange", { status: "readyToPlay" });
+
+    playback.seekTo(1800);
+    expect(fake.currentTime).toBe(600 - SEEK_END_EPSILON_SECONDS);
+    expect(playerStore.getState()).toMatchObject({
+      status: "ready",
+      position: 600 - SEEK_END_EPSILON_SECONDS,
+    });
+
+    playback.seekBy(-30);
+    expect(playerStore.getState().position).toBe(570 - SEEK_END_EPSILON_SECONDS);
+  });
+
+  it("keeps a resume point that only looks like the end of the previous source", async () => {
+    resolveMediaUrl.mockResolvedValue("https://cdn/media.mp4");
+    await playback.load(rec, { autoplay: false });
+    fake.emit("sourceLoad", { duration: 300 });
+
+    const long = { ...rec, id: "r2", title: "Second", durationMs: 3_600_000 };
+    await playback.load(long, { at: 290, until: 320 });
+    expect(fake.currentTime).toBe(290);
+    expect(playerStore.getState()).toMatchObject({ position: 290, until: 320 });
+  });
+
+  it("keeps the playing state across a seek", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    expect(playerStore.getState().playing).toBe(true);
+    playback.seekTo(20);
+    expect(playerStore.getState()).toMatchObject({ position: 20, playing: true });
+
+    playback.pause();
+    (fake.play as jest.Mock).mockClear();
+    playback.seekTo(30);
+    expect(fake.play).not.toHaveBeenCalled();
+    expect(playerStore.getState()).toMatchObject({ position: 30, playing: false });
+  });
+});
+
+describe("preload", () => {
+  it("parks an idle player on the resume frame without playing or storing a position", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.preload(rec, 45);
+    expect(fake.play).not.toHaveBeenCalled();
+    expect(fake.currentTime).toBe(45);
+    expect(playerStore.getState()).toMatchObject({ current: rec, position: 45, playing: false });
+    expect(playbackPositions.save).not.toHaveBeenCalled();
+  });
+
+  it("never displaces a loaded recording", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    await playback.preload({ ...rec, id: "r2", title: "Second" }, 45);
+    expect(playerStore.getState().current?.id).toBe("r1");
+  });
+
+  it("starts over when the source turns out to be shorter than the stored position", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.preload(rec, 600);
+    expect(fake.currentTime).toBe(600);
+    fake.emit("sourceLoad", { duration: 600 });
+    fake.emit("statusChange", { status: "readyToPlay" });
+    expect(fake.currentTime).toBe(0);
+    expect(playerStore.getState()).toMatchObject({ status: "ready", position: 0, duration: 600 });
+  });
+
+  it("keeps a mid-recording preload on its resume frame", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.preload(rec, 300);
+    fake.emit("sourceLoad", { duration: 600 });
+    fake.emit("statusChange", { status: "readyToPlay" });
+    expect(fake.currentTime).toBe(300);
+    expect(playerStore.getState()).toMatchObject({ status: "ready", position: 300 });
+  });
+
+  it("does nothing without a stored position", async () => {
+    await playback.preload(rec, 0);
+    expect(fake.replaceAsync).not.toHaveBeenCalled();
+    expect(playerStore.getState().current).toBeNull();
+  });
+});
+
+describe("preload failures", () => {
+  it("leaves the card untouched when the media url cannot be resolved", async () => {
+    resolveMediaUrl.mockRejectedValueOnce(new Error("offline"));
+    await playback.preload(rec, 45);
+    expect(playerStore.getState()).toMatchObject({ current: null, status: "idle", error: null });
+  });
+
+  it("leaves the card untouched when nobody is signed in", async () => {
+    authStore.setState({ status: "signed-out", token: null });
+    await expect(playback.preload(rec, 45)).resolves.toBeUndefined();
+    expect(playerStore.getState().current).toBeNull();
+  });
+
+  it("keeps an error the user asked for", async () => {
+    resolveMediaUrl.mockRejectedValueOnce(new Error("offline"));
+    await playback.load(rec, { at: 45 });
+    expect(playerStore.getState()).toMatchObject({ status: "error", error: "offline" });
   });
 });

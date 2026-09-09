@@ -2,6 +2,7 @@ import { createVideoPlayer, type VideoPlayer, type VideoView } from "expo-video"
 import { create, useStore } from "zustand";
 import { auth, authStore } from "@/lib/auth";
 import { playbackPositions } from "@/lib/data/playback-positions";
+import { RESUME_END_MARGIN_SECONDS } from "@/lib/db";
 import { downloads, downloadsStore } from "@/lib/downloads";
 import { invalidateMediaUrl, mediaUrl } from "@/lib/media-url";
 import { perf } from "@/lib/perf";
@@ -62,9 +63,24 @@ player.showNowPlayingNotification = true;
 player.timeUpdateEventInterval = 0.5;
 
 export const POSITION_WRITE_INTERVAL_MS = 5_000;
+export const SEEK_END_EPSILON_SECONDS = 0.5;
 let positionWrittenAt = 0;
 let resumePending = false;
 let inClipRange = false;
+let sourceDuration = 0;
+let pendingRestoreAt: number | null = null;
+let restoreSeq = 0;
+
+function atSourceEnd(seconds: number) {
+  return sourceDuration > 0 && seconds >= sourceDuration - RESUME_END_MARGIN_SECONDS;
+}
+
+function rewindToStart() {
+  pendingRestoreAt = null;
+  player.currentTime = 0;
+  inClipRange = false;
+  playerStore.setState({ position: 0, until: null });
+}
 
 function savePosition(force = false) {
   const { current, position } = playerStore.getState();
@@ -72,7 +88,7 @@ function savePosition(force = false) {
   const now = Date.now();
   if (!force && now - positionWrittenAt < POSITION_WRITE_INTERVAL_MS) return;
   positionWrittenAt = now;
-  playbackPositions.save(current.id, position);
+  playbackPositions.save(current.id, atSourceEnd(position) ? 0 : position);
 }
 
 player.addListener("playingChange", ({ isPlaying }) => {
@@ -92,7 +108,13 @@ player.addListener("timeUpdate", ({ currentTime }) => {
   perf.measure("surface-attach", "video surface attached (card or fullscreen) → first timeUpdate");
   savePosition();
 });
-player.addListener("sourceLoad", ({ duration }) => playerStore.setState({ duration }));
+player.addListener("sourceLoad", ({ duration }) => {
+  sourceDuration = duration;
+  playerStore.setState({ duration });
+  const at = pendingRestoreAt;
+  if (at === null || restoreSeq !== loadSeq || !atSourceEnd(at)) return;
+  rewindToStart();
+});
 player.addListener("statusChange", ({ status, error }) => {
   if (playerStore.getState().status === "idle") return;
   playerStore.setState({
@@ -133,10 +155,17 @@ function freshUri(id: string, token: string): Promise<string> {
 }
 
 function restoreAfterReplace(at: number, autoplay: boolean) {
-  resumePending = false;
   player.playbackRate = settings.get().playbackRate;
-  player.currentTime = at;
+  restoreSeq = loadSeq;
+  if (atSourceEnd(at)) {
+    rewindToStart();
+  } else {
+    pendingRestoreAt = at;
+    player.currentTime = at;
+  }
   if (autoplay) player.play();
+  else player.pause();
+  resumePending = false;
 }
 
 async function swapSource(uri: string, resume?: boolean) {
@@ -144,7 +173,13 @@ async function swapSource(uri: string, resume?: boolean) {
   if (!current) return;
   const seq = loadSeq;
   resumePending = true;
-  await player.replaceAsync({ uri, metadata: metadataFor(current) });
+  try {
+    await player.replaceAsync({ uri, metadata: metadataFor(current) });
+  } catch (e) {
+    // A newer sequence owns the flag and clears it itself.
+    if (seq === loadSeq) resumePending = false;
+    throw e;
+  }
   if (seq !== loadSeq) return;
   restoreAfterReplace(position, resume ?? playing);
 }
@@ -192,9 +227,10 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   const { current } = playerStore.getState();
   const until = opts.until ?? null;
   if (current?.id === rec.id) {
-    if (opts.at !== undefined) seekTo(opts.at);
-    inClipRange = until !== null;
-    playerStore.setState({ until });
+    const at = opts.at === undefined ? undefined : seekTo(opts.at);
+    const range = at !== undefined && at !== opts.at ? null : until;
+    inClipRange = range !== null;
+    playerStore.setState({ until: range });
     if (opts.autoplay ?? true) player.play();
     return;
   }
@@ -207,6 +243,8 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   reresolveAttempts = 0;
   positionWrittenAt = 0;
   resumePending = true;
+  sourceDuration = 0;
+  pendingRestoreAt = null;
   const at = opts.at ?? playbackPositions.resume(rec.id, rec.durationMs / 1000);
   playerStore.setState({
     current: rec,
@@ -230,12 +268,27 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   }
 }
 
+async function preload(rec: NowPlaying, at: number) {
+  if (playerStore.getState().current || at <= 0) return;
+  const seq = loadSeq + 1;
+  try {
+    await load(rec, { at, autoplay: false });
+  } catch {
+    // opening a meeting is not a playback request, so a failure is silent
+  }
+  const { current, status } = playerStore.getState();
+  if (seq === loadSeq && status === "error" && current?.id === rec.id) reset(false);
+}
+
 function seekTo(seconds: number) {
-  const { duration } = playerStore.getState();
-  const clamped = Math.max(0, duration ? Math.min(seconds, duration) : seconds);
+  const duration = sourceDuration || playerStore.getState().duration;
+  const last = duration ? duration - SEEK_END_EPSILON_SECONDS : 0;
+  const clamped = Math.max(0, duration ? Math.min(seconds, last) : seconds);
   player.currentTime = clamped;
+  pendingRestoreAt = null;
   inClipRange = false;
   playerStore.setState({ position: clamped, until: null });
+  return clamped;
 }
 
 function seekBy(seconds: number) {
@@ -270,6 +323,8 @@ function reset(persist: boolean) {
   positionWrittenAt = 0;
   resumePending = false;
   inClipRange = false;
+  sourceDuration = 0;
+  pendingRestoreAt = null;
   void player.replaceAsync(null);
   playerStore.setState(initial);
 }
@@ -285,6 +340,7 @@ authStore.subscribe((s, prev) => {
 
 export const playback = {
   load,
+  preload,
   play: () => player.play(),
   pause: () => player.pause(),
   toggle,

@@ -1,13 +1,13 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { isPictureInPictureSupported } from "expo-video";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Icon, type IconName } from "@/components/icon";
 import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/player-view";
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
-import type { RecordingDetail } from "@/lib/data";
+import { type RecordingDetail, useResumePosition } from "@/lib/data";
 import { formatClock } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 import { perf } from "@/lib/perf";
@@ -101,10 +101,12 @@ function Transport({
 }
 
 function Progress({
+  resume,
   isCurrent,
   fallbackDuration,
   onSeek,
 }: {
+  resume: number;
   isCurrent: boolean;
   fallbackDuration: number;
   onSeek: (seconds: number) => void;
@@ -112,7 +114,7 @@ function Progress({
   const livePosition = usePlaybackPosition();
   const liveDuration = usePlaybackDuration();
   const [scrubbing, setScrubbing] = useState<number | null>(null);
-  const position = isCurrent ? livePosition : 0;
+  const position = isCurrent ? livePosition : resume;
   const duration = isCurrent && liveDuration ? liveDuration : fallbackDuration;
   return (
     <View className="absolute bottom-3.5 left-3.5 right-3.5">
@@ -159,9 +161,20 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
   const [ratesOpen, setRatesOpen] = useState(false);
   const hasMedia = rec.mediaType !== "transcript";
   const nowPlaying = toNowPlaying(rec);
+  const resume = useResumePosition(rec.id, rec.durationMs / 1000);
+
+  const preloaded = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (rec.mediaType !== "video" || preloaded.current === rec.id) return;
+    preloaded.current = rec.id;
+    void playback.preload(toNowPlaying(rec), resume);
+  }, [rec, resume]);
 
   const seekTo = (seconds: number) =>
-    isCurrent ? playback.seekTo(seconds) : void playback.load(nowPlaying, { at: seconds });
+    isCurrent
+      ? playback.seekTo(seconds)
+      : void playback.load(nowPlaying, { at: seconds, autoplay: false });
 
   return (
     <View
@@ -266,7 +279,7 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
               testID="seek-back"
               icon="back10"
               label="Back 10 seconds"
-              onPress={() => (isCurrent ? playback.seekBy(-10) : seekTo(0))}
+              onPress={() => (isCurrent ? playback.seekBy(-10) : seekTo(Math.max(0, resume - 10)))}
             />
             {loading ? (
               <View
@@ -291,11 +304,12 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
               testID="seek-forward"
               icon="fwd10"
               label="Forward 10 seconds"
-              onPress={() => (isCurrent ? playback.seekBy(10) : seekTo(10))}
+              onPress={() => (isCurrent ? playback.seekBy(10) : seekTo(resume + 10))}
             />
           </View>
 
           <Progress
+            resume={resume}
             isCurrent={isCurrent}
             fallbackDuration={rec.durationMs / 1000}
             onSeek={seekTo}

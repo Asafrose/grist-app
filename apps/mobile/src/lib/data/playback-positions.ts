@@ -5,7 +5,7 @@ import {
   setPlaybackPosition,
 } from "@/lib/db";
 import { library } from "@/lib/library";
-import { currentDb, withDb } from "./live";
+import { currentDb, useSnapshot, withDb } from "./live";
 
 const signalled = new Map<string, number>();
 
@@ -14,6 +14,13 @@ function signalMinute(id: string, minute: number): void {
   if (signalled.get(id) === minute) return;
   signalled.set(id, minute);
   library.touch();
+}
+
+export function useResumePosition(recordingId: string, durationSeconds: number): number {
+  return useSnapshot(
+    (db) => resumePosition(db, recordingId, durationSeconds),
+    [recordingId, durationSeconds],
+  );
 }
 
 export const playbackPositions = {

@@ -1,17 +1,50 @@
 import { Image } from "expo-image";
 import { VideoView } from "expo-video";
-import { useCallback } from "react";
-import { View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Animated, useAnimatedValue, View } from "react-native";
 import { Icon } from "@/components/icon";
-import { attachVideoView, player, useNowPlaying } from "@/lib/player";
+import { attachVideoView, player, useNowPlaying, usePlaybackStatus } from "@/lib/player";
 import { useSetting } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 export const PLAYER_SURFACE = "#23282D";
 export const PLAYER_ON_SURFACE = "#FFFFFF";
+export const POSTER_FADE_MS = 220;
+
+function Poster({ uri, ready }: { uri: string | null; ready: boolean }) {
+  const opacity = useAnimatedValue(1);
+  const [faded, setFaded] = useState(ready);
+
+  useEffect(() => {
+    if (!ready || faded) return;
+    const fade = Animated.timing(opacity, {
+      toValue: 0,
+      duration: POSTER_FADE_MS,
+      useNativeDriver: true,
+    });
+    fade.start(({ finished }) => {
+      if (finished) setFaded(true);
+    });
+    return () => fade.stop();
+  }, [ready, faded, opacity]);
+
+  if (faded) return null;
+  return (
+    <Animated.View
+      testID="player-poster"
+      pointerEvents="none"
+      style={{ position: "absolute", inset: 0, opacity, backgroundColor: PLAYER_SURFACE }}
+    >
+      {uri ? (
+        <Image testID="poster-image" source={uri} style={{ flex: 1 }} contentFit="cover" />
+      ) : null}
+    </Animated.View>
+  );
+}
 
 export function PlayerView({ className, fill }: { className?: string; fill?: boolean }) {
   const current = useNowPlaying();
+  const status = usePlaybackStatus();
   const pip = useSetting("pictureInPicture");
   const isVideo = current?.mediaType === "video";
 
@@ -26,15 +59,18 @@ export function PlayerView({ className, fill }: { className?: string; fill?: boo
       style={{ backgroundColor: PLAYER_SURFACE }}
     >
       {isVideo ? (
-        <VideoView
-          ref={attach}
-          player={player}
-          style={{ flex: 1 }}
-          contentFit="contain"
-          nativeControls={false}
-          allowsPictureInPicture={pip}
-          startsPictureInPictureAutomatically={pip}
-        />
+        <>
+          <VideoView
+            ref={attach}
+            player={player}
+            style={{ flex: 1 }}
+            contentFit="contain"
+            nativeControls={false}
+            allowsPictureInPicture={pip}
+            startsPictureInPictureAutomatically={pip}
+          />
+          <Poster key={current.id} uri={current.thumbnailUrl} ready={status === "ready"} />
+        </>
       ) : (
         <View className="flex-1 items-center justify-center">
           {current?.thumbnailUrl ? (

@@ -1,6 +1,7 @@
 import { Alert } from "react-native";
-import { fireEvent, render, screen } from "@/test/render";
-import type { RecordingDetail } from "@/lib/data";
+import { act, fireEvent, render, screen } from "@/test/render";
+import { playbackPositions, type RecordingDetail } from "@/lib/data";
+import { library, libraryReady } from "@/lib/library";
 import { playback, playerStore } from "@/lib/player";
 import { settings } from "@/lib/settings";
 import { PlayerCard } from "./player-card";
@@ -49,5 +50,78 @@ describe("PlayerCard picture in picture", () => {
     await render(<PlayerCard rec={rec} />);
     expect(screen.queryByTestId("pip")).toBeNull();
     expect(screen.getByTestId("player-fullscreen")).toBeOnTheScreen();
+  });
+});
+
+describe("PlayerCard before playback", () => {
+  beforeAll(async () => {
+    await libraryReady;
+  });
+
+  beforeEach(() => {
+    playbackPositions.clear(rec.id);
+    playerStore.setState({
+      current: null,
+      status: "idle",
+      playing: false,
+      position: 0,
+      duration: 0,
+    });
+  });
+
+  it("shows the stored resume position and preloads the frame it will start from", async () => {
+    const preload = jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+    playbackPositions.save(rec.id, 120);
+    await render(<PlayerCard rec={rec} />);
+    expect(screen.getByTestId("position")).toHaveTextContent("2:00");
+    expect(preload).toHaveBeenCalledWith(expect.objectContaining({ id: rec.id }), 120);
+  });
+
+  it("preloads once per meeting, whatever the library does afterwards", async () => {
+    const preload = jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+    playbackPositions.save(rec.id, 120);
+    const view = await render(<PlayerCard rec={rec} />);
+    expect(preload).toHaveBeenCalledTimes(1);
+
+    // A sync hands the screen a fresh row and bumps the version the resume read follows.
+    playback.stop();
+    await act(async () => {
+      library.touch();
+      view.rerender(<PlayerCard rec={{ ...rec }} />);
+    });
+    expect(preload).toHaveBeenCalledTimes(1);
+  });
+
+  it("preloads nothing for an unplayed recording", async () => {
+    const preload = jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+    await render(<PlayerCard rec={rec} />);
+    expect(screen.getByTestId("position")).toHaveTextContent("0:00");
+    expect(preload).toHaveBeenCalledWith(expect.objectContaining({ id: rec.id }), 0);
+  });
+
+  it("preloads nothing for an audio recording", async () => {
+    const preload = jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+    playbackPositions.save(rec.id, 120);
+    await render(<PlayerCard rec={{ ...rec, mediaType: "audio" } as RecordingDetail} />);
+    expect(preload).not.toHaveBeenCalled();
+  });
+
+  it("loads paused when a seek starts an unloaded recording", async () => {
+    jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+    const load = jest.spyOn(playback, "load").mockResolvedValue(undefined);
+    await render(<PlayerCard rec={rec} />);
+    await fireEvent.press(screen.getByTestId("seek-forward"));
+    expect(load).toHaveBeenCalledWith(expect.objectContaining({ id: rec.id }), {
+      at: 10,
+      autoplay: false,
+    });
+  });
+
+  it("starts playback from the play button", async () => {
+    jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+    const load = jest.spyOn(playback, "load").mockResolvedValue(undefined);
+    await render(<PlayerCard rec={rec} />);
+    await fireEvent.press(screen.getByTestId("player-start"));
+    expect(load).toHaveBeenCalledWith(expect.objectContaining({ id: rec.id }));
   });
 });
