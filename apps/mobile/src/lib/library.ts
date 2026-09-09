@@ -2,6 +2,7 @@ import { focusManager, onlineManager, skipToken, useQuery } from "@tanstack/reac
 import * as Network from "expo-network";
 import { create, useStore } from "zustand";
 import { auth, authStore, useAuthToken } from "@/lib/auth";
+import { cancelPrewarm, runPrewarm } from "@/lib/prewarm";
 import { clearAll, type Db, getMeta } from "@/lib/db";
 import { openDb } from "@/lib/db/open";
 import { isDemoToken, seedDemo } from "@/lib/demo";
@@ -114,6 +115,7 @@ async function refresh(force = false): Promise<void> {
       queryFn: () => runSync(db, token),
       staleTime: LIBRARY_STALE_MS,
     });
+    void runPrewarm(db);
   } catch (e) {
     reportAuthFailure(e);
     // the failure lives in the query state; useSyncError surfaces it
@@ -157,6 +159,7 @@ async function clear(): Promise<void> {
   const { db } = libraryStore.getState();
   if (!db) return;
   activeThrottle?.cancel();
+  cancelPrewarm();
   downloads.clear();
   thumbnails.clear();
   me.reset();

@@ -9,6 +9,10 @@ jest.mock("expo-network", () => ({
   getNetworkStateAsync: jest.fn(async () => ({ type: "WIFI" })),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/prewarm", () => ({
+  runPrewarm: jest.fn(async () => undefined),
+  cancelPrewarm: jest.fn(),
+}));
 
 it("hydrates me from cached meta before any network work", async () => {
   const cached: Me = { email: "ada@example.com", name: "Ada", userId: "u1", source: "detected" };

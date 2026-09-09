@@ -5,6 +5,7 @@ import * as Network from "expo-network";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { auth, authStore } from "@/lib/auth";
 import { listRecordings } from "@/lib/db";
+import { runPrewarm } from "@/lib/prewarm";
 import { downloads } from "@/lib/downloads";
 import { makeClient } from "@/lib/grain";
 import {
@@ -25,6 +26,10 @@ jest.mock("expo-network", () => ({
   getNetworkStateAsync: jest.fn(async () => ({ type: "WIFI" })),
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/prewarm", () => ({
+  runPrewarm: jest.fn(async () => undefined),
+  cancelPrewarm: jest.fn(),
+}));
 jest.mock("@/lib/me", () => ({
   me: { resolve: jest.fn(async () => null), reset: jest.fn(), hydrate: jest.fn() },
 }));
@@ -101,6 +106,18 @@ describe("library store", () => {
     prune.mockRestore();
     expect(queryClient.getQueryData(libraryKey("pat"))).toBe(cached);
     expect(queryClient.getQueryState(libraryKey("pat"))?.fetchStatus).toBe("idle");
+  });
+
+  it("pre-resolves media urls after a sync but not after one that failed", async () => {
+    authStore.setState({ status: "signed-in", token: "pat" });
+    await library.refresh(true);
+    expect(runPrewarm).toHaveBeenCalledWith(libraryStore.getState().db);
+    (runPrewarm as jest.Mock).mockClear();
+    iterate.mockImplementationOnce(() => {
+      throw new Error("offline");
+    });
+    await library.refresh(true);
+    expect(runPrewarm).not.toHaveBeenCalled();
   });
 
   it("dedupes concurrent refreshes into one sync", async () => {

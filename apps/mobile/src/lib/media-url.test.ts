@@ -7,8 +7,10 @@ import {
   invalidateMediaUrl,
   mediaUrl,
   MEDIA_URL_GC_MS,
+  MEDIA_URL_PREWARM_STALE_MS,
   MEDIA_URL_STALE_MS,
   mediaUrlKey,
+  prewarmMediaUrl,
 } from "@/lib/media-url";
 import { queryClient } from "@/lib/query";
 
@@ -77,6 +79,28 @@ describe("mediaUrl", () => {
     await expect(mediaUrl("r1", "pat")).rejects.toThrow("Unauthorized");
     expect(auth.rejected()).toBe("Grain didn't accept that token. Check it and try again.");
     auth.accept();
+  });
+
+  it("re-resolves a pre-warmed URL that has outlived its shorter freshness", async () => {
+    const now = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(now);
+    const warmed = await prewarmMediaUrl("r1", "pat");
+    jest.spyOn(Date, "now").mockReturnValue(now + MEDIA_URL_PREWARM_STALE_MS - 1);
+    expect(await mediaUrl("r1", "pat")).toBe(warmed);
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(Date, "now").mockReturnValue(now + MEDIA_URL_PREWARM_STALE_MS);
+    const fresh = await mediaUrl("r1", "pat");
+    expect(fresh).not.toBe(warmed);
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
+
+    expect(await mediaUrl("r1", "pat")).toBe(fresh);
+    expect(resolveMediaUrl).toHaveBeenCalledTimes(2);
+    jest.spyOn(Date, "now").mockRestore();
+  });
+
+  it("keeps a pre-warmed URL inside the plain stale window once re-resolved on tap", () => {
+    expect(MEDIA_URL_PREWARM_STALE_MS).toBeLessThan(MEDIA_URL_STALE_MS);
   });
 
   it("clear drops every cached URL", async () => {
