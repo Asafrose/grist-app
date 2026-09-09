@@ -26,6 +26,20 @@ appId: com.asafrose.grist
     id: "view-mine"
 - assertVisible: ".*External.*"
 - takeScreenshot: meetings-list
+# New badge: demo-0 starts 2h ago and has never been opened; demo-5 is 50h old.
+- assertVisible:
+    id: "new-demo-0"
+- scrollUntilVisible:
+    element:
+      id: "meeting-demo-5"
+    direction: DOWN
+- assertNotVisible:
+    id: "new-demo-5"
+- scrollUntilVisible:
+    element:
+      id: "meeting-demo-0"
+    direction: UP
+- takeScreenshot: meetings-new-badge
 # Open a meeting before filtering: after the list re-renders, Maestro's positions for
 # recycled FlashList cells go stale on iOS and taps miss.
 - tapOn:
@@ -37,6 +51,9 @@ appId: com.asafrose.grist
 - tapOn: "Meetings"
 - assertVisible:
     id: "meetings-list"
+- assertNotVisible:
+    id: "new-demo-0"
+- takeScreenshot: meetings-new-badge-cleared
 # Title filter narrows the list locally.
 - tapOn:
     id: "title-filter"

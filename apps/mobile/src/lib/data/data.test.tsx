@@ -18,6 +18,7 @@ import {
   identity,
   playbackPositions,
   recentSearches,
+  recordingOpens,
   recordings,
   transcriptIndex,
   useClips,
@@ -407,6 +408,40 @@ describe("identity", () => {
   it("choose writes the picked user through the library db", async () => {
     const picked = identity.choose({ id: "u9", name: "Pat", email: "pat@x.io" });
     expect(meStore.getState().me).toEqual(picked);
+  });
+});
+
+describe("recording opens", () => {
+  it("marks a recording opened and bumps the library version only the first time", () => {
+    const id = demo[2].id;
+    expect(recordingOpens.get(id)).toBeNull();
+    const before = libraryStore.getState().version;
+    recordingOpens.markOpened(id, "2026-09-06T09:00:00.000Z");
+    expect(recordingOpens.get(id)).toBe("2026-09-06T09:00:00.000Z");
+    expect(libraryStore.getState().version).toBe(before + 1);
+    recordingOpens.markOpened(id, "2026-09-07T09:00:00.000Z");
+    expect(recordingOpens.get(id)).toBe("2026-09-06T09:00:00.000Z");
+    expect(libraryStore.getState().version).toBe(before + 1);
+  });
+
+  it("is inert before the library is ready", () => {
+    const saved = libraryStore.getState().db;
+    libraryStore.setState({ db: null });
+    expect(() => recordingOpens.markOpened("r1")).not.toThrow();
+    expect(recordingOpens.get("r1")).toBeNull();
+    libraryStore.setState({ db: saved });
+  });
+
+  it("surfaces database failures instead of swallowing them", () => {
+    const saved = libraryStore.getState().db;
+    const broken = {
+      select: () => {
+        throw new Error("no such table: recording_opens");
+      },
+    };
+    libraryStore.setState({ db: broken as unknown as typeof saved });
+    expect(() => recordingOpens.get("r1")).toThrow("no such table");
+    libraryStore.setState({ db: saved });
   });
 });
 

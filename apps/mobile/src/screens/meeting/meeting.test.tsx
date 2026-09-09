@@ -3,7 +3,7 @@ import detail from "@grist/grain-api/fixtures/recording.json";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import { router } from "expo-router";
 import { authStore } from "@/lib/auth";
-import { getRecording, listRecordings, upsertRecordings } from "@/lib/db";
+import { getRecording, getRecordingOpen, listRecordings, upsertRecordings } from "@/lib/db";
 import { makeClient, useGrainClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { haptics } from "@/lib/haptics";
@@ -89,9 +89,24 @@ describe("Meeting shell with a real token", () => {
     expect(get).not.toHaveBeenCalled();
   });
 
+  it("marks the recording opened on mount", async () => {
+    const db = libraryStore.getState().db!;
+    upsertRecordings(db, [{ ...fixture, id: "never-opened" }], isoSeconds(Date.now()));
+    expect(getRecordingOpen(db, "never-opened")).toBeNull();
+    await render(<Meeting id="never-opened" />);
+    await waitFor(() => expect(getRecordingOpen(db, "never-opened")).not.toBeNull());
+  });
+
   it("explains when the recording is not cached", async () => {
     await render(<Meeting id="missing" />);
     expect(screen.getByText(/not in your library yet/)).toBeOnTheScreen();
+  });
+
+  it("does not mark an uncached recording opened", async () => {
+    const db = libraryStore.getState().db!;
+    await render(<Meeting id="not-synced-yet" />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(getRecordingOpen(db, "not-synced-yet")).toBeNull();
   });
 });
 

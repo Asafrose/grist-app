@@ -15,6 +15,15 @@ export function currentDb(): Db {
   return db;
 }
 
+export function withDb<T>(read: () => T, fallback: T): T {
+  try {
+    return read();
+  } catch (e) {
+    if (e instanceof LibraryNotReadyError) return fallback;
+    throw e;
+  }
+}
+
 type Live<T> = { data: T; updatedAt: Date | undefined };
 
 export type LiveOptions = { keepPrevious?: boolean };

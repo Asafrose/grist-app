@@ -18,6 +18,7 @@ import {
   meta,
   participants,
   playbackPositions,
+  recordingOpens,
   recordings,
   summarySections,
   transcriptSegments,
@@ -190,6 +191,7 @@ export function deleteRecordings(db: Db, ids: string[]): void {
       transcripts,
       transcriptSegments,
       playbackPositions,
+      recordingOpens,
     ]) {
       tx.delete(table).where(inArray(table.recordingId, ids)).run();
     }
@@ -266,6 +268,9 @@ const highlightThumbnailUrl = sql<string | null>`(SELECT h.thumbnail_url FROM hi
 const positionSeconds = sql<number | null>`(SELECT p.position_seconds FROM playback_positions p
   WHERE p.recording_id = recordings.id)`.as("position_seconds");
 
+const openedAt = sql<string | null>`(SELECT o.opened_at FROM recording_opens o
+  WHERE o.recording_id = recordings.id)`.as("opened_at");
+
 export function recordingsQuery(db: Db, f: RecordingsFilter = {}) {
   return db
     .select({
@@ -273,6 +278,7 @@ export function recordingsQuery(db: Db, f: RecordingsFilter = {}) {
       externalEmails,
       highlightThumbnailUrl,
       positionSeconds,
+      openedAt,
     })
     .from(recordings)
     .where(and(...filterClauses(f)))
@@ -425,6 +431,7 @@ export function clearAll(db: Db): void {
       transcripts,
       transcriptSegments,
       playbackPositions,
+      recordingOpens,
       recordings,
       meta,
     ]) {

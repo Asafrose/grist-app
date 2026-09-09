@@ -6,6 +6,7 @@ import {
   formatMeetingDate,
   formatShortDate,
   formatTime,
+  isNewRecording,
   watchProgress,
 } from "@/lib/format";
 
@@ -137,5 +138,29 @@ describe("watchProgress", () => {
     });
     expect(watchProgress(29 * 60 + 20, thirtyMinutes)?.timeLeft).toBe("1 min left");
     expect(watchProgress(60, thirtyMinutes)?.timeLeft).toBe("29 min left");
+  });
+});
+
+describe("isNewRecording", () => {
+  const now = new Date("2026-09-08T12:00:00Z");
+  const ago = (hours: number) => new Date(now.getTime() - hours * 3_600_000).toISOString();
+
+  it("marks an unopened recording inside the 48h window", () => {
+    expect(isNewRecording(ago(1), null, now)).toBe(true);
+    expect(isNewRecording(ago(47.9), null, now)).toBe(true);
+  });
+
+  it("stops exactly at the 48h boundary", () => {
+    expect(isNewRecording(ago(48), null, now)).toBe(false);
+    expect(isNewRecording(ago(48.1), null, now)).toBe(false);
+  });
+
+  it("is never new once opened", () => {
+    expect(isNewRecording(ago(1), ago(0.5), now)).toBe(false);
+  });
+
+  it("still counts a future-dated start as new, and ignores unparseable dates", () => {
+    expect(isNewRecording(new Date(now.getTime() + 3_600_000).toISOString(), null, now)).toBe(true);
+    expect(isNewRecording("not a date", null, now)).toBe(false);
   });
 });

@@ -126,6 +126,11 @@ export const playbackPositions = sqliteTable("playback_positions", {
   updatedAt: text().notNull(),
 });
 
+export const recordingOpens = sqliteTable("recording_opens", {
+  recordingId: text().primaryKey(),
+  openedAt: text().notNull(),
+});
+
 export const recordingsRelations = relations(recordings, ({ many, one }) => ({
   participants: many(participants),
   actionItems: many(actionItems),
@@ -160,3 +165,4 @@ export type HighlightRow = typeof highlights.$inferSelect;
 export type SummarySectionRow = typeof summarySections.$inferSelect;
 export type TranscriptSegmentRow = typeof transcriptSegments.$inferSelect;
 export type PlaybackPositionRow = typeof playbackPositions.$inferSelect;
+export type RecordingOpenRow = typeof recordingOpens.$inferSelect;

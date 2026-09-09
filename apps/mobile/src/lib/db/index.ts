@@ -5,6 +5,7 @@ export type Db = BaseSQLiteDatabase<"sync", unknown, typeof schema>;
 
 export * from "./meta";
 export * from "./playback-positions";
+export * from "./recording-opens";
 export * from "./recordings";
 export * from "./schema";
 export * from "./search";

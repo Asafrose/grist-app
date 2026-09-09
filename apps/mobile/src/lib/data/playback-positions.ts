@@ -5,16 +5,7 @@ import {
   setPlaybackPosition,
 } from "@/lib/db";
 import { library } from "@/lib/library";
-import { currentDb, LibraryNotReadyError } from "./live";
-
-function withDb<T>(read: () => T, fallback: T): T {
-  try {
-    return read();
-  } catch (e) {
-    if (e instanceof LibraryNotReadyError) return fallback;
-    throw e;
-  }
-}
+import { currentDb, withDb } from "./live";
 
 const signalled = new Map<string, number>();
 

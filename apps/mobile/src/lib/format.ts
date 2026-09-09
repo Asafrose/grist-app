@@ -103,3 +103,17 @@ export function formatBytes(bytes: number): string {
   const text = unit === 0 || value >= 10 ? String(Math.round(value)) : value.toFixed(1);
   return `${text} ${UNITS[unit]}`;
 }
+
+export const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+export function isNewRecording(
+  startDatetime: string,
+  openedAt: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (openedAt) return false;
+  const started = Date.parse(startDatetime);
+  if (Number.isNaN(started)) return false;
+  // Clock skew can date a just-finished meeting slightly ahead of the device.
+  return now.getTime() - started < NEW_WINDOW_MS;
+}

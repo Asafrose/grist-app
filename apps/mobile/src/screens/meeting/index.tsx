@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
-import { type RecordingDetail, recordings, useRecording } from "@/lib/data";
+import { type RecordingDetail, recordingOpens, recordings, useRecording } from "@/lib/data";
 import { useIsDemo } from "@/lib/demo";
 import { formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
@@ -159,6 +159,11 @@ export function Meeting({ id }: { id: string }) {
   const tab = parseMeetingTab(params.tab);
 
   const rec = useRecording(id);
+
+  const cached = !!rec;
+  useEffect(() => {
+    if (cached) recordingOpens.markOpened(id);
+  }, [cached, id]);
   const wantsRefresh = !!rec && !!client && !demo && isRecordingStale(rec.syncedAt);
   const refreshing = wantsRefresh && !refreshFailed;
 

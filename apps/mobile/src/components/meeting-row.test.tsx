@@ -9,7 +9,12 @@ jest.mock("expo-router", () => ({
 jest.mock("@/lib/data", () => ({ useDownload: () => ({ status: "idle" }) }));
 jest.mock("@/lib/thumbnails", () => ({ useThumbnail: () => null }));
 
-const item = (positionSeconds: number | null): RecordingListRow =>
+const HOUR = 3_600_000;
+
+const item = (
+  positionSeconds: number | null,
+  extra: Partial<RecordingListRow> = {},
+): RecordingListRow =>
   ({
     id: "r1",
     title: "Weekly sync",
@@ -26,6 +31,8 @@ const item = (positionSeconds: number | null): RecordingListRow =>
     meetingType: null,
     externalEmails: "[]",
     positionSeconds,
+    openedAt: null,
+    ...extra,
   }) as unknown as RecordingListRow;
 
 describe("MeetingRow", () => {
@@ -41,6 +48,33 @@ describe("MeetingRow", () => {
     expect(screen.getByTestId("time-left-r1")).toHaveTextContent("20 min left");
     expect(screen.queryByText("30m")).toBeNull();
     expect(screen.getByTestId("progress-r1")).toBeTruthy();
+  });
+
+  it("badges an unopened recording from the last two days as New", async () => {
+    const startDatetime = new Date(Date.now() - 3 * HOUR).toISOString();
+    await render(<MeetingRow item={item(null, { startDatetime })} last />);
+    expect(screen.getByText("New")).toBeTruthy();
+    expect(screen.getByTestId("new-r1")).toBeTruthy();
+  });
+
+  it("drops the badge once the recording has been opened", async () => {
+    const startDatetime = new Date(Date.now() - 3 * HOUR).toISOString();
+    const openedAt = new Date().toISOString();
+    await render(<MeetingRow item={item(null, { startDatetime, openedAt })} last />);
+    expect(screen.queryByTestId("new-r1")).toBeNull();
+  });
+
+  it("drops the badge past 48 hours even when never opened", async () => {
+    const startDatetime = new Date(Date.now() - 49 * HOUR).toISOString();
+    await render(<MeetingRow item={item(null, { startDatetime })} last />);
+    expect(screen.queryByTestId("new-r1")).toBeNull();
+  });
+
+  it("never shows the badge beside the remaining-time indicator", async () => {
+    const startDatetime = new Date(Date.now() - 3 * HOUR).toISOString();
+    await render(<MeetingRow item={item(10 * 60, { startDatetime })} last />);
+    expect(screen.getByTestId("time-left-r1")).toBeTruthy();
+    expect(screen.queryByTestId("new-r1")).toBeNull();
   });
 
   it("shows nothing special once watched to the end", async () => {

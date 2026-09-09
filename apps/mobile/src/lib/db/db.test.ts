@@ -16,6 +16,8 @@ import {
   deleteRecordings,
   getMeta,
   getRecording,
+  getRecordingOpen,
+  markRecordingOpened,
   getTranscript,
   highlightsQuery,
   indexSize,
@@ -39,6 +41,9 @@ import {
   teamOptions,
   upsertRecordings,
 } from "@/lib/db";
+import fs from "node:fs";
+import path from "node:path";
+import { sql } from "drizzle-orm";
 import { seedDemo } from "@/lib/demo";
 import { testDb } from "@/test/db";
 
@@ -298,6 +303,53 @@ describe("recordings", () => {
     expect(listRecordings(db)).toEqual([]);
     expect(getMeta(db, "k")).toBeNull();
     expect(getPlaybackPosition(db, recs[0].id)).toBeNull();
+  });
+});
+
+describe("recording opens", () => {
+  it("marks a recording opened once and reads it back", () => {
+    const db = testDb();
+    expect(getRecordingOpen(db, "r1")).toBeNull();
+    expect(markRecordingOpened(db, "r1", NOW)).toBe(true);
+    expect(getRecordingOpen(db, "r1")).toBe(NOW);
+    expect(markRecordingOpened(db, "r1", "2030-01-01T00:00:00.000Z")).toBe(false);
+    expect(getRecordingOpen(db, "r1")).toBe(NOW);
+  });
+
+  it("backfills existing playback positions when the migration first runs", () => {
+    const db = testDb();
+    setPlaybackPosition(db, "watched", 42);
+    const { updated_at: openedAt } = db.get<{ updated_at: string }>(
+      sql`SELECT updated_at FROM playback_positions WHERE recording_id = 'watched'`,
+    );
+    db.run(sql`DROP TABLE recording_opens`);
+    const file = path.join(__dirname, "../../../drizzle/0003_recording_opens.sql");
+    for (const statement of fs.readFileSync(file, "utf8").split("--> statement-breakpoint")) {
+      db.run(sql.raw(statement));
+    }
+    expect(getRecordingOpen(db, "watched")).toBe(openedAt);
+  });
+
+  it("joins openedAt onto the recordings list", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    expect(listRecordings(db).every((r) => r.openedAt === null)).toBe(true);
+    markRecordingOpened(db, recs[1].id, NOW);
+    const rows = listRecordings(db);
+    expect(rows.find((r) => r.id === recs[1].id)?.openedAt).toBe(NOW);
+    expect(rows.filter((r) => r.openedAt !== null)).toHaveLength(1);
+  });
+
+  it("drops the row with the recording and on clearAll", () => {
+    const db = testDb();
+    upsertRecordings(db, recs, NOW);
+    markRecordingOpened(db, recs[0].id, NOW);
+    markRecordingOpened(db, recs[1].id, NOW);
+    deleteRecordings(db, [recs[0].id]);
+    expect(getRecordingOpen(db, recs[0].id)).toBeNull();
+    expect(getRecordingOpen(db, recs[1].id)).toBe(NOW);
+    clearAll(db);
+    expect(getRecordingOpen(db, recs[1].id)).toBeNull();
   });
 });
 

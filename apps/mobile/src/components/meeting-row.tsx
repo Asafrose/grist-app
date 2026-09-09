@@ -5,7 +5,7 @@ import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { meetingCompany } from "@/lib/company";
 import { type RecordingListRow, useDownload } from "@/lib/data";
-import { formatDurationCompact, formatTime, watchProgress } from "@/lib/format";
+import { formatDurationCompact, formatTime, isNewRecording, watchProgress } from "@/lib/format";
 import { useThumbnail } from "@/lib/thumbnails";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
@@ -73,6 +73,7 @@ export function MeetingRow({ item, last }: { item: RecordingListRow; last: boole
   const external = item.externalCount > 0;
   const company = meetingCompany(item);
   const recorder = item.recorders[0]?.name;
+  const isNew = !item.positionSeconds && isNewRecording(item.startDatetime, item.openedAt);
   return (
     <View className="bg-background">
       <Link href={{ pathname: "/meeting/[id]", params: { id: item.id } }} asChild>
@@ -90,6 +91,14 @@ export function MeetingRow({ item, last }: { item: RecordingListRow; last: boole
               <Text className="font-mono text-[12px] text-muted-foreground">
                 {formatTime(item.startDatetime)}
               </Text>
+              {isNew ? (
+                <View
+                  testID={`new-${item.id}`}
+                  className="h-[22px] justify-center rounded-[6px] bg-primary px-2"
+                >
+                  <Text className="font-jakarta-bold text-[12px] text-primary-foreground">New</Text>
+                </View>
+              ) : null}
               {downloaded ? (
                 <View testID={`downloaded-${item.id}`} accessibilityLabel="Downloaded">
                   <Icon name="download" size={14} color={colors.accent} />

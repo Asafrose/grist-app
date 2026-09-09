@@ -9,6 +9,7 @@ export type {
   ParticipantRow,
   RecordingDetail,
   RecordingListRow,
+  RecordingOpenRow,
   RecordingRow,
   RecordingsFilter,
   TeamRow,
@@ -24,6 +25,7 @@ export * from "./clips";
 export * from "./downloads";
 export * from "./identity";
 export * from "./playback-positions";
+export * from "./recording-opens";
 export * from "./recordings";
 export * from "./search";
 export * from "./storage";
