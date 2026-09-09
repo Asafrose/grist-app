@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@/test/render";
 import { MiniPlayer } from "@/components/mini-player";
 import { haptics } from "@/lib/haptics";
+import { meetingLayout } from "@/lib/meeting-layout";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 
 jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
@@ -88,6 +89,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPathname = "/";
   mockShared.length = 0;
+  meetingLayout.reset();
   playerStore.setState({
     current: null,
     status: "idle",
@@ -184,6 +186,22 @@ describe("MiniPlayer", () => {
     await render(<MiniPlayer />);
     expect(screen.queryByTestId("mini-play-pause")).toBeNull();
     expect(screen.getByTestId("mini-player")).toBeOnTheScreen();
+  });
+
+  it("appears on the playing meeting once its player card collapses", async () => {
+    playerStore.setState({ current: rec, status: "ready", playing: true });
+    mockPathname = "/meeting/r1";
+    meetingLayout.setCollapsed(rec.id, true);
+    await render(<MiniPlayer />);
+    expect(screen.getByTestId("mini-player")).toBeOnTheScreen();
+  });
+
+  it("stays hidden when another meeting's card is collapsed", async () => {
+    playerStore.setState({ current: rec, status: "ready", playing: true });
+    mockPathname = "/meeting/r1";
+    meetingLayout.setCollapsed("other", true);
+    await render(<MiniPlayer />);
+    expect(screen.queryByTestId("mini-player")).toBeNull();
   });
 
   it.each([

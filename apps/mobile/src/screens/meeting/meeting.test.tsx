@@ -1,18 +1,21 @@
 import type { Recording } from "@grist/grain-api";
 import detail from "@grist/grain-api/fixtures/recording.json";
-import { fireEvent, render, screen, waitFor } from "@/test/render";
+import { act, fireEvent, render, screen, waitFor } from "@/test/render";
 import { router } from "expo-router";
 import { authStore } from "@/lib/auth";
 import { getRecording, getRecordingOpen, listRecordings, upsertRecordings } from "@/lib/db";
 import { makeClient, useGrainClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { haptics } from "@/lib/haptics";
+import { meetingLayout, meetingLayoutStore } from "@/lib/meeting-layout";
 import { playback, playerStore } from "@/lib/player";
 import { isoSeconds } from "@/lib/sync";
 import { Meeting } from "./index";
 
 jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
+jest.mock("react-native-reanimated", () => require("@/test/mocks/reanimated"));
+jest.mock("react-native-gesture-handler", () => require("@/test/mocks/gesture-handler"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
   getNetworkStateAsync: jest.fn(async () => ({ type: "CELLULAR" })),
@@ -60,6 +63,7 @@ const api = { recordings: { iterate, transcript, get } };
 
 beforeEach(() => {
   jest.clearAllMocks();
+  meetingLayout.reset();
   (makeClient as jest.Mock).mockImplementation(() => api);
   (useGrainClient as jest.Mock).mockImplementation(() => (authStore.getState().token ? api : null));
   setParams({});
@@ -213,5 +217,227 @@ describe("Meeting shell in demo mode", () => {
     const before = playerStore.getState().current?.id;
     await fireEvent.press(screen.getAllByTestId("ts-88000")[0]);
     expect(playerStore.getState().current?.id).toBe(before);
+  });
+
+  const nowPlaying = (r: { id: string; title: string; durationMs: number }) => ({
+    id: r.id,
+    title: r.title,
+    mediaType: "audio" as const,
+    thumbnailUrl: null,
+    durationMs: r.durationMs,
+  });
+  const summary = () => screen.getByTestId("summary-tab");
+  const at = (y: number, contentHeight = 2400) => ({
+    nativeEvent: {
+      contentOffset: { y },
+      contentSize: { height: contentHeight },
+      layoutMeasurement: { height: 600 },
+    },
+  });
+  const dragOn = async (
+    list: () => ReturnType<typeof screen.getByTestId>,
+    ...offsets: number[]
+  ) => {
+    await fireEvent(list(), "scrollBeginDrag", at(offsets[0]));
+    for (const y of offsets) await fireEvent.scroll(list(), at(y));
+    await fireEvent(list(), "scrollEndDrag", at(offsets.at(-1) as number));
+  };
+  const drag = (...offsets: number[]) => dragOn(summary, ...offsets);
+
+  it("collapses the card when the reader drags up and restores it on the way back", async () => {
+    const view = await render(<Meeting id="demo-0" />);
+    expect(screen.getByTestId("meeting-tabs")).toBeOnTheScreen();
+
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+    expect(screen.getByTestId("meeting-tabs")).toBeOnTheScreen();
+    expect(screen.queryByTestId("player-card")).toBeNull();
+    expect(screen.getByTestId("player-card", { includeHiddenElements: true })).toBeTruthy();
+
+    // A small reversal is not enough; the card only comes back on a deliberate drag.
+    await drag(400, 370, 340);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await drag(340, 260, 180, 100);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+    expect(screen.getByTestId("player-card")).toBeOnTheScreen();
+
+    view.unmount();
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("collapses from the transcript list, which calls onScroll itself", async () => {
+    await act(async () => setParams({ tab: "transcript" }));
+    await render(<Meeting id="demo-0" />);
+    const list = screen.getByTestId("transcript-list");
+
+    await dragOn(() => list, 0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await dragOn(() => list, 400, 260, 180);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("ignores the rubber band at the end of the content", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+    // The list bounces past its end and springs back; neither is a reversal.
+    await dragOn(summary, 1790, 1799, 1860, 1810, 1799);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+  });
+
+  it("ignores the momentum that follows a fling", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await fireEvent(summary(), "momentumScrollBegin", at(400));
+    for (const y of [300, 200, 100, 40]) await fireEvent.scroll(summary(), at(y));
+    await fireEvent(summary(), "momentumScrollEnd", at(40));
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+  });
+
+  it("expands when the reader drags the list back to the top", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    // A landing at the top nobody asked for — a fling, transcript follow, or a clamp after
+    // a layout change — is ignored; only the reader's own drag brings the card back.
+    await fireEvent.scroll(summary(), at(0));
+    await fireEvent(summary(), "momentumScrollBegin", at(300));
+    await fireEvent.scroll(summary(), at(0));
+    await fireEvent(summary(), "momentumScrollEnd", at(0));
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await dragOn(summary, 400, 200, 0);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("ignores programmatic scrolling, such as the transcript following playback", async () => {
+    await render(<Meeting id="demo-0" />);
+    await fireEvent.scroll(summary(), at(400));
+    await fireEvent.scroll(summary(), at(800));
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("expands the collapsed card when a timestamp starts playback", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await fireEvent.press(screen.getAllByTestId("ts-88000")[0]);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  // A genuine transition to being the current recording: an audio recording is never
+  // preloaded on mount, so it starts out not current whatever the player card does.
+  it("expands the collapsed card when playback starts on this recording", async () => {
+    const db = libraryStore.getState().db!;
+    const audio = listRecordings(db).find((r) => r.mediaType === "audio")!;
+    playerStore.setState({ current: null, playing: false, status: "idle" });
+    await render(<Meeting id={audio.id} />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe(audio.id);
+
+    // `load` publishes the recording paused, then the player reports it playing.
+    await act(async () => playerStore.setState({ current: nowPlaying(audio), status: "ready" }));
+    expect(meetingLayoutStore.getState().collapsedId).toBe(audio.id);
+
+    await act(async () => playerStore.setState({ playing: true }));
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("stays collapsed while the recording sits loaded but paused", async () => {
+    const db = libraryStore.getState().db!;
+    const audio = listRecordings(db).find((r) => r.mediaType === "audio")!;
+    playerStore.setState({ current: null, playing: false, status: "idle" });
+    await render(<Meeting id={audio.id} />);
+    await drag(0, 40, 120, 400);
+
+    await act(async () => playerStore.setState({ current: nowPlaying(audio), status: "ready" }));
+    expect(meetingLayoutStore.getState().collapsedId).toBe(audio.id);
+  });
+
+  // The player card claims the recording on mount to preload its resume frame, so the card
+  // is showing when it becomes current. A later resume from the mini player is not a start.
+  it("stays collapsed when playback resumes on a recording preloaded at mount", async () => {
+    const db = libraryStore.getState().db!;
+    const audio = listRecordings(db).find((r) => r.mediaType === "audio")!;
+    playerStore.setState({ current: null, playing: false, status: "idle" });
+    await render(<Meeting id={audio.id} />);
+    await act(async () => playerStore.setState({ current: nowPlaying(audio), status: "ready" }));
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe(audio.id);
+
+    await act(async () => playerStore.setState({ playing: true }));
+    expect(meetingLayoutStore.getState().collapsedId).toBe(audio.id);
+  });
+
+  // The recording can already be current at mount, preloaded on its resume position.
+  it("leaves the card collapsed when playback resumes from the mini player", async () => {
+    const current = {
+      id: "demo-0",
+      title: "Demo",
+      mediaType: "video" as const,
+      thumbnailUrl: null,
+      durationMs: 1000,
+    };
+    playerStore.setState({ current, playing: false, status: "ready" });
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await act(async () => playerStore.setState({ playing: true }));
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+  });
+
+  it("reads the next drag from where the list actually sits after an expand", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 400, 800);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    // Expand-on-play leaves the list at 800 with the card open.
+    await fireEvent.press(screen.getAllByTestId("ts-88000")[0]);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+
+    await dragOn(summary, 800, 740, 670);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+
+    await dragOn(summary, 800, 860);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+  });
+
+  it("expands the collapsed card when a clip is tapped", async () => {
+    const db = libraryStore.getState().db!;
+    const withClips = listRecordings(db)
+      .map((r) => getRecording(db, r.id))
+      .find((r) => r && r.highlights.length > 0)!;
+    await act(async () => setParams({ tab: "clips" }));
+    await render(<Meeting id={withClips.id} />);
+
+    const clips = screen.getByTestId("clips-tab");
+    await dragOn(() => clips, 0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe(withClips.id);
+
+    await fireEvent.press(screen.getByTestId(`clip-card-${withClips.highlights[0].id}`));
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("restores the card when the reader switches tabs", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await act(async () => setParams({ tab: "timeline" }));
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("leaves another meeting collapsed when this one unmounts", async () => {
+    meetingLayout.setCollapsed("demo-1", true);
+    const view = await render(<Meeting id="demo-0" />);
+    view.unmount();
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-1");
   });
 });

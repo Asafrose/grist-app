@@ -8,6 +8,7 @@ import { playerStore } from "@/lib/player";
 import { palette } from "@/theme";
 import { TranscriptTab } from "./transcript-tab";
 
+jest.mock("react-native-reanimated", () => require("@/test/mocks/reanimated"));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },

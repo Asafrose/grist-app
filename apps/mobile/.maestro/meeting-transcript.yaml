@@ -85,8 +85,9 @@ appId: com.asafrose.grist
 - takeScreenshot: meeting-transcript-following
 # Manual scroll pauses Follow; the chip is still there to resume
 - swipe:
-    direction: UP
-    duration: 400
+    start: 50%, 80%
+    end: 50%, 35%
+    duration: 500
 - assertVisible:
     id: "transcript-follow"
 - tapOn:

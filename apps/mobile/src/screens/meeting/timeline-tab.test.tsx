@@ -11,6 +11,7 @@ import { library, libraryReady, libraryStore } from "@/lib/library";
 import { isoSeconds } from "@/lib/sync";
 import { TimelineTab } from "./timeline-tab";
 
+jest.mock("react-native-reanimated", () => require("@/test/mocks/reanimated"));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },

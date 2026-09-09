@@ -7,6 +7,7 @@ import { formatClock } from "@/lib/format";
 import { type AssigneeGroup, groupActionItems, initials } from "@/lib/meeting";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
+import type { ScrollListeners } from "./types";
 
 export type { SeekHandler };
 
@@ -81,10 +82,14 @@ function Empty({ refreshing }: { refreshing: boolean }) {
 export function SummaryTab({
   rec,
   onSeek,
+  scrollListeners,
+  contentInsetBottom,
   refreshing = false,
 }: {
   rec: RecordingDetail;
   onSeek: SeekHandler;
+  scrollListeners?: ScrollListeners;
+  contentInsetBottom?: number;
   refreshing?: boolean;
 }) {
   const groups = groupActionItems(rec.actionItems, rec.participants);
@@ -94,6 +99,8 @@ export function SummaryTab({
     <ScrollView
       testID="summary-tab"
       className="flex-1"
+      {...scrollListeners}
+      scrollEventThrottle={16}
       contentContainerClassName="gap-[18px] px-5 pt-4 pb-10"
       contentInsetAdjustmentBehavior="automatic"
     >
@@ -119,6 +126,9 @@ export function SummaryTab({
       ))}
 
       {empty ? <Empty refreshing={refreshing} /> : null}
+      {contentInsetBottom ? (
+        <View testID="summary-tab-inset" style={{ height: contentInsetBottom }} />
+      ) : null}
     </ScrollView>
   );
 }

@@ -1,6 +1,13 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { memo, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Keyboard, Pressable, TextInput, View } from "react-native";
+import {
+  Keyboard,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  TextInput,
+  View,
+} from "react-native";
 import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
 import { Text } from "@/components/ui/text";
@@ -160,7 +167,7 @@ function Empty() {
   );
 }
 
-export function TranscriptTab({ rec, onSeek }: TabProps) {
+export function TranscriptTab({ rec, onSeek, scrollListeners, contentInsetBottom }: TabProps) {
   const colors = useColors();
   const segments = useTranscript(rec.id);
   const playable = rec.mediaType !== "transcript";
@@ -295,8 +302,13 @@ export function TranscriptTab({ rec, onSeek }: TabProps) {
           maintainVisibleContentPosition={{ disabled: true }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onScrollBeginDrag={() => setFollowing(false)}
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 40 }}
+          {...scrollListeners}
+          onScrollBeginDrag={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+            setFollowing(false);
+            scrollListeners?.onScrollBeginDrag(e);
+          }}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 40 + (contentInsetBottom ?? 0) }}
           renderItem={({ item, index }: { item: TranscriptSegmentRow; index: number }) => (
             <Line
               seg={item}

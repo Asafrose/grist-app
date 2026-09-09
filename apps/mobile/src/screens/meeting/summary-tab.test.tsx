@@ -5,6 +5,8 @@ import { getRecording, type RecordingDetail, upsertRecordings } from "@/lib/db";
 import { testDb } from "@/test/db";
 import { SummaryTab } from "./summary-tab";
 
+jest.mock("react-native-reanimated", () => require("@/test/mocks/reanimated"));
+
 const NOW = "2026-09-06T10:00:00Z";
 const base = detail as Recording;
 

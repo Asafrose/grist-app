@@ -1,6 +1,12 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { type RecordingDetail, recordingOpens, recordings, useRecording } from "@/lib/data";
@@ -8,13 +14,21 @@ import { useIsDemo } from "@/lib/demo";
 import { formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
 import {
+  type CollapseState,
+  initialCollapse,
+  meetingLayout,
+  reduceScroll,
+  type ScrollFrame,
+  useIsCardCollapsed,
+} from "@/lib/meeting-layout";
+import {
   isRecordingStale,
   MEETING_TABS,
   type MeetingTab,
   parseMeetingTab,
   parseSeekParam,
 } from "@/lib/meeting";
-import { playback } from "@/lib/player";
+import { playback, useIsCurrent, useIsPlaying } from "@/lib/player";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 import { ClipsTab } from "./clips-tab";
@@ -22,6 +36,7 @@ import { PlayerCard, toNowPlaying } from "./player-card";
 import { SummaryTab } from "./summary-tab";
 import { TimelineTab } from "./timeline-tab";
 import { TranscriptTab } from "./transcript-tab";
+import type { ScrollListeners } from "./types";
 
 const TAB_LABELS: Record<MeetingTab, string> = {
   summary: "Summary",
@@ -164,6 +179,95 @@ export function Meeting({ id }: { id: string }) {
   useEffect(() => {
     if (cached) recordingOpens.markOpened(id);
   }, [cached, id]);
+  const collapsed = useIsCardCollapsed(id);
+  const [cardHeight, setCardHeight] = useState(0);
+
+  const progress = useSharedValue(0);
+  const scrollState = useSharedValue<CollapseState>(initialCollapse);
+  const dragging = useSharedValue(false);
+
+  // The store is the one source of truth for the card, and this is the only writer of
+  // `progress`, so an interrupted collapse always settles on 0 or 1 rather than mid-fade.
+  useEffect(() => {
+    scrollState.set({ ...scrollState.get(), collapsed, up: 0 });
+    cancelAnimation(progress);
+    progress.set(withTiming(collapsed ? 1 : 0, { duration: 180 }));
+  }, [collapsed, progress, scrollState]);
+
+  const expand = useCallback(() => {
+    scrollState.set(initialCollapse);
+    dragging.set(false);
+    meetingLayout.clear(id);
+  }, [dragging, id, scrollState]);
+
+  useEffect(() => expand(), [tab, expand]);
+  useEffect(() => () => meetingLayout.clear(id), [id]);
+
+  // Playback starting on this recording brings the card back so the reader sees what they
+  // started. `load` publishes `current` first and `playing` a beat later, so a start is
+  // latched when the recording becomes current while the card is collapsed and paused, then
+  // honoured when playback actually begins. The player card claiming the recording on mount
+  // to preload a resume frame never latches, because the card is showing at that point, so
+  // pausing and resuming from the mini player leaves a collapsed card alone.
+  const isCurrent = useIsCurrent(id);
+  const playing = useIsPlaying();
+  const wasCurrent = useRef(isCurrent);
+  const pendingStart = useRef(false);
+  useEffect(() => {
+    const became = isCurrent && !wasCurrent.current;
+    wasCurrent.current = isCurrent;
+    if (!isCurrent) {
+      pendingStart.current = false;
+      return;
+    }
+    if (became && collapsed) pendingStart.current = true;
+    if (playing && pendingStart.current) {
+      pendingStart.current = false;
+      expand();
+    }
+  }, [collapsed, expand, isCurrent, playing]);
+
+  const settle = useCallback(
+    (frame: ScrollFrame) => {
+      const was = scrollState.get();
+      const next = reduceScroll(was, frame);
+      scrollState.set(next);
+      if (next.collapsed !== was.collapsed) meetingLayout.setCollapsed(id, next.collapsed);
+    },
+    [id, scrollState],
+  );
+
+  // Every tab drives the reducer through these plain scroll props. FlashList calls
+  // `onScroll` itself instead of handing it to its scroll component, and an
+  // `Animated.ScrollView` carrying a worklet handler would not scroll reliably.
+  const scrollListeners: ScrollListeners = {
+    onScroll: (e) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      settle({
+        offset: contentOffset.y,
+        contentHeight: contentSize.height,
+        layoutHeight: layoutMeasurement.height,
+        dragging: dragging.get(),
+      });
+    },
+    onScrollBeginDrag: (e) => {
+      dragging.set(true);
+      scrollState.set({ ...scrollState.get(), last: e.nativeEvent.contentOffset.y, up: 0 });
+    },
+    onScrollEndDrag: () => dragging.set(false),
+    onMomentumScrollBegin: () => dragging.set(false),
+    onMomentumScrollEnd: () => dragging.set(false),
+  };
+
+  const cardStyle = useAnimatedStyle(() => {
+    const p = progress.get();
+    return {
+      height: cardHeight ? cardHeight * (1 - p) : undefined,
+      opacity: 1 - p,
+      transform: [{ translateY: -p * cardHeight }],
+    };
+  });
+
   const wantsRefresh = !!rec && !!client && !demo && isRecordingStale(rec.syncedAt);
   const refreshing = wantsRefresh && !refreshFailed;
 
@@ -178,6 +282,7 @@ export function Meeting({ id }: { id: string }) {
 
   const seek = (ms: number) => {
     if (!rec || rec.mediaType === "transcript") return;
+    expand();
     void playback.load(toNowPlaying(rec), { at: ms / 1000 });
   };
 
@@ -201,7 +306,16 @@ export function Meeting({ id }: { id: string }) {
     );
   }
 
-  const tabProps = { rec, onSeek: seek };
+  // Collapsing the card hands its height to the list. Without giving that height back as
+  // padding, a short tab loses scrollable range, the offset clamps to the top and the card
+  // springs open again — the list would never move.
+  const tabProps = {
+    rec,
+    onSeek: seek,
+    onPlay: expand,
+    scrollListeners,
+    contentInsetBottom: collapsed ? cardHeight : 0,
+  };
   const body =
     tab === "transcript" ? (
       <TranscriptTab {...tabProps} />
@@ -216,9 +330,18 @@ export function Meeting({ id }: { id: string }) {
   return (
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: "", headerRight: () => <HeaderActions id={id} /> }} />
-      <View className="px-5 pt-1">
-        <PlayerCard rec={rec} />
-      </View>
+      <Animated.View
+        testID="player-card"
+        className="overflow-hidden"
+        style={cardStyle}
+        pointerEvents={collapsed ? "none" : "auto"}
+        accessibilityElementsHidden={collapsed}
+        importantForAccessibility={collapsed ? "no-hide-descendants" : "auto"}
+      >
+        <View className="px-5 pt-1" onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>
+          <PlayerCard rec={rec} />
+        </View>
+      </Animated.View>
       <View className="gap-2.5 px-5 pt-3.5">
         <Text
           role="heading"

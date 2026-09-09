@@ -248,7 +248,7 @@ function Tags({ rec, api }: { rec: RecordingDetail; api: TagsApi | null }) {
   );
 }
 
-export function TimelineTab({ rec, onSeek }: TabProps) {
+export function TimelineTab({ rec, onSeek, scrollListeners, contentInsetBottom }: TabProps) {
   const colors = useColors();
   const client = useGrainClient();
   const demo = useIsDemo();
@@ -261,6 +261,8 @@ export function TimelineTab({ rec, onSeek }: TabProps) {
     <ScrollView
       testID="timeline-tab"
       className="flex-1"
+      {...scrollListeners}
+      scrollEventThrottle={16}
       contentContainerClassName="gap-[18px] px-5 pt-4 pb-10"
       contentInsetAdjustmentBehavior="automatic"
     >
@@ -322,6 +324,9 @@ export function TimelineTab({ rec, onSeek }: TabProps) {
       </View>
 
       <Tags rec={rec} api={demo ? null : (client?.recordings ?? null)} />
+      {contentInsetBottom ? (
+        <View testID="timeline-tab-inset" style={{ height: contentInsetBottom }} />
+      ) : null}
     </ScrollView>
   );
 }

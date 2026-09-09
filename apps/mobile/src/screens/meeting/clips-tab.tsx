@@ -144,7 +144,7 @@ function Empty({ rec }: { rec: RecordingDetail }) {
   );
 }
 
-export function ClipsTab({ rec }: TabProps) {
+export function ClipsTab({ rec, onPlay, scrollListeners, contentInsetBottom }: TabProps) {
   const { clip: clipParam } = useLocalSearchParams<{ clip?: string }>();
   const isCurrent = useIsCurrent(rec.id);
   const hasMedia = rec.mediaType !== "transcript";
@@ -153,7 +153,9 @@ export function ClipsTab({ rec }: TabProps) {
 
   const play = (clip: HighlightRow) => {
     setSelected(clip.id);
-    if (hasMedia) void playback.load(toNowPlaying(rec), clipRange(clip));
+    if (!hasMedia) return;
+    onPlay?.();
+    void playback.load(toNowPlaying(rec), clipRange(clip));
   };
 
   useEffect(() => {
@@ -165,8 +167,17 @@ export function ClipsTab({ rec }: TabProps) {
 
   if (!rec.highlights.length) {
     return (
-      <ScrollView testID="clips-tab" className="flex-1" contentInsetAdjustmentBehavior="automatic">
+      <ScrollView
+        testID="clips-tab"
+        className="flex-1"
+        {...scrollListeners}
+        scrollEventThrottle={16}
+        contentInsetAdjustmentBehavior="automatic"
+      >
         <Empty rec={rec} />
+        {contentInsetBottom ? (
+          <View testID="clips-tab-inset" style={{ height: contentInsetBottom }} />
+        ) : null}
       </ScrollView>
     );
   }
@@ -176,6 +187,8 @@ export function ClipsTab({ rec }: TabProps) {
       ref={scroll}
       testID="clips-tab"
       className="flex-1"
+      {...scrollListeners}
+      scrollEventThrottle={16}
       contentContainerClassName="gap-3 px-5 pt-4 pb-10"
       contentInsetAdjustmentBehavior="automatic"
     >
@@ -192,6 +205,9 @@ export function ClipsTab({ rec }: TabProps) {
         />
       ))}
       <OpenInGrain rec={rec} />
+      {contentInsetBottom ? (
+        <View testID="clips-tab-inset" style={{ height: contentInsetBottom }} />
+      ) : null}
     </ScrollView>
   );
 }

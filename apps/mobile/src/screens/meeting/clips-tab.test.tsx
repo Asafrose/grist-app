@@ -10,6 +10,7 @@ import { ClipsTab } from "./clips-tab";
 
 const params: { clip?: string } = {};
 
+jest.mock("react-native-reanimated", () => require("@/test/mocks/reanimated"));
 jest.mock("expo-router", () => ({ useLocalSearchParams: () => params }));
 jest.mock("expo-image", () => ({ Image: () => null }));
 jest.mock("expo-web-browser", () => ({
