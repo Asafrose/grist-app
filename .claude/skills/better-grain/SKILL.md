@@ -60,6 +60,8 @@ statements/functions/lines and 60% branches or `npm test` fails (thresholds in
 `.test.ts` sibling; screens and components are verified with RNTL where they
 carry logic and with Maestro flows otherwise. GitHub Actions on Ubuntu (lint, typecheck,
 test). Maestro end-to-end flows run on the local iOS simulator, not in CI.
+Do not edit the working tree while a Maestro suite is running: Fast Refresh
+reloads the app mid-flow and the driver loses it.
 The repo-level `.npmrc` pins `registry.npmjs.org`, so a machine whose global npm config points at a private proxy still writes public URLs into `package-lock.json`.
 Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
 non-interactive shells; the `nvm` shell function hangs there.
