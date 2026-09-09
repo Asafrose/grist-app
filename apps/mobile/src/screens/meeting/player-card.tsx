@@ -182,7 +182,11 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
       style={{ backgroundColor: PLAYER_SURFACE }}
     >
       <View className="absolute inset-0">
-        {isCurrent ? <PlayerView className="h-full w-full rounded-none" /> : <Artwork rec={rec} />}
+        {isCurrent ? (
+          <PlayerView surface="card" className="h-full w-full rounded-none" />
+        ) : (
+          <Artwork rec={rec} />
+        )}
       </View>
 
       {hasMedia ? (
@@ -258,6 +262,7 @@ export function PlayerCard({ rec }: { rec: RecordingDetail }) {
                     onPress={() => {
                       perf.mark("fullscreen-enter");
                       perf.mark("fullscreen-enter-attach");
+                      perf.mark("fullscreen-enter-visible");
                       router.push("/fullscreen");
                     }}
                     className="h-9 w-9 items-center justify-center active:opacity-60"

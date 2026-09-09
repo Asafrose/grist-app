@@ -3,7 +3,14 @@ import { VideoView } from "expo-video";
 import { useCallback, useEffect, useState } from "react";
 import { Animated, useAnimatedValue, View } from "react-native";
 import { Icon } from "@/components/icon";
-import { attachVideoView, player, useNowPlaying, usePlaybackStatus } from "@/lib/player";
+import {
+  attachVideoView,
+  player,
+  type PlayerSurface,
+  useNowPlaying,
+  usePlaybackStatus,
+  videoSurfaceRendered,
+} from "@/lib/player";
 import { useSetting } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +49,15 @@ function Poster({ uri, ready }: { uri: string | null; ready: boolean }) {
   );
 }
 
-export function PlayerView({ className, fill }: { className?: string; fill?: boolean }) {
+export function PlayerView({
+  className,
+  fill,
+  surface,
+}: {
+  className?: string;
+  fill?: boolean;
+  surface: PlayerSurface;
+}) {
   const current = useNowPlaying();
   const status = usePlaybackStatus();
   const pip = useSetting("pictureInPicture");
@@ -68,6 +83,7 @@ export function PlayerView({ className, fill }: { className?: string; fill?: boo
             nativeControls={false}
             allowsPictureInPicture={pip}
             startsPictureInPictureAutomatically={pip}
+            onFirstFrameRender={() => videoSurfaceRendered(surface)}
           />
           <Poster key={current.id} uri={current.thumbnailUrl} ready={status === "ready"} />
         </>

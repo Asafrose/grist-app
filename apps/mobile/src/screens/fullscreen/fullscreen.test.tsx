@@ -14,7 +14,18 @@ jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 
 const mockBack = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: mockBack }) }));
+const mockReplace = jest.fn();
+const mockCanGoBack = jest.fn(() => true);
+const mockNavListeners = new Map<string, () => void>();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ back: mockBack, replace: mockReplace, canGoBack: mockCanGoBack }),
+  useNavigation: () => ({
+    addListener: (event: string, listener: () => void) => {
+      mockNavListeners.set(event, listener);
+      return () => mockNavListeners.delete(event);
+    },
+  }),
+}));
 
 const video: NowPlaying = {
   id: "r1",
@@ -45,6 +56,9 @@ afterEach(async () => {
 beforeEach(() => {
   jest.restoreAllMocks();
   mockBack.mockClear();
+  mockReplace.mockClear();
+  mockCanGoBack.mockReturnValue(true);
+  mockNavListeners.clear();
   settings.set("pictureInPicture", true);
   playerStore.setState({
     current: video,
@@ -170,6 +184,56 @@ describe("Fullscreen", () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
     expect(stop).not.toHaveBeenCalled();
     expect(playerStore.getState()).toMatchObject({ current: video, position: 120, playing: true });
+  });
+
+  it("drops the video surface and chrome in the same tap that dismisses", async () => {
+    await render(<Fullscreen />);
+    expect(screen.getByTestId("video-view")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("fs-close"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("video-view")).toBeNull();
+    expect(screen.queryByTestId("fs-controls")).toBeNull();
+  });
+
+  it("keeps the controls down once closing, even on a surface tap", async () => {
+    await render(<Fullscreen />);
+    await fireEvent.press(screen.getByTestId("fs-close"));
+    await fireEvent.press(screen.getByTestId("fs-surface"));
+    expect(screen.queryByTestId("fs-controls")).toBeNull();
+  });
+
+  it("pops once however many times the close button is tapped", async () => {
+    await render(<Fullscreen />);
+    const button = screen.getByTestId("fs-close");
+    await fireEvent.press(button);
+    await fireEvent.press(button);
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces with the meeting when there is nothing to go back to", async () => {
+    mockCanGoBack.mockReturnValue(false);
+    await render(<Fullscreen />);
+    await fireEvent.press(screen.getByTestId("fs-close"));
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith(`/meeting/${video.id}`);
+    expect(screen.queryByTestId("video-view")).toBeNull();
+  });
+
+  it("falls back to the tabs when a deep link opened fullscreen with nothing playing", async () => {
+    mockCanGoBack.mockReturnValue(false);
+    playerStore.setState({ current: null });
+    await render(<Fullscreen />);
+    await fireEvent.press(screen.getByTestId("fs-close"));
+    expect(mockReplace).toHaveBeenCalledWith("/");
+  });
+
+  it("drops the surface for a removal it did not start, such as hardware back", async () => {
+    await render(<Fullscreen />);
+    expect(screen.getByTestId("video-view")).toBeOnTheScreen();
+    await act(async () => mockNavListeners.get("beforeRemove")?.());
+    expect(screen.queryByTestId("video-view")).toBeNull();
+    expect(screen.queryByTestId("fs-controls")).toBeNull();
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it("seeks a second before the next speaker starts", async () => {

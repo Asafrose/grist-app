@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { isPictureInPictureSupported } from "expo-video";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -101,11 +101,14 @@ function LiveScrubber({
 
 export function Fullscreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const current = useNowPlaying();
   const playing = useIsPlaying();
   const rate = usePlaybackRate();
   const pipEnabled = useSetting("pictureInPicture");
   const [visible, setVisible] = useState(true);
+  const [closing, setClosing] = useState(false);
+  const closed = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hideLater = useCallback(() => {
@@ -131,7 +134,23 @@ export function Fullscreen() {
     };
   }, [hideLater]);
 
-  const controlsShown = visible || !playing;
+  const release = useCallback(() => {
+    if (closed.current) return false;
+    closed.current = true;
+    perf.mark("fullscreen-exit-visible");
+    setClosing(true);
+    return true;
+  }, []);
+
+  const close = useCallback(() => {
+    if (!release()) return;
+    if (router.canGoBack()) router.back();
+    else router.replace(current ? `/meeting/${current.id}` : "/");
+  }, [current, release, router]);
+
+  useEffect(() => navigation.addListener("beforeRemove", release), [navigation, release]);
+
+  const controlsShown = (visible || !playing) && !closing;
 
   const act = (fn: () => void) => () => {
     fn();
@@ -151,12 +170,7 @@ export function Fullscreen() {
         style={{ backgroundColor: PLAYER_SURFACE }}
       >
         <StatusBar style="light" hidden />
-        <Control
-          icon="close"
-          label="Close fullscreen"
-          testID="fs-close"
-          onPress={() => router.back()}
-        />
+        <Control icon="close" label="Close fullscreen" testID="fs-close" onPress={close} />
       </View>
     );
   }
@@ -164,7 +178,7 @@ export function Fullscreen() {
   return (
     <View testID="fullscreen" className="flex-1" style={{ backgroundColor: PLAYER_SURFACE }}>
       <StatusBar style="light" hidden />
-      <PlayerView fill className="flex-1 rounded-none" />
+      {closing ? null : <PlayerView surface="fullscreen" fill className="flex-1 rounded-none" />}
       <Pressable
         testID="fs-surface"
         accessibilityRole="button"
@@ -179,12 +193,7 @@ export function Fullscreen() {
             className="absolute top-4 right-4 left-4 flex-row items-center justify-between"
             pointerEvents="box-none"
           >
-            <Control
-              icon="close"
-              label="Close fullscreen"
-              testID="fs-close"
-              onPress={act(() => router.back())}
-            />
+            <Control icon="close" label="Close fullscreen" testID="fs-close" onPress={close} />
             <View className="flex-row items-center gap-3">
               <Pressable
                 testID="fs-rate"

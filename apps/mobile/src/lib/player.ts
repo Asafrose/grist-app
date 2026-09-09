@@ -137,6 +137,14 @@ export function attachVideoView(view: VideoView): () => void {
   };
 }
 
+export type PlayerSurface = "card" | "fullscreen";
+
+export function videoSurfaceRendered(surface: PlayerSurface) {
+  if (surface === "fullscreen")
+    perf.measure("fullscreen-enter-visible", "fullscreen tap → fullscreen surface rendered");
+  else perf.measure("fullscreen-exit-visible", "fullscreen dismiss → card surface rendered");
+}
+
 async function startPictureInPicture() {
   const view = videoViews.at(-1);
   if (!view) throw new Error("The video is not on screen.");
