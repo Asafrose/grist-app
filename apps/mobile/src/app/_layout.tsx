@@ -64,7 +64,7 @@ function Root() {
             options={{
               headerShown: true,
               title: "",
-              ...headerBackOptions("Meetings"),
+              ...headerBackOptions("Meetings", "/"),
               // `end` is a max x: on iOS 26 the pop starts anywhere in the content, so cap it
               // to an edge strip that stops short of the scrubber thumb at 0:00 (~36pt in).
               gestureResponseDistance: { end: 24 },
@@ -75,7 +75,7 @@ function Root() {
             options={{
               headerShown: true,
               title: "Downloads",
-              ...headerBackOptions("Settings"),
+              ...headerBackOptions("Settings", "/settings"),
             }}
           />
           <Stack.Screen
