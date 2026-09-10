@@ -62,6 +62,13 @@ carry logic and with Maestro flows otherwise. GitHub Actions on Ubuntu (lint, ty
 test). Maestro end-to-end flows run on the local iOS simulator, not in CI.
 Do not edit the working tree while a Maestro suite is running: Fast Refresh
 reloads the app mid-flow and the driver loses it.
+The same flow files run on the iOS simulator and the Android emulator, so no
+bare `hideKeyboard`: on Android it presses Back and pops the screen. Split it
+with `runFlow` + `when: platform:` — `hideKeyboard` on iOS, the field's IME
+action (`pressKey: Enter`) on Android, after checking that `onSubmitEditing`
+does not navigate or change state. Text taps that only exist on one platform
+(a header back label, the in-app browser's Done) need the same split, or a
+`testID`.
 The repo-level `.npmrc` pins `registry.npmjs.org`, so a machine whose global npm config points at a private proxy still writes public URLs into `package-lock.json`.
 Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
 non-interactive shells; the `nvm` shell function hangs there.

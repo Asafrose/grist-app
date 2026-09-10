@@ -41,7 +41,19 @@ appId: com.asafrose.grist
     visible: ".*we do not price.*"
     timeout: 5000
 - takeScreenshot: search-transcripts
-- hideKeyboard
+# hideKeyboard presses Back on Android, which pops the screen. The IME action on a
+# single-line field closes the keyboard instead. Enter also re-remembers the query,
+# which only surfaces in the recents list once the field is empty.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - hideKeyboard
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: Enter
 # Tap by the unique time chip: after the list re-renders, Maestro's element positions
 # for recycled FlashList cells go stale on iOS and id-based taps miss.
 - tapOn: ".*0:04"

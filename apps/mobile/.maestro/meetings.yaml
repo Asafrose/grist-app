@@ -64,7 +64,19 @@ appId: com.asafrose.grist
 - takeScreenshot: meetings-title-filter
 - tapOn:
     id: "title-filter-clear"
-- hideKeyboard
+# hideKeyboard presses Back on Android, which pops the screen. The IME action on a
+# single-line field closes the keyboard instead; title-filter has no onSubmitEditing,
+# so Enter changes nothing.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - hideKeyboard
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: Enter
 - assertVisible: ".*Relecloud.*"
 # Workspace and team chips.
 - tapOn:

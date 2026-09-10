@@ -66,7 +66,7 @@ appId: com.asafrose.grist
     id: "transcript-clear"
 - assertNotVisible:
     id: "transcript-count"
-- hideKeyboard
+# transcript-clear calls Keyboard.dismiss(), so there is no keyboard left to hide.
 # Jumping to a match pauses Follow; the chip resumes it
 - assertVisible:
     id: "transcript-follow"

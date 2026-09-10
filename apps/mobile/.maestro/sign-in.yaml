@@ -43,7 +43,19 @@ appId: com.asafrose.grist
 - tapOn:
     id: "token-input"
 - eraseText: 5
-- hideKeyboard
+# hideKeyboard presses Back on Android, which pops the screen. The IME action on a
+# single-line field closes the keyboard instead; submit() early-returns on the
+# empty token, so Enter neither signs in nor errors.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - hideKeyboard
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: Enter
 - tapOn:
     id: "demo-sign-in"
 - extendedWaitUntil:
