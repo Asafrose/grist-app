@@ -16,7 +16,6 @@ import {
   KEEP_DOWNLOADS_DAYS,
   parseDefaultView,
   PLAYBACK_RATES,
-  PREBUFFER_DAYS,
   settings,
   useSetting,
 } from "@/lib/settings";
@@ -84,15 +83,6 @@ export function Settings() {
           format={(r) => `${r}×`}
           onSelect={(r) => settings.set("playbackRate", r)}
           testID="setting-rate"
-        />
-        <PickerRow
-          icon="clock"
-          label="Pre-buffer recent"
-          options={PREBUFFER_DAYS}
-          value={useSetting("prebufferDays")}
-          format={(d) => (d === 0 ? "Off" : d === 1 ? "1 day" : `${d} days`)}
-          onSelect={(d) => settings.set("prebufferDays", d)}
-          testID="setting-prebuffer"
         />
         <ToggleRow
           icon="pip"

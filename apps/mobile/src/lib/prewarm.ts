@@ -1,14 +1,7 @@
 import { onlineManager } from "@tanstack/react-query";
 import { auth } from "@/lib/auth";
 import { type Db, listRecordings } from "@/lib/db";
-import { isDemoToken } from "@/lib/demo";
 import { prewarmMediaUrl } from "@/lib/media-url";
-import {
-  cancelPrebuffer,
-  type PrebufferTarget,
-  prebufferWindowStart,
-  runPrebuffer,
-} from "@/lib/prebuffer";
 
 export const PREWARM_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const PREWARM_PER_PASS = 10;
@@ -17,13 +10,11 @@ export const PREWARM_MAX_BACKOFF = 8;
 let running: Promise<void> | null = null;
 let generation = 0;
 let passes = 0;
-const resolved = new Map<string, string>();
+const resolved = new Set<string>();
 const backoff = new Map<string, { failures: number; retryAtPass: number }>();
 
 export function prewarmWindowStart(now = Date.now()): string {
-  const prebuffer = prebufferWindowStart(now);
-  const urls = new Date(now - PREWARM_WINDOW_MS).toISOString();
-  return prebuffer !== null && prebuffer < urls ? prebuffer : urls;
+  return new Date(now - PREWARM_WINDOW_MS).toISOString();
 }
 
 function due(id: string): boolean {
@@ -55,23 +46,13 @@ async function run(db: Db, gen: number): Promise<void> {
   for (const id of wanted(db)) {
     if (gen !== generation || auth.token() !== token) return;
     try {
-      resolved.set(id, await prewarmMediaUrl(id, token));
+      await prewarmMediaUrl(id, token);
+      resolved.add(id);
       backoff.delete(id);
     } catch {
       penalise(id);
     }
   }
-  if (isDemoToken(token)) return;
-  await runPrebuffer(prebufferTargets(db), () => gen !== generation || auth.token() !== token);
-}
-
-function prebufferTargets(db: Db): PrebufferTarget[] {
-  const after = prebufferWindowStart();
-  if (after === null) return [];
-  return listRecordings(db, { after }).flatMap((r) => {
-    const uri = resolved.get(r.id);
-    return uri === undefined ? [] : [{ id: r.id, uri }];
-  });
 }
 
 export function runPrewarm(db: Db): Promise<void> {
@@ -90,7 +71,6 @@ export function cancelPrewarm(): void {
   generation += 1;
   resolved.clear();
   backoff.clear();
-  cancelPrebuffer();
 }
 
 export const prewarmDone = (): Promise<void> => running ?? Promise.resolve();

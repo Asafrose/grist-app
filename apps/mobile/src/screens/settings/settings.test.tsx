@@ -109,18 +109,6 @@ describe("Settings", () => {
     });
   });
 
-  it("picks the pre-buffer window, including off", async () => {
-    await render(<Settings />);
-    expect(screen.getByTestId("setting-prebuffer-value")).toHaveTextContent("1 day");
-    await fireEvent.press(screen.getByTestId("setting-prebuffer"));
-    await fireEvent.press(screen.getByTestId("setting-prebuffer-option-2"));
-    expect(screen.getByTestId("setting-prebuffer-value")).toHaveTextContent("2 days");
-    await fireEvent.press(screen.getByTestId("setting-prebuffer"));
-    await fireEvent.press(screen.getByTestId("setting-prebuffer-option-0"));
-    expect(screen.getByTestId("setting-prebuffer-value")).toHaveTextContent("Off");
-    expect(settingsStore.getState().prebufferDays).toBe(0);
-  });
-
   it("clears the transcript index and shows the size drop to zero", async () => {
     await render(<Settings />);
     const db = libraryStore.getState().db!;

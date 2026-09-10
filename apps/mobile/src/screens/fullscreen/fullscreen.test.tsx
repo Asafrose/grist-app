@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@/test/render";
 import { setTranscript } from "@/lib/db";
 import { haptics } from "@/lib/haptics";
 import { libraryReady, libraryStore } from "@/lib/library";
-import { type NowPlaying, playback, playerReady, playerStore } from "@/lib/player";
+import { type NowPlaying, playback, playerStore } from "@/lib/player";
 import { settings } from "@/lib/settings";
 import { CONTROLS_HIDE_MS, Fullscreen } from "./index";
 
@@ -53,8 +53,7 @@ afterEach(async () => {
   await seedTranscript([]);
 });
 
-beforeEach(async () => {
-  await playerReady();
+beforeEach(() => {
   jest.restoreAllMocks();
   mockBack.mockClear();
   mockReplace.mockClear();

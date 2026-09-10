@@ -11,15 +11,6 @@ import { RESUME_END_MARGIN_SECONDS } from "@/lib/db";
 import { downloads, downloadsStore } from "@/lib/downloads";
 import { invalidateMediaUrl, mediaUrl } from "@/lib/media-url";
 import { perf } from "@/lib/perf";
-import { prebufferIdle, wasPrebuffered } from "@/lib/prebuffer";
-import { cancelPrewarm, prewarmDone } from "@/lib/prewarm";
-import {
-  cachedSource,
-  clearVideoCache,
-  configureVideoCache,
-  isCacheableUri,
-  uncachedSource,
-} from "@/lib/video-cache";
 import {
   isPlaybackRate,
   PLAYBACK_RATES,
@@ -71,27 +62,6 @@ export const usePlaybackDuration = () => useStore(playerStore, (s) => s.duration
 export const usePlaybackUntil = () => useStore(playerStore, (s) => s.until);
 export const usePlaybackRate = () => useSetting("playbackRate");
 
-let instance: VideoPlayer | null = null;
-let starting: Promise<VideoPlayer> | null = null;
-
-export function videoPlayer(): VideoPlayer | null {
-  return instance;
-}
-
-// The native cache size and clear calls are refused while any player is registered, so the
-// shared player is created only after the size is applied and is released again on sign-out.
-export function playerReady(): Promise<VideoPlayer> {
-  // A refused size call leaves the previously stored bound in place, which is not worth reporting.
-  starting ??= configureVideoCache()
-    .catch(() => undefined)
-    .then(() => (instance ??= build()))
-    .catch((e: unknown) => {
-      starting = null;
-      throw e;
-    });
-  return starting;
-}
-
 function build(): VideoPlayer {
   const p = createVideoPlayer(null);
   p.staysActiveInBackground = true;
@@ -105,16 +75,29 @@ function build(): VideoPlayer {
   return p;
 }
 
-async function releasePlayer(): Promise<void> {
-  const p = instance;
-  instance = null;
-  starting = null;
-  if (!p) return;
-  p.pause();
-  await p.replaceAsync(null).catch(() => undefined);
-  p.release();
+export function videoPlayer(): VideoPlayer {
+  return instance;
 }
 
+// Instant start will adopt a pre-warmed player as the shared one, so building and releasing
+// stay in one place instead of spread over module initialisation. Dropping `current` is what
+// unmounts the `VideoView`s, and that is a React render, so the release waits for their detach
+// callbacks rather than pulling the player out from under a live native view.
+async function rebuildPlayer(): Promise<void> {
+  const old = instance;
+  instance = build();
+  old.pause();
+  const deadline = Date.now() + VIEW_DETACH_TIMEOUT_MS;
+  while (videoViews.length > 0 && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, VIEW_DETACH_POLL_MS));
+  }
+  videoViews.length = 0;
+  await old.replaceAsync(null).catch(() => undefined);
+  old.release();
+}
+
+export const VIEW_DETACH_TIMEOUT_MS = 500;
+export const VIEW_DETACH_POLL_MS = 16;
 export const POSITION_WRITE_INTERVAL_MS = 5_000;
 export const SEEK_END_EPSILON_SECONDS = 0.5;
 let positionWrittenAt = 0;
@@ -123,6 +106,7 @@ let inClipRange = false;
 let sourceDuration = 0;
 let pendingRestoreAt: number | null = null;
 let restoreSeq = 0;
+let playIntent = false;
 
 function atSourceEnd(seconds: number) {
   return sourceDuration > 0 && seconds >= sourceDuration - RESUME_END_MARGIN_SECONDS;
@@ -130,7 +114,7 @@ function atSourceEnd(seconds: number) {
 
 function rewindToStart() {
   pendingRestoreAt = null;
-  if (instance) instance.currentTime = 0;
+  instance.currentTime = 0;
   inClipRange = false;
   playerStore.setState({ position: 0, until: null });
 }
@@ -145,6 +129,9 @@ function savePosition(force = false) {
 }
 
 const onPlayingChange: VideoPlayerEvents["playingChange"] = ({ isPlaying }) => {
+  // A replace in flight owns the intent; the flag only tracks it once the transition is over,
+  // so a lock-screen or notification play is picked up without a mid-transition read winning.
+  if (!resumePending) playIntent = isPlaying;
   playerStore.setState({ playing: isPlaying });
   if (!isPlaying) return savePosition(true);
   if (playerStore.getState().until === null) inClipRange = false;
@@ -152,7 +139,7 @@ const onPlayingChange: VideoPlayerEvents["playingChange"] = ({ isPlaying }) => {
 const onTimeUpdate: VideoPlayerEvents["timeUpdate"] = ({ currentTime }) => {
   const { until } = playerStore.getState();
   if (until !== null && currentTime >= until) {
-    instance?.pause();
+    instance.pause();
     playerStore.setState({ position: currentTime, until: null });
     return;
   }
@@ -170,7 +157,6 @@ const onSourceLoad: VideoPlayerEvents["sourceLoad"] = ({ duration }) => {
   rewindToStart();
 };
 const onStatusChange: VideoPlayerEvents["statusChange"] = ({ status, error }) => {
-  if (status !== "loading") cancelCacheFallback();
   if (playerStore.getState().status === "idle") return;
   playerStore.setState({
     status: status === "readyToPlay" ? "ready" : status === "error" ? "error" : "loading",
@@ -179,38 +165,10 @@ const onStatusChange: VideoPlayerEvents["statusChange"] = ({ status, error }) =>
   if (status === "error") void reresolveSource();
 };
 
-export const CACHE_FALLBACK_MS = 8_000;
-let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
-let uncachedLoad = false;
-
-function cancelCacheFallback() {
-  if (fallbackTimer) clearTimeout(fallbackTimer);
-  fallbackTimer = null;
-}
-
-// A cached source that stalls before it buffers anything is retried once without the cache. A
-// stalled item never reports playing, so the retry carries the load's own autoplay intent.
-function armCacheFallback(uri: string, autoplay: boolean) {
-  cancelCacheFallback();
-  if (!isCacheableUri(uri)) return;
-  const seq = loadSeq;
-  fallbackTimer = setTimeout(() => {
-    fallbackTimer = null;
-    const p = instance;
-    if (seq !== loadSeq || !p) return;
-    if (playerStore.getState().status !== "loading" || p.bufferedPosition > 0) return;
-    uncachedLoad = true;
-    void swapSource(uri, autoplay, false).catch(() => undefined);
-  }, CACHE_FALLBACK_MS);
-}
+let instance: VideoPlayer = build();
 
 export const TTFF_MARK = "media-load";
 let ttffLabel = "";
-
-function ttffState(local: string | null, uri: string): string {
-  if (local) return "downloaded";
-  return wasPrebuffered(uri) ? "pre-buffered" : "cold";
-}
 
 let loadSeq = 0;
 const videoViews: VideoView[] = [];
@@ -250,38 +208,34 @@ function freshUri(id: string, token: string): Promise<string> {
   return mediaUrl(id, token);
 }
 
-function restoreAfterReplace(p: VideoPlayer, at: number, autoplay: boolean) {
-  p.playbackRate = settings.get().playbackRate;
+function restoreAfterReplace(at: number, autoplay: boolean) {
+  instance.playbackRate = settings.get().playbackRate;
   restoreSeq = loadSeq;
   if (atSourceEnd(at)) {
     rewindToStart();
   } else {
     pendingRestoreAt = at;
-    p.currentTime = at;
+    instance.currentTime = at;
   }
-  if (autoplay) p.play();
-  else p.pause();
+  if (autoplay) instance.play();
+  else instance.pause();
   resumePending = false;
 }
 
-async function swapSource(uri: string, resume?: boolean, cache = true) {
-  const { current, position, playing } = playerStore.getState();
-  const p = instance;
-  if (!current || !p) return;
+async function swapSource(uri: string) {
+  const { current, position } = playerStore.getState();
+  if (!current) return;
   const seq = loadSeq;
   resumePending = true;
   try {
-    const source = cache
-      ? cachedSource(uri, metadataFor(current))
-      : uncachedSource(uri, metadataFor(current));
-    await p.replaceAsync(source);
+    await instance.replaceAsync({ uri, metadata: metadataFor(current) });
   } catch (e) {
     // A newer sequence owns the flag and clears it itself.
     if (seq === loadSeq) resumePending = false;
     throw e;
   }
   if (seq !== loadSeq) return;
-  restoreAfterReplace(p, position, resume ?? playing);
+  restoreAfterReplace(position, playIntent);
 }
 
 export const RERESOLVE_BACKOFF_MS = 10_000;
@@ -291,7 +245,7 @@ let reresolvedAt = 0;
 let reresolveAttempts = 0;
 
 async function reresolveSource() {
-  const { current, playing } = playerStore.getState();
+  const { current } = playerStore.getState();
   const token = auth.token();
   if (!current || !token || reresolving) return;
   if (downloads.localUri(current.id)) return;
@@ -301,13 +255,12 @@ async function reresolveSource() {
   reresolvedAt = now;
   reresolveAttempts++;
   reresolving = true;
-  cancelCacheFallback();
   const seq = loadSeq;
   try {
     const uri = await freshUri(current.id, token);
     if (seq !== loadSeq) return;
     playerStore.setState({ status: "loading", error: null });
-    await swapSource(uri, playing, !uncachedLoad);
+    await swapSource(uri);
   } catch {
     // the store keeps the original playback error
   } finally {
@@ -332,11 +285,11 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     const range = at !== undefined && at !== opts.at ? null : until;
     inClipRange = range !== null;
     playerStore.setState({ until: range });
-    if (opts.autoplay ?? true) instance?.play();
+    playIntent = opts.autoplay ?? true;
+    if (playIntent) instance.play();
     return;
   }
   savePosition(true);
-  const p = await playerReady();
   inClipRange = until !== null;
   const seq = ++loadSeq;
   const token = auth.token();
@@ -345,7 +298,7 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   reresolveAttempts = 0;
   positionWrittenAt = 0;
   resumePending = true;
-  uncachedLoad = false;
+  playIntent = opts.autoplay ?? true;
   sourceDuration = 0;
   pendingRestoreAt = null;
   const local = downloads.localUri(rec.id);
@@ -363,11 +316,10 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
   try {
     const uri = local ?? (await mediaUrl(rec.id, token));
     if (seq !== loadSeq) return;
-    ttffLabel = `time to first frame (${ttffState(local, uri)})`;
-    await p.replaceAsync(cachedSource(uri, metadataFor(rec)));
+    ttffLabel = `time to first frame (${local ? "downloaded" : "cold"})`;
+    await instance.replaceAsync({ uri, metadata: metadataFor(rec) });
     if (seq !== loadSeq) return;
-    armCacheFallback(uri, opts.autoplay ?? true);
-    restoreAfterReplace(p, at, opts.autoplay ?? true);
+    restoreAfterReplace(at, playIntent);
   } catch (e) {
     if (seq !== loadSeq) return;
     resumePending = false;
@@ -391,7 +343,7 @@ function seekTo(seconds: number) {
   const duration = sourceDuration || playerStore.getState().duration;
   const last = duration ? duration - SEEK_END_EPSILON_SECONDS : 0;
   const clamped = Math.max(0, duration ? Math.min(seconds, last) : seconds);
-  if (instance) instance.currentTime = clamped;
+  instance.currentTime = clamped;
   pendingRestoreAt = null;
   inClipRange = false;
   playerStore.setState({ position: clamped, until: null });
@@ -403,7 +355,7 @@ function seekBy(seconds: number) {
 }
 
 settingsStore.subscribe((s, prev) => {
-  if (s.playbackRate !== prev.playbackRate && instance) instance.playbackRate = s.playbackRate;
+  if (s.playbackRate !== prev.playbackRate) instance.playbackRate = s.playbackRate;
 });
 
 function setRate(rate: PlaybackRate) {
@@ -417,24 +369,23 @@ function retry() {
 }
 
 function toggle() {
-  if (playerStore.getState().playing) instance?.pause();
-  else instance?.play();
+  if (playerStore.getState().playing) instance.pause();
+  else instance.play();
 }
 
 function reset(persist: boolean) {
   if (persist) savePosition(true);
-  cancelCacheFallback();
-  uncachedLoad = false;
   perf.clearMarks();
   loadSeq++;
   reresolvedAt = 0;
   reresolveAttempts = 0;
   positionWrittenAt = 0;
   resumePending = false;
+  playIntent = false;
   inClipRange = false;
   sourceDuration = 0;
   pendingRestoreAt = null;
-  void instance?.replaceAsync(null);
+  void instance.replaceAsync(null).catch(() => undefined);
   playerStore.setState(initial);
 }
 
@@ -445,22 +396,14 @@ function stop() {
 authStore.subscribe((s, prev) => {
   if (prev.status !== "signed-in" || s.token === prev.token) return;
   reset(false);
-  void forgetCachedMedia();
+  void rebuildPlayer().catch(() => undefined);
 });
-
-async function forgetCachedMedia(): Promise<void> {
-  cancelPrewarm();
-  await prewarmDone();
-  await prebufferIdle();
-  await releasePlayer();
-  await clearVideoCache().catch(() => undefined);
-}
 
 export const playback = {
   load,
   preload,
-  play: () => instance?.play(),
-  pause: () => instance?.pause(),
+  play: () => instance.play(),
+  pause: () => instance.pause(),
   toggle,
   seekTo,
   seekBy,
