@@ -97,6 +97,7 @@ appId: com.asafrose.grist
 - tapOn:
     id: "meeting-tab-summary"
 - assertVisible: "Action items"
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - assertVisible:
     id: "meetings-list"

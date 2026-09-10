@@ -38,7 +38,8 @@ appId: com.asafrose.grist
     timeout: 5000
 - assertVisible: ".*Northwind.*"
 - takeScreenshot: clips-meeting
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - tapOn:
     id: "tab-clips"
 - tapOn:

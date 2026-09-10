@@ -40,10 +40,21 @@ appId: com.asafrose.grist
     notVisible:
       id: "clips-empty"
     timeout: 10000
-- tapOn: "Done"
+# iOS closes the in-app browser with Done; an Android Custom Tab has no such button.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn: "Done"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
 - assertVisible:
     id: "clips-empty"
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 # Clip cards: enter via the Clips feed, which deep-links to ?tab=clips&clip=<id>
 - tapOn:
     id: "tab-clips"
@@ -72,7 +83,8 @@ appId: com.asafrose.grist
     id: "position"
     text: "0:00"
 - takeScreenshot: meeting-clips-playing
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - tapOn:
     id: "tab-index"
 - assertVisible:

@@ -104,7 +104,8 @@ appId: com.asafrose.grist
 - tapOn:
     id: "meeting-tab-summary"
 - assertVisible: "Action items"
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - assertVisible:
     id: "meetings-list"
 # The seeked recording shows its remaining time in the list.
@@ -126,7 +127,8 @@ appId: com.asafrose.grist
     id: "meeting-tabs"
 - assertNotVisible:
     id: "mini-player"
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - tapOn:
     id: "tab-index"
 - assertVisible:
@@ -149,7 +151,8 @@ appId: com.asafrose.grist
 - takeScreenshot: meeting-resume-preplay
 # Seeking a meeting that has never been started leaves it paused at the new position.
 # The thumbnail poster covers the card before the first frame renders.
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - tapOn:
     id: "meeting-demo-1"
 - assertVisible:
@@ -171,7 +174,8 @@ appId: com.asafrose.grist
 # The thumbnail poster covers the video surface before the first frame renders. The screenshot
 # after the tap is not asserted: Maestro's tap waits for the screen to settle, by which time the
 # frame has usually rendered and the poster has faded.
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - tapOn:
     id: "meeting-demo-2"
 - assertVisible:

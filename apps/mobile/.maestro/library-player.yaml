@@ -71,6 +71,7 @@ env:
     stopApp: false
 - assertVisible: "Pause"
 - takeScreenshot: meeting-foreground
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - assertVisible:
     id: "meetings-list"

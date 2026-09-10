@@ -27,6 +27,7 @@ appId: com.asafrose.grist
 - assertVisible:
     id: "player-start"
 - takeScreenshot: demo-meeting
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - assertVisible:
     id: "meetings-list"

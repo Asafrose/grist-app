@@ -80,8 +80,8 @@ appId: com.asafrose.grist
 - assertVisible:
     id: "meeting-tabs"
 # The downloaded meeting carries the list glyph and is reachable from Settings
-# Back to the list from the meeting screen (the header back button, not the tab bar)
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - assertVisible:
     id: "meetings-list"
 - assertVisible:
@@ -106,5 +106,6 @@ appId: com.asafrose.grist
 # The row exposes one composite accessibility label, so match the title inside it
 - assertVisible: ".*Renamed from the sheet.*"
 - takeScreenshot: downloads
-- tapOn: "Settings"
+- tapOn:
+    id: "header-back"
 - assertVisible: "Storage"

@@ -7,6 +7,7 @@ import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { Suspense, use, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { headerBackOptions } from "@/components/header-back";
 import { MiniPlayer } from "@/components/mini-player";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { authReady, useSignedIn } from "@/lib/auth";
@@ -63,7 +64,7 @@ function Root() {
             options={{
               headerShown: true,
               title: "",
-              headerBackTitle: "Meetings",
+              ...headerBackOptions("Meetings"),
               // `end` is a max x: on iOS 26 the pop starts anywhere in the content, so cap it
               // to an edge strip that stops short of the scrubber thumb at 0:00 (~36pt in).
               gestureResponseDistance: { end: 24 },
@@ -71,7 +72,11 @@ function Root() {
           />
           <Stack.Screen
             name="downloads"
-            options={{ headerShown: true, title: "Downloads", headerBackTitle: "Settings" }}
+            options={{
+              headerShown: true,
+              title: "Downloads",
+              ...headerBackOptions("Settings"),
+            }}
           />
           <Stack.Screen
             name="filters"

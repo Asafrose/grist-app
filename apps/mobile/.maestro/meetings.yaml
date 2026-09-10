@@ -48,7 +48,8 @@ appId: com.asafrose.grist
     visible:
       id: "player-start"
     timeout: 10000
-- tapOn: "Meetings"
+- tapOn:
+    id: "header-back"
 - assertVisible:
     id: "meetings-list"
 - assertNotVisible:
