@@ -7,10 +7,12 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run -s check-store-reads && oxlint && oxfmt --check",
+    "lint": "npm run -s check-store-reads && npm run -s check-routes-only && npm run -s check-test-only-imports && oxlint && oxfmt --check",
     "format": "oxfmt",
     "test": "npm run test --workspaces --if-present",
-    "check-store-reads": "! grep -rnoE '\\b[A-Za-z_$]+Store\\(' apps/mobile/src --include='*.ts' --include='*.tsx' | grep -v 'useStore($' || { echo 'Read bound zustand stores through useStore(fooStore, selector), or fooStore.getState()/setState()/subscribe().'; false; }"
+    "check-store-reads": "! grep -rnoE '\\b[A-Za-z_$]+Store\\(' apps/mobile/src --include='*.ts' --include='*.tsx' | grep -v 'useStore($' || { echo 'Read bound zustand stores through useStore(fooStore, selector), or fooStore.getState()/setState()/subscribe().'; false; }",
+    "check-routes-only": "! find apps/mobile/src/app \\( -name '*.test.*' -o -name '*.spec.*' -o -name '__tests__' \\) | grep -q . || { echo 'apps/mobile/src/app is routes-only: expo-router registers every file there as a route and Metro bundles it. Move tests to src/test or next to the screen.'; false; }",
+    "check-test-only-imports": "! grep -rl 'expo-router/testing-library' apps/mobile/src --include='*.ts' --include='*.tsx' | grep -v '\\.test\\.' | grep -q . || { echo 'Import expo-router/testing-library only from *.test.* files: it pulls Node built-ins such as path into the app bundle.'; false; }"
   },
   "devDependencies": {
     "oxfmt": "^0.66.0",

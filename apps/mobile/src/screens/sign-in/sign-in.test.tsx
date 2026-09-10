@@ -1,11 +1,12 @@
 import { GrainApiError } from "@grist/grain-api";
+import { Platform } from "react-native";
 import { fireEvent, render, screen, waitFor } from "@/test/render";
 import * as Clipboard from "expo-clipboard";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { auth, authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
-import { SignIn } from "./index";
+import { SHELL_TEST_ID, SignIn } from "./index";
 
 jest.mock("expo-clipboard", () => ({
   getStringAsync: jest.fn(async () => "  grain_pat_from_clipboard  "),
@@ -37,6 +38,21 @@ describe("SignIn", () => {
     expect(
       screen.getByText("Stored in the device keychain. Only sent to api.grain.com."),
     ).toBeOnTheScreen();
+  });
+
+  it.each([
+    ["ios", true],
+    ["android", false],
+  ] as const)("wraps the form in a layout-measuring shell on %s: %s", async (os, measures) => {
+    const original = Platform.OS;
+    Object.defineProperty(Platform, "OS", { value: os, configurable: true });
+    try {
+      await render(<SignIn />);
+      const shell = screen.getByTestId(SHELL_TEST_ID);
+      expect(typeof shell.props.onLayout === "function").toBe(measures);
+    } finally {
+      Object.defineProperty(Platform, "OS", { value: original, configurable: true });
+    }
   });
 
   it("shows an inline error when Grain rejects the token and does not sign in", async () => {

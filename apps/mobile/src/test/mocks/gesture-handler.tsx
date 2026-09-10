@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import { View } from "react-native";
+
+export const GestureHandlerRootView = View;
 
 const chain: Record<string, unknown> = new Proxy({}, { get: () => () => chain }) as Record<
   string,

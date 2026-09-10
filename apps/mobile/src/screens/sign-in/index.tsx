@@ -1,10 +1,11 @@
 import { GRAIN_TOKEN_SETTINGS_URL } from "@grist/grain-api";
 import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -19,6 +20,27 @@ import { DEMO_TOKEN } from "@/lib/demo";
 import { isTokenRejected, makeClient, tokenErrorMessage } from "@/lib/grain";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
+
+export const SHELL_TEST_ID = "sign-in-shell";
+
+function Shell({ children }: { children: ReactNode }) {
+  if (Platform.OS !== "ios") {
+    return (
+      <View testID={SHELL_TEST_ID} className="flex-1 bg-background">
+        {children}
+      </View>
+    );
+  }
+  return (
+    <KeyboardAvoidingView
+      testID={SHELL_TEST_ID}
+      behavior="padding"
+      className="flex-1 bg-background"
+    >
+      {children}
+    </KeyboardAvoidingView>
+  );
+}
 
 export function SignIn() {
   const colors = useColors();
@@ -48,7 +70,7 @@ export function SignIn() {
   }
 
   return (
-    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-background">
+    <Shell>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerClassName="flex-grow px-5"
@@ -177,6 +199,6 @@ export function SignIn() {
           Open source · Not affiliated with Grain
         </Text>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </Shell>
   );
 }
