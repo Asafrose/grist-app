@@ -4,6 +4,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { Pressable, View } from "react-native";
 import Animated, {
   cancelAnimation,
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -16,6 +17,7 @@ import { useIsDemo } from "@/lib/demo";
 import { formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
 import {
+  beginDrag,
   type CollapseState,
   initialCollapse,
   meetingLayout,
@@ -196,7 +198,11 @@ export function Meeting({ id }: { id: string }) {
   useEffect(() => {
     scrollState.set({ ...scrollState.get(), collapsed });
     cancelAnimation(progress);
-    progress.set(withTiming(collapsed ? 1 : 0, { duration: 180 }));
+    progress.set(
+      collapsed
+        ? withTiming(1, { duration: 180 })
+        : withTiming(0, { duration: 120, easing: Easing.out(Easing.quad) }),
+    );
   }, [collapsed, progress, scrollState]);
 
   const expand = useCallback(() => {
@@ -263,7 +269,7 @@ export function Meeting({ id }: { id: string }) {
       programmatic.set(false);
       momentum.set(false);
       dragging.set(true);
-      scrollState.set({ ...scrollState.get(), last: e.nativeEvent.contentOffset.y });
+      scrollState.set(beginDrag(scrollState.get(), e.nativeEvent.contentOffset.y));
     },
     onScrollEndDrag: (e) => {
       const frame = frameOf(e, !programmatic.get());

@@ -1,10 +1,13 @@
 import { act, renderHook } from "@testing-library/react-native";
 import {
   type CollapseState,
+  beginDrag,
+  COLLAPSE_AT,
   initialCollapse,
   isMiniPlayerVisible,
   meetingLayout,
   meetingLayoutStore,
+  NEAR_TOP,
   reduceScroll,
   useCollapsedMeeting,
   useIsCardCollapsed,
@@ -40,9 +43,13 @@ beforeEach(() => {
 });
 
 describe("reduceScroll", () => {
-  it("collapses once the reader is more than 40px down", () => {
-    expect(drag(initialCollapse, 10, 40).collapsed).toBe(false);
-    expect(drag(initialCollapse, 10, 41).collapsed).toBe(true);
+  it("collapses once the reader is past the collapse threshold", () => {
+    expect(drag(initialCollapse, 10, COLLAPSE_AT).collapsed).toBe(false);
+    expect(drag(initialCollapse, 10, COLLAPSE_AT + 1).collapsed).toBe(true);
+  });
+
+  it("keeps the collapse threshold clear of the expand band", () => {
+    expect(COLLAPSE_AT).toBeGreaterThan(NEAR_TOP);
   });
 
   it("stays collapsed while the reader keeps going down", () => {
@@ -62,6 +69,88 @@ describe("reduceScroll", () => {
   it("expands when a fling coasts to the top", () => {
     const state = collapsedMidList();
     expect(fling(state, 600, 200, 0).collapsed).toBe(false);
+  });
+
+  it("expands as a fling arrives inside the near-top band", () => {
+    const state = collapsedMidList();
+    expect(fling(state, 600, 200, NEAR_TOP).collapsed).toBe(false);
+    expect(fling(state, 600, 200, 44).collapsed).toBe(false);
+  });
+
+  it("expands as a slow drag crosses into the near-top band", () => {
+    const state = collapsedMidList();
+    expect(drag(state, 120, 90, 60, 46).collapsed).toBe(false);
+  });
+
+  it("stays collapsed when momentum stops just above the band", () => {
+    const state = collapsedMidList();
+    expect(fling(state, 600, 200, NEAR_TOP + 1).collapsed).toBe(true);
+  });
+
+  it("ignores a programmatic landing inside the band", () => {
+    const state = collapsedMidList();
+    expect(auto(state, 400, 46).collapsed).toBe(true);
+    expect(auto(state, 400, 46).last).toBe(46);
+  });
+
+  it("never expands from a downward frame inside the band", () => {
+    const state: CollapseState = { collapsed: true, last: 40, edge: false, atEnd: false };
+    expect(drag(state, 46).collapsed).toBe(true);
+    expect(drag(state, NEAR_TOP).collapsed).toBe(true);
+  });
+
+  it("holds still while a finger wobbles across the edge of the band", () => {
+    const wobble = (state: CollapseState) => drag(state, 44, 46, 44, 46, 44, 46);
+    expect(wobble({ collapsed: false, last: 45, edge: false, atEnd: false }).collapsed).toBe(false);
+
+    // The first upward frame is the arrival, and nothing after it collapses again.
+    const arrived = drag({ collapsed: true, last: 45, edge: false, atEnd: false }, 44);
+    expect(arrived.collapsed).toBe(false);
+    expect(wobble(arrived).collapsed).toBe(false);
+  });
+
+  it("stops reading intent from a gesture that has been at the end of the content", () => {
+    // Replay of the Timeline tab on device: the fling reaches the end of a short content
+    // height, bounces past it, and the list then walks back to the top on its own while the
+    // content grows. None of that is the reader asking for the card.
+    const short = (offset: number, kind: Kind) => frame(offset, kind, 1408);
+    const replay = (state: CollapseState, kind: Kind, ...offsets: number[]) =>
+      offsets.reduce((s, offset) => reduceScroll(s, short(offset, kind)), state);
+
+    let state = replay(initialCollapse, "drag", 40, 120, 400, 700);
+    expect(state.collapsed).toBe(true);
+    state = replay(state, "fling", 561, 700, 786, 830, 937);
+    state = replay(state, "drag", 869, 840, 813);
+    state = replay(state, "fling", 787, 400, 120, 52, 37, 8, 0);
+    expect(state.collapsed).toBe(true);
+
+    // The next gesture speaks again.
+    state = beginDrag(state, 0);
+    expect(replay(state, "fling", 600, 200, 40).collapsed).toBe(false);
+  });
+
+  it("expands on a fling to the top that starts from rest at the bottom", () => {
+    const short = (offset: number, kind: Kind) => frame(offset, kind, 1408);
+    const resting = beginDrag({ collapsed: true, last: 806, edge: false, atEnd: false }, 808);
+    const state = [808, 600, 300, 40].reduce(
+      (s, offset) => reduceScroll(s, short(offset, "fling")),
+      resting,
+    );
+    expect(state.collapsed).toBe(false);
+  });
+
+  it("mutes collapse as well as expand once the gesture is settling at the end", () => {
+    // The Timeline tab case: the gesture settles against a short content height, which then
+    // grows underneath it. The offsets that follow are layout, so they neither expand nor
+    // collapse the card.
+    const at = (offset: number, contentHeight: number) => frame(offset, "drag", contentHeight);
+    const settled = [808, 830].reduce(
+      (s, offset) => reduceScroll(s, at(offset, 1408)),
+      beginDrag({ collapsed: false, last: 800, edge: false, atEnd: false }, 800),
+    );
+    expect(settled.edge).toBe(true);
+    expect(settled.collapsed).toBe(false);
+    expect(reduceScroll(settled, at(900, 3728)).collapsed).toBe(false);
   });
 
   it("stays collapsed when a fling stops short of the top", () => {
@@ -106,7 +195,7 @@ describe("reduceScroll", () => {
 
   it("reads direction from where the drag began, not from a stale offset", () => {
     // What expand-on-play leaves behind: expanded, but the list is still at 800.
-    const reseeded: CollapseState = { collapsed: false, last: 800 };
+    const reseeded: CollapseState = { collapsed: false, last: 800, edge: false, atEnd: false };
     expect(drag(reseeded, 760, 700, 670).collapsed).toBe(false);
     expect(drag(reseeded, 840).collapsed).toBe(true);
   });

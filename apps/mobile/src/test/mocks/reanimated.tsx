@@ -18,6 +18,10 @@ export const useAnimatedStyle = (fn: () => unknown) => fn();
 export const useAnimatedRef = () => ({ current: null });
 export const cancelAnimation = () => {};
 export const withTiming = <T,>(to: T) => to;
+export const Easing = {
+  quad: (t: number) => t * t,
+  out: (fn: (t: number) => number) => (t: number) => 1 - fn(1 - t),
+};
 export const withSpring = <T,>(to: T) => to;
 export const runOnJS =
   <A extends unknown[]>(fn: (...args: A) => void) =>

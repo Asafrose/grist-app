@@ -358,15 +358,25 @@ describe("Meeting shell in demo mode", () => {
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
   });
 
-  it("ignores the momentum that follows a fling", async () => {
+  it("ignores the momentum of a fling that stops short of the top", async () => {
     await render(<Meeting id="demo-0" />);
     await drag(0, 40, 120, 400);
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
 
     await fireEvent(summary(), "momentumScrollBegin", at(400));
-    for (const y of [300, 200, 100, 40]) await fireEvent.scroll(summary(), at(y));
-    await fireEvent(summary(), "momentumScrollEnd", at(40));
+    for (const y of [300, 200, 120, 80]) await fireEvent.scroll(summary(), at(y));
+    await fireEvent(summary(), "momentumScrollEnd", at(80));
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+  });
+
+  it("expands as a fling arrives inside the near-top band", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await fireEvent(summary(), "momentumScrollBegin", at(400));
+    for (const y of [300, 200, 120, 44]) await fireEvent.scroll(summary(), at(y));
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
   });
 
   it("expands when the reader drags the list back to the top", async () => {
