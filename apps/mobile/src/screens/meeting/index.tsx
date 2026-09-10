@@ -1,5 +1,6 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { Pressable, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -185,11 +186,13 @@ export function Meeting({ id }: { id: string }) {
   const progress = useSharedValue(0);
   const scrollState = useSharedValue<CollapseState>(initialCollapse);
   const dragging = useSharedValue(false);
+  const momentum = useSharedValue(false);
+  const programmatic = useSharedValue(false);
 
   // The store is the one source of truth for the card, and this is the only writer of
   // `progress`, so an interrupted collapse always settles on 0 or 1 rather than mid-fade.
   useEffect(() => {
-    scrollState.set({ ...scrollState.get(), collapsed, up: 0 });
+    scrollState.set({ ...scrollState.get(), collapsed });
     cancelAnimation(progress);
     progress.set(withTiming(collapsed ? 1 : 0, { duration: 180 }));
   }, [collapsed, progress, scrollState]);
@@ -197,8 +200,9 @@ export function Meeting({ id }: { id: string }) {
   const expand = useCallback(() => {
     scrollState.set(initialCollapse);
     dragging.set(false);
+    momentum.set(false);
     meetingLayout.clear(id);
-  }, [dragging, id, scrollState]);
+  }, [dragging, id, momentum, scrollState]);
 
   useEffect(() => expand(), [tab, expand]);
   useEffect(() => () => meetingLayout.clear(id), [id]);
@@ -240,24 +244,49 @@ export function Meeting({ id }: { id: string }) {
   // Every tab drives the reducer through these plain scroll props. FlashList calls
   // `onScroll` itself instead of handing it to its scroll component, and an
   // `Animated.ScrollView` carrying a worklet handler would not scroll reliably.
-  const scrollListeners: ScrollListeners = {
-    onScroll: (e) => {
-      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-      settle({
-        offset: contentOffset.y,
-        contentHeight: contentSize.height,
-        layoutHeight: layoutMeasurement.height,
-        dragging: dragging.get(),
-      });
-    },
-    onScrollBeginDrag: (e) => {
-      dragging.set(true);
-      scrollState.set({ ...scrollState.get(), last: e.nativeEvent.contentOffset.y, up: 0 });
-    },
-    onScrollEndDrag: () => dragging.set(false),
-    onMomentumScrollBegin: () => dragging.set(false),
-    onMomentumScrollEnd: () => dragging.set(false),
+  const frameOf = (e: NativeSyntheticEvent<NativeScrollEvent>, live: boolean): ScrollFrame => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    return {
+      offset: contentOffset.y,
+      contentHeight: contentSize.height,
+      layoutHeight: layoutMeasurement.height,
+      dragging: live && dragging.get(),
+      momentum: live && momentum.get(),
+    };
   };
+
+  const scrollListeners: ScrollListeners = {
+    onScroll: (e) => settle(frameOf(e, !programmatic.get())),
+    onScrollBeginDrag: (e) => {
+      programmatic.set(false);
+      momentum.set(false);
+      dragging.set(true);
+      scrollState.set({ ...scrollState.get(), last: e.nativeEvent.contentOffset.y });
+    },
+    onScrollEndDrag: (e) => {
+      const frame = frameOf(e, !programmatic.get());
+      dragging.set(false);
+      settle(frame);
+    },
+    onMomentumScrollBegin: () => {
+      dragging.set(false);
+      momentum.set(!programmatic.get());
+    },
+    // The last `onScroll` of a fling can arrive before the list settles on 0, so the frame
+    // that lands at the top is often this one.
+    onMomentumScrollEnd: (e) => {
+      settle(frameOf(e, !programmatic.get()));
+      dragging.set(false);
+      momentum.set(false);
+      programmatic.set(false);
+    },
+  };
+
+  const onProgrammaticScroll = useCallback(() => {
+    programmatic.set(true);
+    dragging.set(false);
+    momentum.set(false);
+  }, [dragging, momentum, programmatic]);
 
   const cardStyle = useAnimatedStyle(() => {
     const p = progress.get();
@@ -314,6 +343,7 @@ export function Meeting({ id }: { id: string }) {
     onSeek: seek,
     onPlay: expand,
     scrollListeners,
+    onProgrammaticScroll,
     contentInsetBottom: collapsed ? cardHeight : 0,
   };
   const body =

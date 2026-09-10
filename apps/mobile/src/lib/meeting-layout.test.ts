@@ -14,20 +14,24 @@ const CONTENT = 2400;
 const VIEWPORT = 600;
 const MAX = CONTENT - VIEWPORT;
 
-const frame = (offset: number, dragging = true, contentHeight = CONTENT) => ({
+type Kind = "drag" | "fling" | "auto";
+
+const frame = (offset: number, kind: Kind = "drag", contentHeight = CONTENT) => ({
   offset,
   contentHeight,
   layoutHeight: VIEWPORT,
-  dragging,
+  dragging: kind === "drag",
+  momentum: kind === "fling",
 });
 
-function drag(state: CollapseState, ...offsets: number[]): CollapseState {
-  return offsets.reduce((s, offset) => reduceScroll(s, frame(offset)), state);
-}
+const run =
+  (kind: Kind) =>
+  (state: CollapseState, ...offsets: number[]): CollapseState =>
+    offsets.reduce((s, offset) => reduceScroll(s, frame(offset, kind)), state);
 
-function glide(state: CollapseState, ...offsets: number[]): CollapseState {
-  return offsets.reduce((s, offset) => reduceScroll(s, frame(offset, false)), state);
-}
+const drag = run("drag");
+const fling = run("fling");
+const auto = run("auto");
 
 const collapsedMidList = () => drag(initialCollapse, 20, 80, 400, 800);
 
@@ -45,36 +49,33 @@ describe("reduceScroll", () => {
     expect(collapsedMidList().collapsed).toBe(true);
   });
 
-  it("ignores a small upward flick mid-list", () => {
+  it("stays collapsed however far the reader reads back up mid-list", () => {
     const state = collapsedMidList();
     expect(drag(state, 780, 750, 720, 700).collapsed).toBe(true);
-    expect(drag(state, 700, 690).up).toBeLessThan(120);
-  });
-
-  it("expands on a deliberate upward drag of 120px", () => {
-    const state = collapsedMidList();
-    expect(drag(state, 760, 720, 690, 681).collapsed).toBe(true);
-    expect(drag(state, 760, 720, 690, 680).collapsed).toBe(false);
-  });
-
-  it("forgets accumulated upward travel as soon as the reader turns back down", () => {
-    const state = collapsedMidList();
-    const wobbled = drag(state, 740, 700, 760, 700);
-    expect(wobbled.collapsed).toBe(true);
-    expect(wobbled.up).toBe(60);
+    expect(drag(state, 760, 600, 400, 200, 100).collapsed).toBe(true);
   });
 
   it("expands when the reader drags the list back to the top", () => {
     expect(drag(collapsedMidList(), 8).collapsed).toBe(false);
   });
 
-  it("ignores a landing at the top the reader is not touching", () => {
-    // A fling, transcript follow's animated scrollToIndex, or the clamp that follows the
-    // card handing its height back: none of them says the reader wants the card again.
+  it("expands when a fling coasts to the top", () => {
     const state = collapsedMidList();
-    expect(glide(state, 0).collapsed).toBe(true);
-    expect(glide(state, 0).last).toBe(0);
-    expect(glide(state, 900).collapsed).toBe(true);
+    expect(fling(state, 600, 200, 0).collapsed).toBe(false);
+  });
+
+  it("stays collapsed when a fling stops short of the top", () => {
+    const state = collapsedMidList();
+    expect(fling(state, 600, 300, 200).collapsed).toBe(true);
+  });
+
+  it("ignores a landing at the top nobody scrolled to", () => {
+    // Transcript follow's animated scrollToIndex, or the clamp that follows the card handing
+    // its height back: neither says the reader wants the card again.
+    const state = collapsedMidList();
+    expect(auto(state, 0).collapsed).toBe(true);
+    expect(auto(state, 0).last).toBe(0);
+    expect(auto(state, 900).collapsed).toBe(true);
   });
 
   it("never changes state on the bounce at either end", () => {
@@ -85,15 +86,15 @@ describe("reduceScroll", () => {
     expect(reduceScroll(top, frame(-60)).collapsed).toBe(true);
   });
 
-  it("never changes state during momentum", () => {
-    expect(glide(initialCollapse, 100, 400, 900).collapsed).toBe(false);
-    expect(glide(collapsedMidList(), 700, 500, 300, 100).collapsed).toBe(true);
+  it("never collapses during momentum", () => {
+    expect(fling(initialCollapse, 100, 400, 900).collapsed).toBe(false);
+    expect(auto(initialCollapse, 100, 400, 900).collapsed).toBe(false);
   });
 
   it("starts the next drag from where momentum left off", () => {
-    const glided = glide(collapsedMidList(), 700, 400);
-    expect(glided.up).toBe(0);
-    expect(drag(glided, 380, 320, 279).collapsed).toBe(false);
+    const glided = fling(collapsedMidList(), 700, 60);
+    expect(glided.last).toBe(60);
+    expect(drag(glided, 40, 8).collapsed).toBe(false);
   });
 
   it("decides nothing from a repeated frame at the same offset", () => {
@@ -105,14 +106,14 @@ describe("reduceScroll", () => {
 
   it("reads direction from where the drag began, not from a stale offset", () => {
     // What expand-on-play leaves behind: expanded, but the list is still at 800.
-    const reseeded: CollapseState = { collapsed: false, last: 800, up: 0 };
+    const reseeded: CollapseState = { collapsed: false, last: 800 };
     expect(drag(reseeded, 760, 700, 670).collapsed).toBe(false);
     expect(drag(reseeded, 840).collapsed).toBe(true);
   });
 
   it("keeps a list shorter than its viewport expanded, however hard it is bounced", () => {
     const bounce = (...offsets: number[]) =>
-      offsets.reduce((s, offset) => reduceScroll(s, frame(offset, true, 400)), initialCollapse);
+      offsets.reduce((s, offset) => reduceScroll(s, frame(offset, "drag", 400)), initialCollapse);
     expect(bounce(60, 120, 200, 400).collapsed).toBe(false);
     expect(bounce(-40, 200, 900, 200, -40).collapsed).toBe(false);
   });

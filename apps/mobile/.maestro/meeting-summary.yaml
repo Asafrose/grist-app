@@ -56,10 +56,13 @@ appId: com.asafrose.grist
 - takeScreenshot: meeting-summary-seeked
 # Scrolling the summary down collapses the player card; title and tabs stay pinned,
 # and the mini player takes over while the recording plays.
-- swipe:
-    start: 50%, 80%
-    end: 50%, 35%
-    duration: 500
+- repeat:
+    times: 2
+    commands:
+      - swipe:
+          start: 50%, 80%
+          end: 50%, 35%
+          duration: 500
 - assertVisible:
     id: "meeting-tabs"
 - assertVisible:
@@ -69,12 +72,23 @@ appId: com.asafrose.grist
 - assertVisible:
     id: "mini-player"
 - takeScreenshot: meeting-player-collapsed
-# Scrolling back up brings the card back and hides the mini player again. The upward
-# drag has to cover at least 120px in one gesture, or land back at the top of the list.
+# Reading back up mid-list leaves the card collapsed.
 - swipe:
-    start: 50%, 30%
-    end: 50%, 90%
-    duration: 500
+    start: 50%, 50%
+    end: 50%, 65%
+    duration: 900
+- assertNotVisible:
+    id: "play-pause"
+- assertVisible:
+    id: "mini-player"
+# Only scrolling the list back to the top brings the card back.
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 90%
+          duration: 500
 - assertVisible:
     id: "play-pause"
 - assertNotVisible:

@@ -244,7 +244,7 @@ describe("Meeting shell in demo mode", () => {
   };
   const drag = (...offsets: number[]) => dragOn(summary, ...offsets);
 
-  it("collapses the card when the reader drags up and restores it on the way back", async () => {
+  it("collapses the card when the reader drags up and restores it at the top", async () => {
     const view = await render(<Meeting id="demo-0" />);
     expect(screen.getByTestId("meeting-tabs")).toBeOnTheScreen();
 
@@ -254,11 +254,13 @@ describe("Meeting shell in demo mode", () => {
     expect(screen.queryByTestId("player-card")).toBeNull();
     expect(screen.getByTestId("player-card", { includeHiddenElements: true })).toBeTruthy();
 
-    // A small reversal is not enough; the card only comes back on a deliberate drag.
+    // Reading back up mid-list is not enough; the card only comes back at the top.
     await drag(400, 370, 340);
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
-
     await drag(340, 260, 180, 100);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await drag(100, 40, 0);
     expect(meetingLayoutStore.getState().collapsedId).toBeNull();
     expect(screen.getByTestId("player-card")).toBeOnTheScreen();
 
@@ -275,6 +277,29 @@ describe("Meeting shell in demo mode", () => {
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
 
     await dragOn(() => list, 400, 260, 180);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await dragOn(() => list, 180, 60, 0);
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("ignores the momentum an animated scrollToIndex emits", async () => {
+    await act(async () => setParams({ tab: "transcript" }));
+    await render(<Meeting id="demo-0" />);
+    const list = screen.getByTestId("transcript-list");
+
+    await dragOn(() => list, 0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    // Searching jumps the list with an animated scrollToIndex, which emits momentum events
+    // of its own on iOS.
+    await fireEvent.changeText(screen.getByTestId("transcript-search"), "ingestion");
+    await fireEvent(list, "momentumScrollBegin", at(400));
+    await fireEvent.scroll(list, at(0));
+    await fireEvent(list, "momentumScrollEnd", at(0));
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await dragOn(() => list, 400, 200, 0);
     expect(meetingLayoutStore.getState().collapsedId).toBeNull();
   });
 
@@ -303,16 +328,39 @@ describe("Meeting shell in demo mode", () => {
     await drag(0, 40, 120, 400);
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
 
-    // A landing at the top nobody asked for — a fling, transcript follow, or a clamp after
-    // a layout change — is ignored; only the reader's own drag brings the card back.
+    // A landing at the top nobody scrolled to — transcript follow, or a clamp after a
+    // layout change — is ignored.
     await fireEvent.scroll(summary(), at(0));
-    await fireEvent(summary(), "momentumScrollBegin", at(300));
-    await fireEvent.scroll(summary(), at(0));
-    await fireEvent(summary(), "momentumScrollEnd", at(0));
     expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
 
     await dragOn(summary, 400, 200, 0);
     expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("expands when a fling coasts to the top", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 400);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await fireEvent(summary(), "scrollBeginDrag", at(400));
+    await fireEvent.scroll(summary(), at(360));
+    await fireEvent(summary(), "scrollEndDrag", at(360));
+    await fireEvent(summary(), "momentumScrollBegin", at(360));
+    for (const y of [240, 120, 20]) await fireEvent.scroll(summary(), at(y));
+    // The frame that lands at the top often arrives only with the momentum end.
+    await fireEvent(summary(), "momentumScrollEnd", at(0));
+    expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("stays collapsed when a fling stops short of the top", async () => {
+    await render(<Meeting id="demo-0" />);
+    await drag(0, 40, 120, 800);
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
+
+    await fireEvent(summary(), "momentumScrollBegin", at(800));
+    for (const y of [600, 400, 300]) await fireEvent.scroll(summary(), at(y));
+    await fireEvent(summary(), "momentumScrollEnd", at(300));
+    expect(meetingLayoutStore.getState().collapsedId).toBe("demo-0");
   });
 
   it("ignores programmatic scrolling, such as the transcript following playback", async () => {

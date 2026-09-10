@@ -18,4 +18,6 @@ export type TabProps = {
   /** Keeps the scrollable range constant while the player card is collapsed. */
   contentInsetBottom?: number;
   scrollListeners?: ScrollListeners;
+  /** Called before an animated `scrollToIndex`, so the frames it emits are not read as a fling. */
+  onProgrammaticScroll?: () => void;
 };

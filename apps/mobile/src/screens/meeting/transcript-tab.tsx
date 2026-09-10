@@ -1,5 +1,5 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
-import { memo, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   type NativeScrollEvent,
@@ -26,8 +26,6 @@ import {
 import { cn } from "@/lib/utils";
 import { type Colors, useColors } from "@/theme";
 import type { TabProps } from "./types";
-
-type ListRef = RefObject<FlashListRef<TranscriptSegmentRow> | null>;
 
 const CENTER = { animated: true, viewPosition: 0.5 } as const;
 
@@ -103,12 +101,12 @@ const Line = memo(function Line({
 
 function FollowDriver({
   segments,
-  listRef,
+  scrollTo,
   following,
   onIndex,
 }: {
   segments: TranscriptSegmentRow[];
-  listRef: ListRef;
+  scrollTo: (idx: number) => void;
   following: boolean;
   onIndex: (idx: number) => void;
 }) {
@@ -118,8 +116,8 @@ function FollowDriver({
     onIndex(idx);
   }, [idx, onIndex]);
   useEffect(() => {
-    if (following && idx >= 0) void listRef.current?.scrollToIndex({ index: idx, ...CENTER });
-  }, [idx, following, listRef]);
+    if (following && idx >= 0) scrollTo(idx);
+  }, [idx, following, scrollTo]);
   return null;
 }
 
@@ -167,7 +165,13 @@ function Empty() {
   );
 }
 
-export function TranscriptTab({ rec, onSeek, scrollListeners, contentInsetBottom }: TabProps) {
+export function TranscriptTab({
+  rec,
+  onSeek,
+  scrollListeners,
+  onProgrammaticScroll,
+  contentInsetBottom,
+}: TabProps) {
   const colors = useColors();
   const segments = useTranscript(rec.id);
   const playable = rec.mediaType !== "transcript";
@@ -186,11 +190,22 @@ export function TranscriptTab({ rec, onSeek, scrollListeners, contentInsetBottom
   const activeMatch = matches[matchPos] ?? -1;
   const current = isCurrent ? currentIdx : -1;
 
-  const jumpTo = useCallback((idx: number) => {
-    if (idx < 0) return;
-    setFollowing(false);
-    void listRef.current?.scrollToIndex({ index: idx, ...CENTER });
-  }, []);
+  const scrollTo = useCallback(
+    (idx: number) => {
+      onProgrammaticScroll?.();
+      void listRef.current?.scrollToIndex({ index: idx, ...CENTER });
+    },
+    [onProgrammaticScroll],
+  );
+
+  const jumpTo = useCallback(
+    (idx: number) => {
+      if (idx < 0) return;
+      setFollowing(false);
+      scrollTo(idx);
+    },
+    [scrollTo],
+  );
 
   const onQuery = (text: string) => {
     setQuery(text);
@@ -209,7 +224,7 @@ export function TranscriptTab({ rec, onSeek, scrollListeners, contentInsetBottom
   const toggleFollow = () => {
     const next = !following;
     setFollowing(next);
-    if (next && current >= 0) void listRef.current?.scrollToIndex({ index: current, ...CENTER });
+    if (next && current >= 0) scrollTo(current);
   };
 
   const extra = useMemo(
@@ -286,7 +301,7 @@ export function TranscriptTab({ rec, onSeek, scrollListeners, contentInsetBottom
       {isCurrent ? (
         <FollowDriver
           segments={segments}
-          listRef={listRef}
+          scrollTo={scrollTo}
           following={following}
           onIndex={setCurrentIdx}
         />
