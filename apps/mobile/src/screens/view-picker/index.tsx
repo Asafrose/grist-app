@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/icon";
+import { SheetClose } from "@/components/sheet-close";
 import { Text } from "@/components/ui/text";
 import { useWorkspace } from "@/lib/data";
 import { filters, sameView, useFilterView, viewOptions } from "@/lib/filters";
@@ -21,9 +22,12 @@ export function ViewPicker() {
       contentContainerClassName="gap-3 px-5 pt-4"
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
     >
-      <Text role="heading" className="font-jakarta-extrabold text-[22px] leading-7">
-        View
-      </Text>
+      <View className="flex-row items-center gap-3">
+        <SheetClose testID="view-picker-close" />
+        <Text role="heading" className="flex-1 font-jakarta-extrabold text-[22px] leading-7">
+          View
+        </Text>
+      </View>
       <View className="overflow-hidden rounded-lg border border-border bg-card">
         {options.map((o, i) => {
           const current = sameView(selected, o.view);

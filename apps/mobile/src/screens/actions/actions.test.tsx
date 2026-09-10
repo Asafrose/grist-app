@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Share } from "react-native";
+import { Platform, Share } from "react-native";
 import { authStore } from "@/lib/auth";
 import { getRecording, getTranscript } from "@/lib/db";
 import { seedDemo } from "@/lib/demo";
@@ -15,9 +15,16 @@ jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn(async () => true) }
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
 }));
-jest.mock("expo-router", () => ({
-  router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn() },
-}));
+jest.mock("expo-router", () => {
+  const router = {
+    push: jest.fn(),
+    back: jest.fn(),
+    dismissTo: jest.fn(),
+    replace: jest.fn(),
+    canGoBack: () => true,
+  };
+  return { router, useRouter: () => router };
+});
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-network", () => ({
   NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR" },
@@ -223,6 +230,21 @@ describe("Actions sheet", () => {
       pathname: "/meeting/[id]",
       params: { id: ID, tab: "timeline" },
     });
+  });
+
+  it("dismisses from the Android close button without acting on the recording", async () => {
+    const before = rec().title;
+    jest.replaceProperty(Platform, "OS", "ios");
+    await render(<Actions id={ID} />);
+    expect(screen.getByTestId("actions-sheet")).toBeOnTheScreen();
+    expect(screen.queryByTestId("actions-close")).toBeNull();
+
+    jest.replaceProperty(Platform, "OS", "android");
+    await render(<Actions id={ID} />);
+    await fireEvent.press(screen.getByTestId("actions-close"));
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).not.toHaveBeenCalled();
+    expect(rec().title).toBe(before);
   });
 
   it("explains when the recording is unknown", async () => {

@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
 import { type ReactNode, useMemo, useState } from "react";
-import { Platform, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chip } from "@/components/chip";
 import { Icon, type IconName } from "@/components/icon";
 import { NativeDatePicker } from "@/components/native-date-picker";
+import { SheetClose } from "@/components/sheet-close";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import {
@@ -207,19 +208,8 @@ export function Filters() {
         contentContainerClassName="gap-[22px] px-5 pt-3"
         contentContainerStyle={{ paddingBottom: footerHeight + 24 }}
       >
-        <View className="flex-row items-center">
-          {Platform.OS === "android" ? (
-            <Pressable
-              testID="filters-close"
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              hitSlop={12}
-              className="mr-3"
-              onPress={close}
-            >
-              <Icon name="close" color={colors.ink3} />
-            </Pressable>
-          ) : null}
+        <View className="flex-row items-center gap-3">
+          <SheetClose testID="filters-close" />
           <Text role="heading" className="flex-1 font-jakarta-bold text-[20px] tracking-tight">
             Filters
           </Text>

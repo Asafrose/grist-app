@@ -74,8 +74,20 @@ appId: com.asafrose.grist
     id: "rename-input"
 - assertVisible: "Renamed from the sheet"
 # Close the sheet and confirm the meeting title changed
-- swipe:
-    direction: DOWN
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: "actions-close"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          direction: DOWN
+- assertNotVisible:
+    id: "actions-sheet"
 - assertVisible: "Renamed from the sheet"
 - assertVisible:
     id: "meeting-tabs"

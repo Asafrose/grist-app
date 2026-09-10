@@ -6,6 +6,7 @@ import { type ReactNode, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
+import { SheetClose } from "@/components/sheet-close";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
@@ -77,6 +78,7 @@ function Header({ rec }: { rec: RecordingDetail }) {
   const colors = useColors();
   return (
     <View className="flex-row items-center gap-3 pb-3">
+      <SheetClose testID="actions-close" />
       <View className="h-12 w-[72px] items-center justify-center overflow-hidden rounded-[8px] bg-foreground">
         {rec.thumbnailUrl ? (
           <Image source={{ uri: rec.thumbnailUrl }} style={{ width: 72, height: 48 }} />
@@ -213,7 +215,7 @@ export function Actions({ id }: { id: string }) {
           : "Plain text, for pasting into an AI chat";
 
   return (
-    <View className="flex-1 bg-card" collapsable={false}>
+    <View testID="actions-sheet" className="flex-1 bg-card" collapsable={false}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerClassName="px-5 pt-3"

@@ -92,6 +92,28 @@ appId: com.asafrose.grist
 - assertVisible:
     id: "view-picker"
 - takeScreenshot: view-picker
+# Android has no drag-to-dismiss on the form sheet, so it taps the close control.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: "view-picker-close"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # The sheet opens at the 0.6 detent; dragging the dimmed backdrop above it dismisses it.
+      - swipe:
+          start: "50%,8%"
+          end: "50%,90%"
+          duration: 400
+- assertNotVisible:
+    id: "view-picker"
+- tapOn:
+    id: "view-more"
+- assertVisible:
+    id: "view-picker"
 - tapOn:
     id: "picker-view-team-demo-team-5"
 - assertVisible:

@@ -15,7 +15,9 @@ jest.mock("expo-network", () => ({
 }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 const mockBack = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn(), back: mockBack }) }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), back: mockBack, canGoBack: () => true, replace: jest.fn() }),
+}));
 jest.mock("@/components/native-date-picker", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {

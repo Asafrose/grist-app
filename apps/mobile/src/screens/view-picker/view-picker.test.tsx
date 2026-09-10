@@ -1,6 +1,7 @@
+import { Platform } from "react-native";
 import { fireEvent, render, screen } from "@/test/render";
 import { authStore } from "@/lib/auth";
-import { filters, filtersStore } from "@/lib/filters";
+import { defaultFilters, filters, filtersStore } from "@/lib/filters";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { getWorkspace } from "@/lib/workspace";
 import { ViewPicker } from "./index";
@@ -11,7 +12,9 @@ jest.mock("expo-network", () => ({
   getNetworkStateAsync: jest.fn(async () => ({ type: "WIFI" })),
 }));
 const mockBack = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn(), back: mockBack }) }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), back: mockBack, canGoBack: () => true, replace: jest.fn() }),
+}));
 
 beforeAll(async () => {
   await libraryReady;
@@ -45,5 +48,17 @@ describe("ViewPicker", () => {
     await fireEvent.press(screen.getByTestId(`picker-view-team-${team.id}`));
     expect(filtersStore.getState().view).toEqual({ kind: "team", id: team.id });
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("dismisses from the Android close button without changing the view", async () => {
+    jest.replaceProperty(Platform, "OS", "ios");
+    await render(<ViewPicker />);
+    expect(screen.queryByTestId("view-picker-close")).toBeNull();
+
+    jest.replaceProperty(Platform, "OS", "android");
+    await render(<ViewPicker />);
+    await fireEvent.press(screen.getByTestId("view-picker-close"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(filtersStore.getState().view).toEqual(defaultFilters.view);
   });
 });
