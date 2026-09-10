@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { type ReactNode, useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Chip } from "@/components/chip";
 import { Icon, type IconName } from "@/components/icon";
@@ -191,13 +191,15 @@ export function Filters() {
   const custom = draft.date?.preset === "custom" ? draft.date : null;
   const teamId = draft.view.kind === "team" ? draft.view.id : null;
 
+  const close = () => router.back();
+
   const apply = () => {
     filters.apply(draft);
-    router.back();
+    close();
   };
 
   return (
-    <View className="flex-1 bg-card" collapsable={false}>
+    <View testID="filters-sheet" className="flex-1 bg-card" collapsable={false}>
       <ScrollView
         testID="filters-scroll"
         nestedScrollEnabled
@@ -206,6 +208,18 @@ export function Filters() {
         contentContainerStyle={{ paddingBottom: footerHeight + 24 }}
       >
         <View className="flex-row items-center">
+          {Platform.OS === "android" ? (
+            <Pressable
+              testID="filters-close"
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={12}
+              className="mr-3"
+              onPress={close}
+            >
+              <Icon name="close" color={colors.ink3} />
+            </Pressable>
+          ) : null}
           <Text role="heading" className="flex-1 font-jakarta-bold text-[20px] tracking-tight">
             Filters
           </Text>

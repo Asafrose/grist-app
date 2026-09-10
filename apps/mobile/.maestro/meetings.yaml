@@ -224,4 +224,27 @@ appId: com.asafrose.grist
     id: "active-participant"
 - assertNotVisible:
     id: "active-recorderId"
+# Dismissing the sheet without applying: Android has no drag-to-dismiss, so it uses the
+# header close button; iOS drags the sheet down.
+- tapOn:
+    id: "open-filters"
+- assertVisible:
+    id: "filters-sheet"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: "filters-close"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          start: "50%,8%"
+          end: "50%,90%"
+- assertNotVisible:
+    id: "filters-sheet"
+- assertVisible:
+    id: "meetings-list"
 # Rows open the meeting screen.

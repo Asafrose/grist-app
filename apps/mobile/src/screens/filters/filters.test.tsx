@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { fireEvent, render, screen, within } from "@/test/render";
 import { authStore } from "@/lib/auth";
 import { countRecordings, participantOptions, recorderOptions } from "@/lib/db";
@@ -183,5 +183,23 @@ describe("Filters sheet", () => {
     expect(filtersStore.getState().scope).toBe("internal");
     await fireEvent.press(screen.getByTestId("filters-apply"));
     expect(sheetFilters(filtersStore.getState())).toEqual(sheetFilters(defaultFilters));
+  });
+
+  it("dismisses from the Android close button without applying the draft", async () => {
+    const original = Platform.OS;
+    try {
+      Object.defineProperty(Platform, "OS", { value: "ios", configurable: true });
+      await render(<Filters />);
+      expect(screen.queryByTestId("filters-close")).toBeNull();
+
+      Object.defineProperty(Platform, "OS", { value: "android", configurable: true });
+      await render(<Filters />);
+      await fireEvent.press(screen.getByTestId("scope-external"));
+      await fireEvent.press(screen.getByTestId("filters-close"));
+      expect(mockBack).toHaveBeenCalledTimes(1);
+      expect(filtersStore.getState().scope).toBe("all");
+    } finally {
+      Object.defineProperty(Platform, "OS", { value: original, configurable: true });
+    }
   });
 });
