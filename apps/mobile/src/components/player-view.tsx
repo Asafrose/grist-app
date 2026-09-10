@@ -9,6 +9,7 @@ import {
   type PlayerSurface,
   useNowPlaying,
   usePlaybackStatus,
+  usePlayerGeneration,
   videoSurfaceRendered,
 } from "@/lib/player";
 import { useSetting } from "@/lib/settings";
@@ -61,6 +62,7 @@ export function PlayerView({
 }) {
   const current = useNowPlaying();
   const status = usePlaybackStatus();
+  const generation = usePlayerGeneration();
   const pip = useSetting("pictureInPicture");
   const poster = usePoster(current).uri;
   const [renderedId, setRenderedId] = useState(() =>
@@ -81,6 +83,7 @@ export function PlayerView({
       {isVideo ? (
         <>
           <VideoView
+            key={generation}
             ref={attach}
             player={videoPlayer()}
             style={{ flex: 1 }}

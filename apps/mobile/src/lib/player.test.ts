@@ -21,8 +21,12 @@ import {
 } from "@/lib/player";
 import { perf } from "@/lib/perf";
 import { settings, settingsStore } from "@/lib/settings";
+import { warmPlayers } from "@/lib/warm-players";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/warm-players", () => ({
+  warmPlayers: { bind: jest.fn(), take: jest.fn(() => null), discard: jest.fn() },
+}));
 jest.mock("@/lib/data/playback-positions", () => {
   const db = jest.requireActual("@/test/db").testDb();
   const q = jest.requireActual("@/lib/db/playback-positions");
@@ -48,6 +52,7 @@ jest.mock("expo-video", () => {
     showNowPlayingNotification: false,
     timeUpdateEventInterval: 0,
     addListener: jest.fn((name: string, fn: Function) => listeners.set(name, fn)),
+    removeListener: jest.fn((name: string) => listeners.delete(name)),
     replaceAsync: jest.fn(async () => {}),
     replace: jest.fn(),
     play: jest.fn(() => emit("playingChange", { isPlaying: true })),
@@ -926,5 +931,130 @@ describe("autoplay follows the load's intent, not the store's playing flag", () 
     await new Promise((r) => setTimeout(r, 0));
 
     expect(playerStore.getState().playing).toBe(true);
+  });
+});
+
+type WarmFake = Fake & { duration: number; status: string; muted: boolean; currentTime: number };
+
+function warmFake(): WarmFake {
+  const listeners = new Map<string, (payload: never) => void>();
+  return {
+    listeners,
+    emit: (name: string, payload: unknown) => listeners.get(name)?.(payload as never),
+    duration: 600,
+    status: "readyToPlay",
+    muted: true,
+    currentTime: 0,
+    playbackRate: 1,
+    staysActiveInBackground: false,
+    showNowPlayingNotification: false,
+    timeUpdateEventInterval: 0,
+    addListener: jest.fn((name: string, fn: (payload: never) => void) => listeners.set(name, fn)),
+    removeListener: jest.fn((name: string) => listeners.delete(name)),
+    replaceAsync: jest.fn(async () => {}),
+    play: jest.fn(),
+    pause: jest.fn(),
+    release: jest.fn(),
+  } as unknown as WarmFake;
+}
+
+describe("adopting a warm player", () => {
+  let warm: WarmFake;
+
+  beforeEach(() => {
+    warm = warmFake();
+    (warmPlayers.take as jest.Mock).mockImplementation((id: string) =>
+      id === rec.id ? (warm as unknown as VideoPlayer) : null,
+    );
+  });
+
+  afterEach(async () => {
+    (warmPlayers.take as jest.Mock).mockImplementation(() => null);
+    playback.stop();
+    authStore.setState({ status: "signed-out", token: null });
+    authStore.setState({ status: "signed-in", token: "pat" });
+    await until(() => videoPlayer() === (fake as unknown as VideoPlayer));
+  });
+
+  it("makes the warm player the shared one, paused at the resume point", async () => {
+    await playback.load(rec, { at: 30, autoplay: false });
+
+    expect(videoPlayer()).toBe(warm);
+    expect(resolveMediaUrl).not.toHaveBeenCalled();
+    expect(warm.replaceAsync).not.toHaveBeenCalled();
+    expect(warm.currentTime).toBe(30);
+    expect(warm.pause).toHaveBeenCalled();
+    expect(warm.play).not.toHaveBeenCalled();
+    expect(playerStore.getState()).toMatchObject({
+      current: rec,
+      status: "ready",
+      playing: false,
+      position: 30,
+      duration: 600,
+    });
+  });
+
+  it("registers the listener set once and restores the shared player's properties", async () => {
+    playback.setRate(1.5);
+    await playback.load(rec, { at: 30, autoplay: false });
+
+    expect(warm.addListener).toHaveBeenCalledTimes(4);
+    expect(warm.listeners.size).toBe(4);
+    expect(warm.muted).toBe(false);
+    expect(warm.staysActiveInBackground).toBe(true);
+    expect(warm.showNowPlayingNotification).toBe(true);
+    expect(warm.timeUpdateEventInterval).toBe(0.5);
+    expect(warm.playbackRate).toBe(1.5);
+    playback.setRate(1);
+  });
+
+  it("keeps the surfaces on the adopted instance and releases the old one", async () => {
+    const before = playerStore.getState().generation;
+    await playback.load(rec, { at: 30, autoplay: false });
+
+    expect(playerStore.getState().generation).toBe(before + 1);
+    await until(() => (fake.release as jest.Mock).mock.calls.length > 0);
+    expect(fake.listeners.size).toBe(0);
+    playback.play();
+    expect(warm.play).toHaveBeenCalled();
+    expect(fake.play).not.toHaveBeenCalled();
+  });
+
+  it("plays straight away when the user asked for it", async () => {
+    await playback.load(rec, { at: 30, autoplay: true });
+    expect(warm.play).toHaveBeenCalled();
+  });
+
+  it("labels the load warm for the time to first frame mark", async () => {
+    perf.clear();
+    await playback.load(rec, { at: 30, autoplay: false });
+    warm.emit("timeUpdate", { currentTime: 30 });
+    expect(perf.recent().map((s) => s.label)).toContain("time to first frame (warm)");
+  });
+
+  it("ignores the pool for a downloaded recording", async () => {
+    downloadsStore.setState({ byId: { r1: localFile } });
+    await playback.load(rec, { at: 30, autoplay: false });
+    expect(videoPlayer()).toBe(fake);
+    expect(fake.replaceAsync).toHaveBeenCalledWith(expect.objectContaining({ uri: localFile.uri }));
+  });
+
+  it("loads normally and discards a warm player that already errored", async () => {
+    warm.status = "error";
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec, { at: 30, autoplay: false });
+
+    expect(videoPlayer()).toBe(fake);
+    expect(warmPlayers.discard).toHaveBeenCalledWith(warm);
+    expect(fake.replaceAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: "https://cdn/media.mp4" }),
+    );
+  });
+
+  it("falls back to the normal load when nothing is warm", async () => {
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load({ ...rec, id: "r2" }, { at: 30, autoplay: false });
+    expect(videoPlayer()).toBe(fake);
+    expect(resolveMediaUrl).toHaveBeenCalledWith("r2");
   });
 });

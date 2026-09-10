@@ -19,6 +19,7 @@ import {
   settingsStore,
   useSetting,
 } from "@/lib/settings";
+import { warmPlayers } from "@/lib/warm-players";
 
 export { isPlaybackRate, PLAYBACK_RATES, type PlaybackRate };
 
@@ -38,6 +39,7 @@ type PlayerState = {
   duration: number;
   until: number | null;
   error: string | null;
+  generation: number;
 };
 
 const initial: PlayerState = {
@@ -48,6 +50,7 @@ const initial: PlayerState = {
   duration: 0,
   until: null,
   error: null,
+  generation: 0,
 };
 
 export const playerStore = create<PlayerState>(() => initial);
@@ -59,11 +62,12 @@ export const usePlaybackError = () => useStore(playerStore, (s) => s.error);
 export const useIsPlaying = () => useStore(playerStore, (s) => s.playing);
 export const usePlaybackPosition = () => useStore(playerStore, (s) => s.position);
 export const usePlaybackDuration = () => useStore(playerStore, (s) => s.duration);
+export const usePlayerGeneration = () => useStore(playerStore, (s) => s.generation);
 export const usePlaybackUntil = () => useStore(playerStore, (s) => s.until);
 export const usePlaybackRate = () => useSetting("playbackRate");
 
-function build(): VideoPlayer {
-  const p = createVideoPlayer(null);
+function configure(p: VideoPlayer): VideoPlayer {
+  p.muted = false;
   p.staysActiveInBackground = true;
   p.showNowPlayingNotification = true;
   p.timeUpdateEventInterval = 0.5;
@@ -73,6 +77,17 @@ function build(): VideoPlayer {
   p.addListener("sourceLoad", onSourceLoad);
   p.addListener("statusChange", onStatusChange);
   return p;
+}
+
+function build(): VideoPlayer {
+  return configure(createVideoPlayer(null));
+}
+
+function detachListeners(p: VideoPlayer): void {
+  p.removeListener("playingChange", onPlayingChange);
+  p.removeListener("timeUpdate", onTimeUpdate);
+  p.removeListener("sourceLoad", onSourceLoad);
+  p.removeListener("statusChange", onStatusChange);
 }
 
 export function videoPlayer(): VideoPlayer {
@@ -85,6 +100,7 @@ export function videoPlayer(): VideoPlayer {
 // callbacks rather than pulling the player out from under a live native view.
 async function rebuildPlayer(): Promise<void> {
   const old = instance;
+  detachListeners(old);
   instance = build();
   old.pause();
   const deadline = Date.now() + VIEW_DETACH_TIMEOUT_MS;
@@ -94,6 +110,31 @@ async function rebuildPlayer(): Promise<void> {
   videoViews.length = 0;
   await old.replaceAsync(null).catch(() => undefined);
   old.release();
+}
+
+async function releaseHandedOver(old: VideoPlayer): Promise<void> {
+  const handedOver = videoViews.slice();
+  detachListeners(old);
+  old.pause();
+  const deadline = Date.now() + VIEW_DETACH_TIMEOUT_MS;
+  while (videoViews.some((v) => handedOver.includes(v)) && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, VIEW_DETACH_POLL_MS));
+  }
+  await old.replaceAsync(null).catch(() => undefined);
+  old.release();
+}
+
+function adopt(warm: VideoPlayer, at: number, autoplay: boolean): void {
+  const old = instance;
+  instance = configure(warm);
+  sourceDuration = warm.duration || 0;
+  playerStore.setState((s) => ({
+    status: warm.status === "readyToPlay" ? "ready" : "loading",
+    duration: sourceDuration || s.duration,
+    generation: s.generation + 1,
+  }));
+  restoreAfterReplace(at, autoplay);
+  void releaseHandedOver(old).catch(() => undefined);
 }
 
 export const VIEW_DETACH_TIMEOUT_MS = 500;
@@ -166,6 +207,8 @@ const onStatusChange: VideoPlayerEvents["statusChange"] = ({ status, error }) =>
 };
 
 let instance: VideoPlayer = build();
+
+warmPlayers.bind(() => playerStore.getState().current?.id ?? null);
 
 export const TTFF_MARK = "media-load";
 let ttffLabel = "";
@@ -313,6 +356,13 @@ async function load(rec: NowPlaying, opts: LoadOptions = {}) {
     until,
     error: null,
   });
+  const warm = local ? null : warmPlayers.take(rec.id);
+  if (warm && warm.status !== "error") {
+    ttffLabel = "time to first frame (warm)";
+    adopt(warm, at, playIntent);
+    return;
+  }
+  if (warm) warmPlayers.discard(warm);
   try {
     const uri = local ?? (await mediaUrl(rec.id, token));
     if (seq !== loadSeq) return;
@@ -386,7 +436,7 @@ function reset(persist: boolean) {
   sourceDuration = 0;
   pendingRestoreAt = null;
   void instance.replaceAsync(null).catch(() => undefined);
-  playerStore.setState(initial);
+  playerStore.setState({ ...initial, generation: playerStore.getState().generation });
 }
 
 function stop() {
