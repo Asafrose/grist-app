@@ -11,7 +11,7 @@ export const DEMO_TOKEN = "demo";
 export const DEMO_MEDIA_URL =
   "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8";
 
-// A meeting with a poster frame: demo media is a remote HLS stream with no thumbnail.
+// The first demo meetings carry a poster frame: demo media is a remote HLS stream with none.
 export const DEMO_THUMBNAIL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAIAAAC1qksFAAAAX0lEQVR42rXChxGCAAAAsR8EVJReLBRRECv7z+QUnwtB3KkJk17NJh3UbLOrml0+qomKm5p9eVdzqCY1cT2rSZqHmvS4qMlOTzX5+aWmuLzVlO1HTdV91dT9T00zrOo/P6E8MCHL8mkAAAAASUVORK5CYII=";
 
@@ -88,7 +88,7 @@ export function demoRecordings(now = Date.now()): Recording[] {
       id: `demo-${i}`,
       title,
       media_type: i % 5 === 4 ? "audio" : base.media_type,
-      thumbnail_url: i === 2 ? DEMO_THUMBNAIL : base.thumbnail_url,
+      thumbnail_url: i < 3 ? DEMO_THUMBNAIL : base.thumbnail_url,
       workspace_shared: i % 3 !== 0,
       start_datetime: isoSeconds(start),
       end_datetime: isoSeconds(start + durationMs),

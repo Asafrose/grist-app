@@ -6,26 +6,28 @@ import { Text } from "@/components/ui/text";
 import { meetingCompany } from "@/lib/company";
 import { type RecordingListRow, useDownload } from "@/lib/data";
 import { formatDurationCompact, formatTime, isNewRecording, watchProgress } from "@/lib/format";
-import { useThumbnail } from "@/lib/thumbnails";
+import { usePoster } from "@/lib/thumbnails";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 
 function Thumbnail({ item }: { item: RecordingListRow }) {
   const colors = useColors();
-  const server = item.thumbnailUrl ?? item.highlightThumbnailUrl;
-  const generated = useThumbnail({ ...item, thumbnailUrl: server });
-  const uri = generated ?? server;
+  const { uri, generating } = usePoster({
+    ...item,
+    thumbnailUrl: item.thumbnailUrl ?? item.highlightThumbnailUrl,
+  });
   const progress = watchProgress(item.positionSeconds, item.durationMs);
   return (
     <View className="h-12 w-[72px] overflow-hidden rounded-[8px] bg-foreground">
       {uri ? (
         <Image
+          testID={`thumb-${item.id}`}
           source={{ uri }}
           style={{ width: 72, height: 48 }}
           contentFit="cover"
           transition={150}
         />
-      ) : generated === undefined && item.mediaType === "video" ? (
+      ) : generating && item.mediaType === "video" ? (
         <View testID={`thumb-loading-${item.id}`} className="flex-1 items-center justify-center">
           <ActivityIndicator size="small" color={colors.ink3} />
         </View>

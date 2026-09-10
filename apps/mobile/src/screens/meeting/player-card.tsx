@@ -25,6 +25,7 @@ import {
   usePlaybackStatus,
 } from "@/lib/player";
 import { useSetting } from "@/lib/settings";
+import { usePoster } from "@/lib/thumbnails";
 import { cn } from "@/lib/utils";
 
 const TAG_BG = "rgba(255,255,255,0.14)";
@@ -57,17 +58,14 @@ function SurfaceTag({ icon, label }: { icon?: IconName; label: string }) {
 function Artwork({ rec }: { rec: RecordingDetail }) {
   const icon: IconName =
     rec.mediaType === "video" ? "video" : rec.mediaType === "audio" ? "mic" : "text";
+  const poster = usePoster(rec).uri;
   return (
     <View className="flex-1 items-center justify-center">
-      {rec.thumbnailUrl ? (
-        <>
-          <Image
-            source={rec.thumbnailUrl}
-            style={{ position: "absolute", inset: 0 }}
-            contentFit="cover"
-          />
+      {poster ? (
+        <View testID="player-poster" className="absolute inset-0">
+          <Image testID="poster-image" source={poster} style={{ flex: 1 }} contentFit="cover" />
           <View className="absolute inset-0" style={{ backgroundColor: "rgba(20,22,24,0.45)" }} />
-        </>
+        </View>
       ) : (
         <Icon name={icon} size={44} color="rgba(255,255,255,0.35)" />
       )}

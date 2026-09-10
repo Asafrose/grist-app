@@ -10,6 +10,14 @@ jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn(), useGrainClient: jest.fn() }));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock("@/lib/thumbnails", () => ({
+  usePoster: (subject: { thumbnailUrl?: string | null } | null) => ({
+    uri: subject?.thumbnailUrl ?? mockGenerated,
+    generating: false,
+  }),
+}));
+
+let mockGenerated: string | null = null;
 
 const rec = {
   id: "r1",
@@ -21,6 +29,7 @@ const rec = {
 
 beforeEach(() => {
   jest.restoreAllMocks();
+  mockGenerated = null;
   settings.set("pictureInPicture", true);
   playerStore.setState({
     current: { ...rec },
@@ -123,5 +132,34 @@ describe("PlayerCard before playback", () => {
     await render(<PlayerCard rec={rec} />);
     await fireEvent.press(screen.getByTestId("player-start"));
     expect(load).toHaveBeenCalledWith(expect.objectContaining({ id: rec.id }));
+  });
+});
+
+describe("PlayerCard poster", () => {
+  beforeEach(() => {
+    playerStore.setState({ current: null, status: "idle", playing: false, position: 0 });
+    jest.spyOn(playback, "preload").mockResolvedValue(undefined);
+  });
+
+  it("posters the card with the Grain thumbnail before the recording is loaded", async () => {
+    await render(
+      <PlayerCard rec={{ ...rec, thumbnailUrl: "https://thumb/1" } as RecordingDetail} />,
+    );
+    expect(screen.getByTestId("player-poster")).toBeOnTheScreen();
+    expect(screen.getByTestId("poster-image")).toHaveProp("source", "https://thumb/1");
+  });
+
+  it("posters the card with the locally generated thumbnail when Grain has none", async () => {
+    mockGenerated = "file:///cache/thumbnails/r1.jpg";
+    await render(<PlayerCard rec={rec} />);
+    expect(screen.getByTestId("poster-image")).toHaveProp(
+      "source",
+      "file:///cache/thumbnails/r1.jpg",
+    );
+  });
+
+  it("falls back to the artwork icon when there is no thumbnail", async () => {
+    await render(<PlayerCard rec={rec} />);
+    expect(screen.queryByTestId("player-poster")).toBeNull();
   });
 });

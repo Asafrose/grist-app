@@ -1,8 +1,15 @@
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { getThumbnailAsync } from "expo-video-thumbnails";
 import { authStore } from "@/lib/auth";
 import { makeClient } from "@/lib/grain";
 import { queryClient } from "@/lib/query";
-import { frameTime, THUMBNAIL_RETRY_MS, thumbnails, thumbnailsStore } from "@/lib/thumbnails";
+import {
+  frameTime,
+  THUMBNAIL_RETRY_MS,
+  thumbnails,
+  thumbnailsStore,
+  usePoster,
+} from "@/lib/thumbnails";
 
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video-thumbnails", () => ({ getThumbnailAsync: jest.fn() }));
@@ -185,5 +192,43 @@ describe("thumbnails", () => {
     thumbnails.clear();
     expect(files.size).toBe(0);
     expect(thumbnailsStore.getState().byId).toEqual({});
+  });
+});
+
+describe("usePoster", () => {
+  it("reports generation, then hands back the generated frame", async () => {
+    let release = () => {};
+    (getThumbnailAsync as jest.Mock).mockImplementation(async () => {
+      await new Promise<void>((r) => {
+        release = r;
+      });
+      files.add("tmp/p1.jpg");
+      return { uri: "tmp/p1.jpg", width: 320, height: 180 };
+    });
+    const { result } = await renderHook(() => usePoster(video("p1")));
+    expect(result.current).toEqual({ uri: null, generating: true });
+
+    await act(async () => {
+      release();
+      await thumbnails.whenIdle();
+    });
+    expect(result.current).toEqual({ uri: "cache/thumbnails/p1.jpg", generating: false });
+  });
+
+  it("prefers the server thumbnail and never generates one", async () => {
+    const { result } = await renderHook(() =>
+      usePoster({ ...video("p2"), thumbnailUrl: "https://grain/p2.jpg" }),
+    );
+    await waitFor(() =>
+      expect(result.current).toEqual({ uri: "https://grain/p2.jpg", generating: false }),
+    );
+    expect(getThumbnailAsync).not.toHaveBeenCalled();
+  });
+
+  it("stays empty without a subject", async () => {
+    const { result } = await renderHook(() => usePoster(null));
+    expect(result.current).toEqual({ uri: null, generating: false });
+    await act(async () => {});
+    expect(getThumbnailAsync).not.toHaveBeenCalled();
   });
 });

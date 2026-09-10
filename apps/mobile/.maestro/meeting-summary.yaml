@@ -148,11 +148,15 @@ appId: com.asafrose.grist
     text: "0:00"
 - takeScreenshot: meeting-resume-preplay
 # Seeking a meeting that has never been started leaves it paused at the new position.
+# The thumbnail poster covers the card before the first frame renders.
 - tapOn: "Meetings"
 - tapOn:
     id: "meeting-demo-1"
 - assertVisible:
     id: "player-start"
+- assertVisible:
+    id: "player-poster"
+- takeScreenshot: meeting-never-started-poster
 - tapOn:
     id: "seek-forward"
 - extendedWaitUntil:
@@ -164,13 +168,16 @@ appId: com.asafrose.grist
     id: "position"
     text: "0:00"
 - takeScreenshot: meeting-seek-paused
-# The thumbnail poster covers the video surface while the next meeting loads.
-# demo-2 is the fixture with a thumbnail, so the poster is visible here.
+# The thumbnail poster covers the video surface before the first frame renders. The screenshot
+# after the tap is not asserted: Maestro's tap waits for the screen to settle, by which time the
+# frame has usually rendered and the poster has faded.
 - tapOn: "Meetings"
 - tapOn:
     id: "meeting-demo-2"
 - assertVisible:
     id: "player-start"
+- assertVisible:
+    id: "player-poster"
 - tapOn:
     id: "player-start"
 - takeScreenshot: meeting-poster

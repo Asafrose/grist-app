@@ -12,6 +12,7 @@ import {
   videoSurfaceRendered,
 } from "@/lib/player";
 import { useSetting } from "@/lib/settings";
+import { usePoster } from "@/lib/thumbnails";
 import { cn } from "@/lib/utils";
 
 export const PLAYER_SURFACE = "#23282D";
@@ -61,6 +62,10 @@ export function PlayerView({
   const current = useNowPlaying();
   const status = usePlaybackStatus();
   const pip = useSetting("pictureInPicture");
+  const poster = usePoster(current).uri;
+  const [renderedId, setRenderedId] = useState(() =>
+    status === "ready" ? (current?.id ?? null) : null,
+  );
   const player = videoPlayer();
   const isVideo = current?.mediaType === "video" && player !== null;
 
@@ -84,18 +89,17 @@ export function PlayerView({
             nativeControls={false}
             allowsPictureInPicture={pip}
             startsPictureInPictureAutomatically={pip}
-            onFirstFrameRender={() => videoSurfaceRendered(surface)}
+            onFirstFrameRender={() => {
+              setRenderedId(current.id);
+              videoSurfaceRendered(surface);
+            }}
           />
-          <Poster key={current.id} uri={current.thumbnailUrl} ready={status === "ready"} />
+          <Poster key={current.id} uri={poster} ready={renderedId === current.id} />
         </>
       ) : (
         <View className="flex-1 items-center justify-center">
-          {current?.thumbnailUrl ? (
-            <Image
-              source={current.thumbnailUrl}
-              style={{ flex: 1, width: "100%" }}
-              contentFit="cover"
-            />
+          {poster ? (
+            <Image source={poster} style={{ flex: 1, width: "100%" }} contentFit="cover" />
           ) : (
             <Icon name="mic" size={40} color="rgba(255,255,255,0.55)" />
           )}

@@ -125,10 +125,14 @@ function whenIdle(): Promise<void> {
 
 export const thumbnails = { request, clear, whenIdle, pending: () => queue.length + active };
 
-export function useThumbnail({ id, mediaType, durationMs, thumbnailUrl }: ThumbnailSubject) {
-  const uri = useStore(thumbnailsStore, (s) => s.byId[id]);
+export type Poster = { uri: string | null; generating: boolean };
+
+export function usePoster(subject: ThumbnailSubject | null): Poster {
+  const generated = useStore(thumbnailsStore, (s) => (subject ? s.byId[subject.id] : null));
+  const { id, mediaType, durationMs, thumbnailUrl = null } = subject ?? {};
   useEffect(() => {
-    request({ id, mediaType, durationMs, thumbnailUrl });
+    if (id && mediaType && durationMs !== undefined)
+      request({ id, mediaType, durationMs, thumbnailUrl });
   }, [id, mediaType, durationMs, thumbnailUrl]);
-  return uri;
+  return { uri: generated ?? thumbnailUrl, generating: generated === undefined };
 }

@@ -7,6 +7,18 @@ import { videoViewPictureInPicture } from "@/test/mocks/expo-video";
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
+jest.mock("@/lib/thumbnails", () => ({
+  usePoster: (subject: { thumbnailUrl?: string | null } | null) => ({
+    uri: subject?.thumbnailUrl ?? mockGenerated,
+    generating: false,
+  }),
+}));
+
+let mockGenerated: string | null = null;
+
+beforeEach(() => {
+  mockGenerated = null;
+});
 
 const video: NowPlaying = {
   id: "r1",
@@ -97,7 +109,7 @@ describe("PlayerView surface timing", () => {
 });
 
 describe("PlayerView poster", () => {
-  it("covers the surface with the thumbnail until the video is ready", async () => {
+  it("covers the surface with the thumbnail until the first frame renders", async () => {
     playerStore.setState({
       current: { ...video, thumbnailUrl: "https://thumb/1" },
       status: "loading",
@@ -109,7 +121,27 @@ describe("PlayerView poster", () => {
     await act(async () => {
       playerStore.setState({ status: "ready" });
     });
+    expect(screen.getByTestId("player-poster")).toBeOnTheScreen();
+
+    await fireEvent(screen.getByTestId("video-view"), "firstFrameRender");
     await waitFor(() => expect(screen.queryByTestId("player-poster")).toBeNull());
+  });
+
+  it("falls back to the locally generated thumbnail", async () => {
+    mockGenerated = "file:///cache/thumbnails/r1.jpg";
+    playerStore.setState({ current: video, status: "loading" });
+    await render(<PlayerView surface="card" />);
+    expect(screen.getByTestId("poster-image")).toHaveProp(
+      "source",
+      "file:///cache/thumbnails/r1.jpg",
+    );
+  });
+
+  it("keeps a bare surface when the recording has no thumbnail at all", async () => {
+    playerStore.setState({ current: video, status: "loading" });
+    await render(<PlayerView surface="card" />);
+    expect(screen.getByTestId("player-poster")).toBeOnTheScreen();
+    expect(screen.queryByTestId("poster-image")).toBeNull();
   });
 
   it("stays out of the way when a loaded source is swapped mid-playback", async () => {

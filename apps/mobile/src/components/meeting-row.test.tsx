@@ -7,7 +7,18 @@ jest.mock("expo-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 jest.mock("@/lib/data", () => ({ useDownload: () => ({ status: "idle" }) }));
-jest.mock("@/lib/thumbnails", () => ({ useThumbnail: () => null }));
+jest.mock("@/lib/thumbnails", () => ({
+  usePoster: (subject: { thumbnailUrl?: string | null }) => ({
+    uri: mockGenerating ? null : (subject.thumbnailUrl ?? null),
+    generating: mockGenerating,
+  }),
+}));
+
+let mockGenerating = false;
+
+beforeEach(() => {
+  mockGenerating = false;
+});
 
 const HOUR = 3_600_000;
 
@@ -81,5 +92,32 @@ describe("MeetingRow", () => {
     await render(<MeetingRow item={item(30 * 60 - 5)} last />);
     expect(screen.getByText("30m")).toBeTruthy();
     expect(screen.queryByTestId("progress-r1")).toBeNull();
+  });
+
+  it("falls back to the first highlight thumbnail", async () => {
+    await render(
+      <MeetingRow
+        item={item(null, {
+          thumbnailUrl: null,
+          highlightThumbnailUrl: "https://example.test/h.jpg",
+        })}
+        last
+      />,
+    );
+    expect(screen.getByTestId("thumb-r1")).toHaveProp("source", {
+      uri: "https://example.test/h.jpg",
+    });
+  });
+
+  it("spins while a thumbnail is being generated for a video", async () => {
+    mockGenerating = true;
+    await render(<MeetingRow item={item(null, { thumbnailUrl: null })} last />);
+    expect(screen.getByTestId("thumb-loading-r1")).toBeOnTheScreen();
+  });
+
+  it("shows the media icon for audio with no thumbnail", async () => {
+    mockGenerating = true;
+    await render(<MeetingRow item={item(null, { thumbnailUrl: null, mediaType: "audio" })} last />);
+    expect(screen.queryByTestId("thumb-loading-r1")).toBeNull();
   });
 });
