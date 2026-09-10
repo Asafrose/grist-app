@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRoute } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -7,6 +7,7 @@ import { Icon } from "@/components/icon";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import type { HighlightRow, RecordingDetail } from "@/lib/data";
+import { clipKey, deepLinks } from "@/lib/deep-links";
 import { formatClock } from "@/lib/format";
 import { playback, useIsCurrent, usePlaybackPosition, usePlaybackUntil } from "@/lib/player";
 import { shareLink } from "@/lib/share";
@@ -146,6 +147,7 @@ function Empty({ rec }: { rec: RecordingDetail }) {
 
 export function ClipsTab({ rec, onPlay, scrollListeners, contentInsetBottom }: TabProps) {
   const { clip: clipParam } = useLocalSearchParams<{ clip?: string }>();
+  const routeKey = useRoute().key;
   const isCurrent = useIsCurrent(rec.id);
   const hasMedia = rec.mediaType !== "transcript";
   const [selected, setSelected] = useState<string | null>(null);
@@ -160,10 +162,10 @@ export function ClipsTab({ rec, onPlay, scrollListeners, contentInsetBottom }: T
 
   useEffect(() => {
     const clip = clipParam ? rec.highlights.find((h) => h.id === clipParam) : undefined;
-    if (clip) play(clip);
+    if (clip && deepLinks.consume(clipKey(routeKey, clip.id))) play(clip);
     // `rec` identity changes on every live refresh; only the clip id matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipParam, rec.id]);
+  }, [clipParam, rec.id, routeKey]);
 
   if (!rec.highlights.length) {
     return (

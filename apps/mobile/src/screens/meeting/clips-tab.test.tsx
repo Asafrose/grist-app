@@ -3,15 +3,17 @@ import detail from "@grist/grain-api/fixtures/recording-with-highlights.json";
 import * as WebBrowser from "expo-web-browser";
 import { Share } from "react-native";
 import { getRecording, type RecordingDetail, upsertRecordings } from "@/lib/db";
+import { clipKey, deepLinks } from "@/lib/deep-links";
 import { playback, playerStore } from "@/lib/player";
 import { testDb } from "@/test/db";
 import { act, fireEvent, render, screen } from "@/test/render";
 import { ClipsTab } from "./clips-tab";
 
 const params: { clip?: string } = {};
+const route = { key: "meeting-1" };
 
 jest.mock("react-native-reanimated", () => require("@/test/mocks/reanimated"));
-jest.mock("expo-router", () => ({ useLocalSearchParams: () => params }));
+jest.mock("expo-router", () => ({ useLocalSearchParams: () => params, useRoute: () => route }));
 jest.mock("expo-image", () => ({ Image: () => null }));
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
@@ -35,6 +37,8 @@ const share = jest.spyOn(Share, "share").mockResolvedValue({ action: "sharedActi
 beforeEach(() => {
   jest.clearAllMocks();
   delete params.clip;
+  deepLinks.reset();
+  route.key = "meeting-1";
   playerStore.setState({ current: null, position: 0, until: null });
 });
 
@@ -88,6 +92,43 @@ describe("ClipsTab", () => {
       until: 1910.443,
     });
     expect(screen.getByTestId(`clip-card-${clip.id}`)).toBeSelected();
+  });
+
+  it("consumes the ?clip= deep link so a remount of the same screen cannot replay it", async () => {
+    const rec = load();
+    params.clip = clip.id;
+    await render(<ClipsTab rec={rec} onSeek={jest.fn()} />);
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+    expect(deepLinks.consume(clipKey("meeting-1", clip.id))).toBe(false);
+  });
+
+  it("does not play again on a remount of the screen that already played", async () => {
+    const rec = load();
+    deepLinks.consume(clipKey("meeting-1", clip.id));
+    params.clip = clip.id;
+    await render(<ClipsTab rec={rec} onSeek={jest.fn()} />);
+    expect(loadSpy).not.toHaveBeenCalled();
+  });
+
+  it("plays again when the same clip is pushed onto a new screen", async () => {
+    const rec = load();
+    deepLinks.consume(clipKey("meeting-1", clip.id));
+    route.key = "meeting-2";
+    params.clip = clip.id;
+    await render(<ClipsTab rec={rec} onSeek={jest.fn()} />);
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+    expect(loadSpy).toHaveBeenCalledWith(expect.objectContaining({ id: rec.id }), {
+      at: 1864.356,
+      until: 1910.443,
+    });
+  });
+
+  it("plays again when the ?clip= names another clip", async () => {
+    const rec = load();
+    deepLinks.consume(clipKey("meeting-1", "already-played"));
+    params.clip = clip.id;
+    await render(<ClipsTab rec={rec} onSeek={jest.fn()} />);
+    expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
   it("ignores an unknown ?clip=", async () => {

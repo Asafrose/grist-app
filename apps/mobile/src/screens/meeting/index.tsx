@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams, useRoute } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { Pressable, View } from "react-native";
@@ -11,6 +11,7 @@ import Animated, {
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { type RecordingDetail, recordingOpens, recordings, useRecording } from "@/lib/data";
+import { deepLinks, seekKey } from "@/lib/deep-links";
 import { useIsDemo } from "@/lib/demo";
 import { formatShortDate } from "@/lib/format";
 import { useGrainClient } from "@/lib/grain";
@@ -172,6 +173,7 @@ export function Meeting({ id }: { id: string }) {
   const demo = useIsDemo();
   const [refreshFailed, setRefreshFailed] = useState(false);
   const params = useLocalSearchParams<{ tab?: string; t?: string }>();
+  const routeKey = useRoute().key;
   const tab = parseMeetingTab(params.tab);
 
   const rec = useRecording(id);
@@ -319,10 +321,11 @@ export function Meeting({ id }: { id: string }) {
   useEffect(() => {
     if (seekParam === null) return;
     if (!rec || rec.mediaType === "transcript") return;
+    if (!deepLinks.consume(seekKey(routeKey, seekParam))) return;
     void playback.load(toNowPlaying(rec), { at: seekParam });
     // `rec` identity changes on every live refresh; only its presence matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, seekParam, rec?.id]);
+  }, [routeKey, seekParam, rec?.id]);
 
   if (!rec) {
     return (

@@ -10,6 +10,7 @@ jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn(), useGrainClient: jest.fn() }));
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({}),
+  useRoute: () => ({ key: "meeting-1" }),
   useRouter: () => ({ push: jest.fn() }),
 }));
 

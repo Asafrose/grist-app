@@ -7,6 +7,7 @@ import { getRecording, getRecordingOpen, listRecordings, upsertRecordings } from
 import { makeClient, useGrainClient } from "@/lib/grain";
 import { library, libraryReady, libraryStore } from "@/lib/library";
 import { haptics } from "@/lib/haptics";
+import { deepLinks, seekKey } from "@/lib/deep-links";
 import { meetingLayout, meetingLayoutStore } from "@/lib/meeting-layout";
 import { playback, playerStore } from "@/lib/player";
 import { isoSeconds } from "@/lib/sync";
@@ -24,9 +25,14 @@ jest.mock("@/lib/grain", () => ({ makeClient: jest.fn(), useGrainClient: jest.fn
 jest.mock("expo-router", () => {
   const React = jest.requireActual("react");
   let params: Record<string, string> = {};
+  let routeKey = "meeting-1";
   const listeners = new Set<() => void>();
   const notify = () => listeners.forEach((l) => l());
   return {
+    __setRouteKey: (next: string) => {
+      routeKey = next;
+    },
+    useRoute: () => ({ key: routeKey }),
     __setParams: (next: Record<string, string>) => {
       params = next;
       notify();
@@ -52,7 +58,7 @@ jest.mock("expo-router", () => {
   };
 });
 
-const { __setParams: setParams } = jest.requireMock("expo-router");
+const { __setParams: setParams, __setRouteKey: setRouteKey } = jest.requireMock("expo-router");
 const fixture = detail as Recording;
 const iterate = jest.fn(async function* () {
   yield { cursor: null, recordings: [] };
@@ -64,6 +70,8 @@ const api = { recordings: { iterate, transcript, get } };
 beforeEach(() => {
   jest.clearAllMocks();
   meetingLayout.reset();
+  deepLinks.reset();
+  setRouteKey("meeting-1");
   (makeClient as jest.Mock).mockImplementation(() => api);
   (useGrainClient as jest.Mock).mockImplementation(() => (authStore.getState().token ? api : null));
   setParams({});
@@ -193,6 +201,44 @@ describe("Meeting shell in demo mode", () => {
     await waitFor(() => expect(playerStore.getState().current?.id).toBe("demo-1"));
     expect(playerStore.getState().position).toBe(125);
     expect(screen.getByTestId("position")).toHaveTextContent("2:05");
+  });
+
+  it("consumes the t deep link so a remount of the same screen cannot replay it", async () => {
+    const loadSpy = jest.spyOn(playback, "load").mockImplementation(async () => {});
+    setParams({ t: "310" });
+    await render(<Meeting id="demo-1" />);
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+    expect(loadSpy).toHaveBeenCalledWith(expect.objectContaining({ id: "demo-1" }), { at: 310 });
+    expect(deepLinks.consume(seekKey("meeting-1", 310))).toBe(false);
+    loadSpy.mockRestore();
+  });
+
+  it("does not seek again on a remount of the screen that already played", async () => {
+    const loadSpy = jest.spyOn(playback, "load").mockImplementation(async () => {});
+    deepLinks.consume(seekKey("meeting-1", 310));
+    setParams({ t: "310" });
+    await render(<Meeting id="demo-1" />);
+    expect(loadSpy).not.toHaveBeenCalled();
+    loadSpy.mockRestore();
+  });
+
+  it("seeks again when the same t is pushed onto a new screen", async () => {
+    const loadSpy = jest.spyOn(playback, "load").mockImplementation(async () => {});
+    deepLinks.consume(seekKey("meeting-1", 310));
+    setRouteKey("meeting-2");
+    setParams({ t: "310" });
+    await render(<Meeting id="demo-1" />);
+    expect(loadSpy).toHaveBeenCalledWith(expect.objectContaining({ id: "demo-1" }), { at: 310 });
+    loadSpy.mockRestore();
+  });
+
+  it("seeks again when t names another position", async () => {
+    const loadSpy = jest.spyOn(playback, "load").mockImplementation(async () => {});
+    deepLinks.consume(seekKey("meeting-1", 310));
+    setParams({ t: "420" });
+    await render(<Meeting id="demo-1" />);
+    expect(loadSpy).toHaveBeenCalledWith(expect.objectContaining({ id: "demo-1" }), { at: 420 });
+    loadSpy.mockRestore();
   });
 
   it("shows an audio-only surface without a video view", async () => {
