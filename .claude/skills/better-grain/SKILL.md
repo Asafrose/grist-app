@@ -69,6 +69,14 @@ action (`pressKey: Enter`) on Android, after checking that `onSubmitEditing`
 does not navigate or change state. Text taps that only exist on one platform
 (a header back label, the in-app browser's Done) need the same split, or a
 `testID`.
+The launch/sign-out/demo-sign-in preamble lives in
+`.maestro/subflows/demo-sign-in.yaml` (sign-in.yaml stops at
+`subflows/launch-signed-out.yaml`); start new flows with
+`- runFlow: subflows/demo-sign-in.yaml` instead of repeating it. The waits there
+are 45s because an Android cold start after `clearState` takes 15-20s.
+`.maestro/config.yaml` limits the directory runner to `*.yaml`, so `subflows/` is
+never collected as a top-level flow and `maestro test .maestro` still runs
+exactly the 13 flows.
 The repo-level `.npmrc` pins `registry.npmjs.org`, so a machine whose global npm config points at a private proxy still writes public URLs into `package-lock.json`.
 Use the Node binary at `~/.nvm/versions/node/v22*/bin` directly in
 non-interactive shells; the `nvm` shell function hangs there.

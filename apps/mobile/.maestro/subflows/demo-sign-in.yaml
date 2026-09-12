@@ -1,0 +1,10 @@
+appId: com.asafrose.grist
+---
+- runFlow: launch-signed-out.yaml
+- tapOn:
+    id: "demo-sign-in"
+- assertVisible: "Meetings"
+- extendedWaitUntil:
+    visible:
+      id: "meetings-list"
+    timeout: 45000

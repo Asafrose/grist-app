@@ -1,0 +1,27 @@
+appId: com.asafrose.grist
+---
+- launchApp:
+    clearState: true
+# A cold start after clearState takes 15-20s on the Android emulator.
+- extendedWaitUntil:
+    visible:
+      id: "demo-sign-in|tab-settings"
+    timeout: 45000
+# The keychain survives clearState, so a previous run may have left a token behind.
+- runFlow:
+    when:
+      visible:
+        id: "tab-settings"
+    commands:
+      - tapOn:
+          id: "tab-settings"
+      - scrollUntilVisible:
+          element:
+            id: "sign-out"
+          direction: DOWN
+      - tapOn:
+          id: "sign-out"
+- extendedWaitUntil:
+    visible:
+      id: "demo-sign-in"
+    timeout: 45000

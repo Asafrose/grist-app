@@ -2,22 +2,7 @@ appId: com.asafrose.grist
 ---
 # No real token here: this flow signs in with the demo account, so it runs
 # without GRAIN_PAT. Only the invalid-token path talks to Grain.
-- launchApp:
-    clearState: true
-# The keychain survives clearState, so a previous run may have left a token behind.
-- runFlow:
-    when:
-      visible:
-        id: "tab-settings"
-    commands:
-      - tapOn:
-          id: "tab-settings"
-      - scrollUntilVisible:
-          element:
-            id: "sign-out"
-          direction: DOWN
-      - tapOn:
-          id: "sign-out"
+- runFlow: subflows/launch-signed-out.yaml
 - assertVisible: "Personal access token"
 - assertVisible: "Where do I get a token?"
 - assertVisible: "Stored in the device keychain. Only sent to api.grain.com."

@@ -1,23 +1,6 @@
 appId: com.asafrose.grist
 ---
-- launchApp:
-    clearState: true
-- runFlow:
-    when:
-      visible:
-        id: "tab-settings"
-    commands:
-      - tapOn:
-          id: "tab-settings"
-      - scrollUntilVisible:
-          element:
-            id: "sign-out"
-          direction: DOWN
-      - tapOn:
-          id: "sign-out"
-- tapOn:
-    id: "demo-sign-in"
-- assertVisible: "Meetings"
+- runFlow: subflows/demo-sign-in.yaml
 - tapOn:
     id: "tab-clips"
 - assertVisible: "Clips"
