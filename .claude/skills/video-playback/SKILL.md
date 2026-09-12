@@ -64,3 +64,10 @@ Distilled from the expo-video docs, Expo's launch post, Mux's React Native guide
 - Mux, video playback in React Native: https://www.mux.com/docs/frameworks/react-native-video-playback
 - iOS HLS caching field report: https://monisankarnath.dev/blog/expo-video-offline-caching/
 - Mobile streaming efficiency: https://www.infoq.com/articles/building-efficient-mobile-streaming-apps
+
+## Related skills
+
+- `better-grain` - product and architecture context
+- `dev-env` - machine setup, dev clients, simulators, Maestro
+- `development-flow` - how a change gets reviewed, verified and merged
+- `zustand` - store shape for the player facade and its atomic hooks

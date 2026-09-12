@@ -259,3 +259,10 @@ docs' examples. If the docs disagree with `PARITY.md`, the docs win; fix
 - Unsure whether something belongs: if it is about consuming an existing
   recording on a phone, yes. If it is about recording, admin, or
   collaboration, no.
+
+## Related skills
+
+- `dev-env` - machine setup, dev clients, simulators, Maestro, verify commands
+- `development-flow` - issue → implementer worktree → adversarial review → device verification → merge
+- `video-playback` - expo-video rules for the player, downloads and fullscreen
+- `zustand` - store shape, selectors and React Compiler constraints

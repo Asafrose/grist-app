@@ -15,4 +15,5 @@ expo-module, expo-brownfield, expo-app-clip, expo-examples,
 expo-skill-feedback (telemetry), eas-hosting, eas-workflows, eas-observe,
 eas-update, eas-update-insights. Add them if the need appears.
 
-`better-grain` is ours, not vendored.
+First-party, not vendored: `better-grain`, `dev-env`, `development-flow`, and
+the agent definitions in `.claude/agents/` (`reviewer`, `risk-evaluator`).
