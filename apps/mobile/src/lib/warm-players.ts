@@ -83,6 +83,7 @@ async function warm(rec: Candidate, token: string, gen: number): Promise<void> {
   if (gen !== generation || auth.token() !== token) return;
   const player = createVideoPlayer(null);
   player.muted = true;
+  player.preservesPitch = true;
   const onStatusChange: VideoPlayerEvents["statusChange"] = ({ status }) => {
     if (status === "error") releaseOne(entry);
   };

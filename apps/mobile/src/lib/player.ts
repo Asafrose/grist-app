@@ -71,6 +71,7 @@ function configure(p: VideoPlayer): VideoPlayer {
   p.staysActiveInBackground = true;
   p.showNowPlayingNotification = true;
   p.timeUpdateEventInterval = 0.5;
+  p.preservesPitch = true;
   p.playbackRate = settings.get().playbackRate;
   p.addListener("playingChange", onPlayingChange);
   p.addListener("timeUpdate", onTimeUpdate);
@@ -252,6 +253,7 @@ function freshUri(id: string, token: string): Promise<string> {
 }
 
 function restoreAfterReplace(at: number, autoplay: boolean) {
+  instance.preservesPitch = true;
   instance.playbackRate = settings.get().playbackRate;
   restoreSeq = loadSeq;
   if (atSourceEnd(at)) {
@@ -405,7 +407,9 @@ function seekBy(seconds: number) {
 }
 
 settingsStore.subscribe((s, prev) => {
-  if (s.playbackRate !== prev.playbackRate) instance.playbackRate = s.playbackRate;
+  if (s.playbackRate === prev.playbackRate) return;
+  instance.preservesPitch = true;
+  instance.playbackRate = s.playbackRate;
 });
 
 function setRate(rate: PlaybackRate) {

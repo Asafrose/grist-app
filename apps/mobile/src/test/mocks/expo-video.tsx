@@ -6,6 +6,9 @@ export const createVideoPlayer = jest.fn(() => {
   return {
     listeners,
     emit: (name: string, payload: never) => listeners.get(name)?.(payload),
+    muted: false,
+    preservesPitch: false,
+    playbackRate: 1,
     addListener: jest.fn((name: string, fn: (payload: never) => void) => listeners.set(name, fn)),
     removeListener: jest.fn((name: string) => listeners.delete(name)),
     replaceAsync: jest.fn(async () => {}),

@@ -48,6 +48,7 @@ jest.mock("expo-video", () => {
     playing: false,
     currentTime: 0,
     playbackRate: 1,
+    preservesPitch: false,
     staysActiveInBackground: false,
     showNowPlayingNotification: false,
     timeUpdateEventInterval: 0,
@@ -475,6 +476,20 @@ describe("playback rate persistence", () => {
     playback.setRate(2.2);
     expect(settingsStore.getState().playbackRate).toBe(2.2);
     expect(fake.playbackRate).toBe(2.2);
+  });
+
+  it("keeps pitch correction on through rate changes and source replacements", async () => {
+    expect(fake.preservesPitch).toBe(true);
+
+    fake.preservesPitch = false;
+    playback.setRate(1.5);
+    expect(fake.preservesPitch).toBe(true);
+
+    fake.preservesPitch = false;
+    resolveMediaUrl.mockResolvedValueOnce("https://cdn/media.mp4");
+    await playback.load(rec);
+    expect(fake.preservesPitch).toBe(true);
+    playback.setRate(1);
   });
 });
 
@@ -946,6 +961,7 @@ function warmFake(): WarmFake {
     muted: true,
     currentTime: 0,
     playbackRate: 1,
+    preservesPitch: false,
     staysActiveInBackground: false,
     showNowPlayingNotification: false,
     timeUpdateEventInterval: 0,
@@ -1005,6 +1021,7 @@ describe("adopting a warm player", () => {
     expect(warm.showNowPlayingNotification).toBe(true);
     expect(warm.timeUpdateEventInterval).toBe(0.5);
     expect(warm.playbackRate).toBe(1.5);
+    expect(warm.preservesPitch).toBe(true);
     playback.setRate(1);
   });
 

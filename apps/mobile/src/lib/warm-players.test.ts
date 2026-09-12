@@ -124,11 +124,13 @@ describe("warm players", () => {
     expect(resolveMediaUrl.mock.calls.map(([id]) => id)).toEqual(["a", "b", "c"]);
     const first = warmed("a") as unknown as {
       muted: boolean;
+      preservesPitch: boolean;
       currentTime: number;
       pause: jest.Mock;
       replaceAsync: jest.Mock;
     };
     expect(first.muted).toBe(true);
+    expect(first.preservesPitch).toBe(true);
     expect(first.currentTime).toBe(12);
     expect(first.pause).toHaveBeenCalled();
     expect(first.replaceAsync).toHaveBeenCalledWith({
