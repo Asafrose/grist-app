@@ -15,7 +15,11 @@ import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui/text";
 import { formatClock } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
-import { isMiniPlayerVisible, useCollapsedMeeting } from "@/lib/meeting-layout";
+import {
+  isMiniPlayerVisible,
+  useCollapsedMeeting,
+  useFullscreenPresented,
+} from "@/lib/meeting-layout";
 import {
   playback,
   useIsPlaying,
@@ -38,7 +42,13 @@ export function useMiniPlayerVisible(): boolean {
   const current = useNowPlaying();
   const pathname = usePathname();
   const collapsedId = useCollapsedMeeting();
-  return isMiniPlayerVisible(current?.id ?? null, decodeURIComponent(pathname), collapsedId);
+  const fullscreen = useFullscreenPresented();
+  return isMiniPlayerVisible(
+    current?.id ?? null,
+    decodeURIComponent(pathname),
+    collapsedId,
+    fullscreen,
+  );
 }
 
 function Clock({ color }: { color: string }) {

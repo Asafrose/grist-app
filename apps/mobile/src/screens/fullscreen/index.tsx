@@ -2,13 +2,15 @@ import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { isPictureInPictureSupported } from "expo-video";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
 import { PLAYER_ON_SURFACE, PLAYER_SURFACE, PlayerView } from "@/components/player-view";
 import { Scrubber } from "@/components/scrubber";
 import { Text } from "@/components/ui/text";
 import { useTranscript } from "@/lib/data";
 import { haptics } from "@/lib/haptics";
+import { meetingLayout } from "@/lib/meeting-layout";
 import { perf } from "@/lib/perf";
 import { startPictureInPicture } from "@/lib/pip";
 import {
@@ -24,6 +26,8 @@ import { useSetting } from "@/lib/settings";
 import { nextSpeakerStart } from "@/lib/transcript";
 
 export const CONTROLS_HIDE_MS = 3000;
+export const ANDROID_SHADE_ZONE = 48;
+const CHROME_TOP = 16;
 
 const CHROME_BG = "rgba(0,0,0,0.45)";
 const TRACK_BG = "rgba(255,255,255,0.28)";
@@ -106,6 +110,7 @@ export function Fullscreen() {
   const playing = useIsPlaying();
   const rate = usePlaybackRate();
   const pipEnabled = useSetting("pictureInPicture");
+  const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(true);
   const [closing, setClosing] = useState(false);
   const closed = useRef(false);
@@ -124,7 +129,11 @@ export function Fullscreen() {
 
   useEffect(() => {
     perf.measure("fullscreen-enter", "route push → fullscreen mount");
-    return () => perf.mark("fullscreen-exit-playback");
+    meetingLayout.setFullscreen(true);
+    return () => {
+      meetingLayout.setFullscreen(false);
+      perf.mark("fullscreen-exit-playback");
+    };
   }, []);
 
   useEffect(() => {
@@ -151,6 +160,8 @@ export function Fullscreen() {
   useEffect(() => navigation.addListener("beforeRemove", release), [navigation, release]);
 
   const controlsShown = (visible || !playing) && !closing;
+  const chromeTop =
+    Platform.OS === "android" ? Math.max(insets.top, ANDROID_SHADE_ZONE) : CHROME_TOP;
 
   const act = (fn: () => void) => () => {
     fn();
@@ -190,7 +201,9 @@ export function Fullscreen() {
       {controlsShown ? (
         <View testID="fs-controls" className="absolute inset-0" pointerEvents="box-none">
           <View
-            className="absolute top-4 right-4 left-4 flex-row items-center justify-between"
+            testID="fs-top-row"
+            className="absolute right-4 left-4 flex-row items-center justify-between"
+            style={{ top: chromeTop }}
             pointerEvents="box-none"
           >
             <Control icon="close" label="Close fullscreen" testID="fs-close" onPress={close} />

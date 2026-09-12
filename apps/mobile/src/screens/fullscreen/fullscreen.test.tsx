@@ -1,17 +1,27 @@
-import { Alert } from "react-native";
+import { Alert, Platform, StyleSheet } from "react-native";
 import { act, fireEvent, render, screen } from "@/test/render";
 import { setTranscript } from "@/lib/db";
 import { haptics } from "@/lib/haptics";
 import { libraryReady, libraryStore } from "@/lib/library";
+import { meetingLayoutStore } from "@/lib/meeting-layout";
 import { type NowPlaying, playback, playerStore } from "@/lib/player";
 import { settings } from "@/lib/settings";
-import { CONTROLS_HIDE_MS, Fullscreen } from "./index";
+import { ANDROID_SHADE_ZONE, CONTROLS_HIDE_MS, Fullscreen } from "./index";
 
 jest.mock("@/lib/haptics", () => ({ haptics: { selection: jest.fn(), light: jest.fn() } }));
 jest.mock("@/lib/grain", () => ({ makeClient: jest.fn() }));
 jest.mock("expo-video", () => require("@/test/mocks/expo-video"));
 jest.mock("expo-image", () => ({ Image: jest.requireActual("react-native").Image }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
+
+let mockTopInset = 0;
+jest.mock("react-native-safe-area-context", () => ({
+  ...jest.requireActual("react-native-safe-area-context"),
+  useSafeAreaInsets: () => ({ top: mockTopInset, bottom: 0, left: 0, right: 0 }),
+}));
+
+const topRowOffset = () =>
+  StyleSheet.flatten(screen.getByTestId("fs-top-row").props.style).top as number;
 
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
@@ -102,6 +112,38 @@ describe("Fullscreen", () => {
     expect(screen.getByText("2:00")).toBeOnTheScreen();
     expect(screen.getByText("-8:00")).toBeOnTheScreen();
     expect(screen.getByLabelText("Pause")).toBeOnTheScreen();
+  });
+
+  it("marks the fullscreen route presented while it is mounted", async () => {
+    const view = await render(<Fullscreen />);
+    expect(meetingLayoutStore.getState().fullscreen).toBe(true);
+    await act(async () => view.unmount());
+    expect(meetingLayoutStore.getState().fullscreen).toBe(false);
+  });
+
+  it.each([0, 24, 72])(
+    "keeps the Android top row out of the shade zone with a %sdp inset",
+    async (inset) => {
+      Platform.OS = "android";
+      mockTopInset = inset;
+      try {
+        await render(<Fullscreen />);
+        expect(topRowOffset()).toBe(Math.max(inset, ANDROID_SHADE_ZONE));
+      } finally {
+        Platform.OS = "ios";
+        mockTopInset = 0;
+      }
+    },
+  );
+
+  it("keeps the top row against the top edge on iOS", async () => {
+    mockTopInset = 59;
+    try {
+      await render(<Fullscreen />);
+      expect(topRowOffset()).toBe(16);
+    } finally {
+      mockTopInset = 0;
+    }
   });
 
   it("drives the shared player through the facade", async () => {

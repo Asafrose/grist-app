@@ -1,6 +1,6 @@
 import { create, useStore } from "zustand";
 
-export type MeetingLayoutState = { collapsedId: string | null };
+export type MeetingLayoutState = { collapsedId: string | null; fullscreen: boolean };
 
 export type CollapseState = {
   collapsed: boolean;
@@ -35,11 +35,15 @@ export const initialCollapse: CollapseState = {
   atEnd: false,
 };
 
-export const meetingLayoutStore = create<MeetingLayoutState>(() => ({ collapsedId: null }));
+export const meetingLayoutStore = create<MeetingLayoutState>(() => ({
+  collapsedId: null,
+  fullscreen: false,
+}));
 
 export const useCollapsedMeeting = () => useStore(meetingLayoutStore, (s) => s.collapsedId);
 export const useIsCardCollapsed = (id: string) =>
   useStore(meetingLayoutStore, (s) => s.collapsedId === id);
+export const useFullscreenPresented = () => useStore(meetingLayoutStore, (s) => s.fullscreen);
 
 export function reduceScroll(state: CollapseState, frame: ScrollFrame): CollapseState {
   "worklet";
@@ -85,8 +89,9 @@ export function isMiniPlayerVisible(
   playingId: string | null,
   pathname: string,
   collapsedId: string | null,
+  fullscreen: boolean,
 ): boolean {
-  if (!playingId) return false;
+  if (!playingId || fullscreen) return false;
   if (pathname !== `/meeting/${playingId}`) return true;
   return collapsedId === playingId;
 }
@@ -101,7 +106,11 @@ export const meetingLayout = {
     if (meetingLayoutStore.getState().collapsedId === id)
       meetingLayoutStore.setState({ collapsedId: null });
   },
+  setFullscreen(fullscreen: boolean) {
+    if (meetingLayoutStore.getState().fullscreen !== fullscreen)
+      meetingLayoutStore.setState({ fullscreen });
+  },
   reset() {
-    meetingLayoutStore.setState({ collapsedId: null });
+    meetingLayoutStore.setState({ collapsedId: null, fullscreen: false });
   },
 };

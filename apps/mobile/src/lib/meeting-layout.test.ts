@@ -10,6 +10,7 @@ import {
   NEAR_TOP,
   reduceScroll,
   useCollapsedMeeting,
+  useFullscreenPresented,
   useIsCardCollapsed,
 } from "@/lib/meeting-layout";
 
@@ -210,21 +211,27 @@ describe("reduceScroll", () => {
 
 describe("isMiniPlayerVisible", () => {
   it("stays hidden when nothing is playing", () => {
-    expect(isMiniPlayerVisible(null, "/meeting/r1", "r1")).toBe(false);
+    expect(isMiniPlayerVisible(null, "/meeting/r1", "r1", false)).toBe(false);
   });
 
   it("shows away from the playing meeting", () => {
-    expect(isMiniPlayerVisible("r1", "/search", null)).toBe(true);
-    expect(isMiniPlayerVisible("r1", "/meeting/r2", null)).toBe(true);
+    expect(isMiniPlayerVisible("r1", "/search", null, false)).toBe(true);
+    expect(isMiniPlayerVisible("r1", "/meeting/r2", null, false)).toBe(true);
   });
 
   it("hides on the playing meeting while its card is visible", () => {
-    expect(isMiniPlayerVisible("r1", "/meeting/r1", null)).toBe(false);
-    expect(isMiniPlayerVisible("r1", "/meeting/r1", "r2")).toBe(false);
+    expect(isMiniPlayerVisible("r1", "/meeting/r1", null, false)).toBe(false);
+    expect(isMiniPlayerVisible("r1", "/meeting/r1", "r2", false)).toBe(false);
   });
 
   it("shows on the playing meeting once its card is collapsed", () => {
-    expect(isMiniPlayerVisible("r1", "/meeting/r1", "r1")).toBe(true);
+    expect(isMiniPlayerVisible("r1", "/meeting/r1", "r1", false)).toBe(true);
+  });
+
+  it("hides while fullscreen is presented, whatever the route reports", () => {
+    expect(isMiniPlayerVisible("r1", "/meeting/r1", "r1", true)).toBe(false);
+    expect(isMiniPlayerVisible("r1", "/search", null, true)).toBe(false);
+    expect(isMiniPlayerVisible("r1", "/fullscreen", null, true)).toBe(false);
   });
 });
 
@@ -242,6 +249,20 @@ describe("meetingLayout", () => {
     await act(async () => meetingLayout.setCollapsed("r2", true));
     await act(async () => meetingLayout.reset());
     expect(meetingLayoutStore.getState().collapsedId).toBeNull();
+  });
+
+  it("tracks the presented fullscreen route", async () => {
+    const { result } = await renderHook(() => useFullscreenPresented());
+    expect(result.current).toBe(false);
+
+    await act(async () => meetingLayout.setFullscreen(true));
+    expect(result.current).toBe(true);
+
+    await act(async () => meetingLayout.setFullscreen(true));
+    expect(result.current).toBe(true);
+
+    await act(async () => meetingLayout.reset());
+    expect(result.current).toBe(false);
   });
 
   it("leaves another meeting's state alone", () => {

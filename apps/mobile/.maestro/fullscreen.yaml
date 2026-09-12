@@ -20,6 +20,17 @@ appId: com.asafrose.grist
     id: "play-pause"
 - tapOn:
     id: "player-fullscreen"
+- extendedWaitUntil:
+    visible:
+      id: "fs-surface"
+    timeout: 15000
+- runFlow:
+    when:
+      notVisible:
+        id: "fs-controls"
+    commands:
+      - tapOn:
+          id: "fs-surface"
 - assertVisible:
     id: "fs-controls"
 - assertVisible:

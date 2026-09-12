@@ -204,6 +204,17 @@ describe("MiniPlayer", () => {
     expect(screen.queryByTestId("mini-player")).toBeNull();
   });
 
+  it.each(["/meeting/r1", "/meeting/other", "/search", "/fullscreen"])(
+    "stays hidden at %s while fullscreen is presented",
+    async (path) => {
+      playerStore.setState({ current: rec, status: "ready", playing: true });
+      mockPathname = path;
+      meetingLayout.setFullscreen(true);
+      await render(<MiniPlayer />);
+      expect(screen.queryByTestId("mini-player")).toBeNull();
+    },
+  );
+
   it.each([
     ["/meeting/r1", false],
     ["/meeting/other", true],
