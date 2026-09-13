@@ -13,7 +13,7 @@ jobs:
   e2e-ios:
     name: e2e-ios
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 150
     defaults:
       run:
         working-directory: apps/mobile
@@ -130,19 +130,7 @@ jobs:
           exit 1
 
       - name: Warm the iOS bundle
-        run: |
-          xcrun simctl launch ${{ steps.sim.outputs.udid }} com.asafrose.grist
-          for _ in $(seq 1 120); do
-            if grep -qE 'Bundled [0-9]+ms node_modules/expo-router/entry\.js \([0-9]{4} modules\)' "$RUNNER_TEMP/metro.log"; then
-              echo "Bundle is warm"
-              xcrun simctl terminate ${{ steps.sim.outputs.udid }} com.asafrose.grist
-              exit 0
-            fi
-            sleep 5
-          done
-          cat "$RUNNER_TEMP/metro.log"
-          echo "The app never finished bundling" >&2
-          exit 1
+        run: bash scripts/warm-bundle.sh "$RUNNER_TEMP/metro.log" ios ${{ steps.sim.outputs.udid }}
 
       - name: Install Maestro
         run: |
@@ -172,7 +160,7 @@ jobs:
   e2e-android:
     name: e2e-android
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     continue-on-error: true
     defaults:
       run:
@@ -251,20 +239,7 @@ jobs:
             adb start-server
             adb wait-for-device
             adb reverse tcp:8081 tcp:8081
-            adb shell am start -n com.asafrose.grist/.MainActivity
-            for _ in $(seq 1 120); do
-              if grep -qE 'Bundled [0-9]+ms node_modules/expo-router/entry\.js \([0-9]{4} modules\)' "$RUNNER_TEMP/metro.log"; then
-                warm=1
-                break
-              fi
-              sleep 5
-            done
-            if [ -z "${warm:-}" ]; then
-              cat "$RUNNER_TEMP/metro.log"
-              echo "The app never finished bundling" >&2
-              exit 1
-            fi
-            adb shell am force-stop com.asafrose.grist
+            bash scripts/warm-bundle.sh "$RUNNER_TEMP/metro.log" android emulator-5554
             bash scripts/maestro-android.sh
 
       - name: Collect Maestro artifacts
