@@ -12,6 +12,11 @@ case "$PLATFORM" in
   *) echo "Unknown platform: $PLATFORM" >&2; exit 1 ;;
 esac
 
+if [ -z "$APP_ID" ]; then
+  echo "No app id for $PLATFORM in app.json" >&2
+  exit 1
+fi
+
 launch() {
   case "$PLATFORM" in
     ios) xcrun simctl launch "$DEVICE" "$APP_ID" ;;

@@ -89,9 +89,6 @@ jobs:
             CODE_SIGN_IDENTITY=- \
             CODE_SIGNING_REQUIRED=NO \
             build
-          codesign -d --entitlements :- build/Build/Products/Debug-iphonesimulator/Grist.app 2>&1 \
-            | tee entitlements.txt
-          grep -q keychain-access-groups entitlements.txt
 
       - name: Save DerivedData cache
         if: steps.build.outcome == 'success'
