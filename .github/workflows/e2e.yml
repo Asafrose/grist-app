@@ -6,8 +6,8 @@ on:
     branches: [main]
 
 concurrency:
-  group: e2e-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: e2e-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   e2e-ios:
@@ -76,6 +76,7 @@ jobs:
             deriveddata-${{ runner.os }}-
 
       - name: Build debug simulator app
+        id: build
         working-directory: apps/mobile/ios
         run: |
           xcodebuild \
@@ -88,10 +89,12 @@ jobs:
             CODE_SIGN_IDENTITY=- \
             CODE_SIGNING_REQUIRED=NO \
             build
-          codesign -d --entitlements :- build/Build/Products/Debug-iphonesimulator/Grist.app
+          codesign -d --entitlements :- build/Build/Products/Debug-iphonesimulator/Grist.app 2>&1 \
+            | tee entitlements.txt
+          grep -q keychain-access-groups entitlements.txt
 
       - name: Save DerivedData cache
-        if: always()
+        if: steps.build.outcome == 'success'
         uses: actions/cache/save@v4
         with:
           path: apps/mobile/ios/build
@@ -235,9 +238,6 @@ jobs:
             adb wait-for-device
             adb shell settings put secure stylus_handwriting_enabled 0
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            adb kill-server
-            adb start-server
-            adb wait-for-device
             adb reverse tcp:8081 tcp:8081
             bash scripts/warm-bundle.sh "$RUNNER_TEMP/metro.log" android emulator-5554
             bash scripts/maestro-android.sh
