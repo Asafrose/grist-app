@@ -131,8 +131,18 @@ jobs:
 
       - name: Warm the iOS bundle
         run: |
-          curl -sf -o /dev/null --max-time 600 \
-            "http://127.0.0.1:8081/node_modules/expo-router/entry.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=src%2Fapp"
+          xcrun simctl launch ${{ steps.sim.outputs.udid }} com.asafrose.grist
+          for _ in $(seq 1 120); do
+            if grep -qE 'Bundled [0-9]+ms node_modules/expo-router/entry\.js \([0-9]{4} modules\)' "$RUNNER_TEMP/metro.log"; then
+              echo "Bundle is warm"
+              xcrun simctl terminate ${{ steps.sim.outputs.udid }} com.asafrose.grist
+              exit 0
+            fi
+            sleep 5
+          done
+          cat "$RUNNER_TEMP/metro.log"
+          echo "The app never finished bundling" >&2
+          exit 1
 
       - name: Install Maestro
         run: |
@@ -140,7 +150,9 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       - name: Run Maestro flows
-        run: maestro --device ${{ steps.sim.outputs.udid }} test .maestro
+        env:
+          MAESTRO_DEVICE: ${{ steps.sim.outputs.udid }}
+        run: bash scripts/maestro-suite.sh
 
       - name: Collect Maestro artifacts
         if: failure()
@@ -218,18 +230,13 @@ jobs:
           echo "Metro did not become ready" >&2
           exit 1
 
-      - name: Warm the Android bundle
-        run: |
-          curl -sf -o /dev/null --max-time 600 \
-            "http://127.0.0.1:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=src%2Fapp"
-
       - name: Run Maestro flows (advisory)
         uses: reactivecircus/android-emulator-runner@v2
         env:
           MAESTRO_DEVICE: emulator-5554
           MAESTRO_BIN: maestro
         with:
-          api-level: 34
+          api-level: 35
           target: google_apis
           arch: x86_64
           profile: pixel_6
@@ -244,6 +251,20 @@ jobs:
             adb start-server
             adb wait-for-device
             adb reverse tcp:8081 tcp:8081
+            adb shell am start -n com.asafrose.grist/.MainActivity
+            for _ in $(seq 1 120); do
+              if grep -qE 'Bundled [0-9]+ms node_modules/expo-router/entry\.js \([0-9]{4} modules\)' "$RUNNER_TEMP/metro.log"; then
+                warm=1
+                break
+              fi
+              sleep 5
+            done
+            if [ -z "${warm:-}" ]; then
+              cat "$RUNNER_TEMP/metro.log"
+              echo "The app never finished bundling" >&2
+              exit 1
+            fi
+            adb shell am force-stop com.asafrose.grist
             bash scripts/maestro-android.sh
 
       - name: Collect Maestro artifacts
