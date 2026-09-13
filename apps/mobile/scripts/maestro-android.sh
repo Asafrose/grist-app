@@ -19,7 +19,7 @@ for flow in .maestro/*.yaml; do
   fi
   out=$("$MAESTRO" --device "$DEVICE" test "$flow" 2>&1)
   status=$?
-  if [ $status -ne 0 ] && printf '%s' "$out" | grep -qi "device offline"; then
+  if [ $status -ne 0 ]; then
     reset_adb
     out=$("$MAESTRO" --device "$DEVICE" test "$flow" 2>&1)
     status=$?

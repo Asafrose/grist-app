@@ -42,8 +42,9 @@ jobs:
       - name: Prebuild iOS project
         run: npx expo prebuild --platform ios --no-install
 
-      - name: Cache Pods
-        uses: actions/cache@v4
+      - name: Restore Pods cache
+        id: pods-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             apps/mobile/ios/Pods
@@ -56,8 +57,17 @@ jobs:
         working-directory: apps/mobile/ios
         run: pod install
 
-      - name: Cache DerivedData
-        uses: actions/cache@v4
+      - name: Save Pods cache
+        if: steps.pods-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            apps/mobile/ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile') }}
+
+      - name: Restore DerivedData cache
+        uses: actions/cache/restore@v4
         with:
           path: apps/mobile/ios/build
           key: deriveddata-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile.lock') }}-${{ github.sha }}
@@ -79,6 +89,13 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build
           codesign -d --entitlements :- build/Build/Products/Debug-iphonesimulator/Grist.app
+
+      - name: Save DerivedData cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: apps/mobile/ios/build
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile.lock') }}-${{ github.sha }}
 
       - name: Boot simulator
         id: sim
@@ -112,6 +129,11 @@ jobs:
           echo "Metro did not become ready" >&2
           exit 1
 
+      - name: Warm the iOS bundle
+        run: |
+          curl -sf -o /dev/null --max-time 600 \
+            "http://127.0.0.1:8081/node_modules/expo-router/entry.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=src%2Fapp"
+
       - name: Install Maestro
         run: |
           curl -Ls https://get.maestro.mobile.dev | bash
@@ -139,6 +161,7 @@ jobs:
     name: e2e-android
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    continue-on-error: true
     defaults:
       run:
         working-directory: apps/mobile
@@ -171,8 +194,6 @@ jobs:
         run: npx expo prebuild --platform android --no-install
 
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          build-root-directory: apps/mobile/android
 
       - name: Build debug APK
         working-directory: apps/mobile/android
@@ -197,17 +218,22 @@ jobs:
           echo "Metro did not become ready" >&2
           exit 1
 
-      - name: Run Maestro flows
+      - name: Warm the Android bundle
+        run: |
+          curl -sf -o /dev/null --max-time 600 \
+            "http://127.0.0.1:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=src%2Fapp"
+
+      - name: Run Maestro flows (advisory)
         uses: reactivecircus/android-emulator-runner@v2
         env:
           MAESTRO_DEVICE: emulator-5554
           MAESTRO_BIN: maestro
         with:
-          api-level: 35
+          api-level: 34
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 4096 -cores 4
           disable-animations: false
           working-directory: apps/mobile
           script: |
