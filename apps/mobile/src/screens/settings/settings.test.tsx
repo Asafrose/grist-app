@@ -185,7 +185,7 @@ describe("Settings", () => {
     );
     await fireEvent.press(screen.getByTestId("open-source"));
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(
-      "https://github.com/Asafrose/better-grain",
+      "https://github.com/Asafrose/grist-app",
     );
     await fireEvent.press(screen.getByTestId("sign-out"));
     await waitFor(() => expect(authStore.getState().status).toBe("signed-out"));

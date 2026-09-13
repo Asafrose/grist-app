@@ -93,7 +93,7 @@ the sources, tries to break the change, posts exactly one
 ### Reviewer prompt skeleton
 
 ```
-Adversarially review PR #<n> in Asafrose/better-grain, following
+Adversarially review PR #<n> in Asafrose/grist-app, following
 .claude/agents/reviewer.md exactly.
 
 Work only in a fresh clone under a temp directory. Never edit, check out, or
@@ -166,7 +166,7 @@ Agent({
 ### Risk evaluator prompt skeleton
 
 ```
-Evaluate merge risk for PR #<n> in Asafrose/better-grain, following
+Evaluate merge risk for PR #<n> in Asafrose/grist-app, following
 .claude/agents/risk-evaluator.md.
 
 Inputs: the PR diff and body, the reviewer's posted review and final verdict,

@@ -23,7 +23,7 @@ import { ProfileCard } from "./profile-card";
 import { ReplaceToken } from "./replace-token";
 import { PickerRow, Row, Section, ToggleRow } from "./rows";
 
-export const REPO_URL = "https://github.com/Asafrose/better-grain";
+export const REPO_URL = "https://github.com/Asafrose/grist-app";
 
 export function maskToken(token: string): string {
   return `${token.slice(0, 6)}••••`;
@@ -186,7 +186,7 @@ export function Settings() {
         <Row
           icon="external"
           label="Source code"
-          value="github.com/Asafrose/better-grain"
+          value="github.com/Asafrose/grist-app"
           onPress={() => WebBrowser.openBrowserAsync(REPO_URL)}
           testID="open-source"
         />

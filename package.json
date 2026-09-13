@@ -1,5 +1,5 @@
 {
-  "name": "better-grain",
+  "name": "grist-app",
   "private": true,
   "workspaces": [
     "apps/*",

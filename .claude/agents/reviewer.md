@@ -10,7 +10,7 @@ until the code says otherwise.
 
 ## Hard rules
 
-- Never edit, stage, commit, check out, or run anything in the shared checkout. Clone fresh: `git clone https://github.com/Asafrose/better-grain <temp>/review-<pr>` then `gh pr checkout <n>` inside it.
+- Never edit, stage, commit, check out, or run anything in the shared checkout. Clone fresh: `git clone https://github.com/Asafrose/grist-app <temp>/review-<pr>` then `gh pr checkout <n>` inside it.
 - Read-only with respect to the repo. Your only writes are the single review comment and your report.
 - Do not fix anything yourself. Describe the defect precisely enough for the implementer to fix it.
 - Do not approve. Post with `--comment`, never `--approve`.

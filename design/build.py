@@ -454,7 +454,7 @@ SETTINGS = f'''
   <div class="col" style="gap:8px"><div class="cap">Playback</div><div class="card col" style="gap:0">{srow("speed","Default speed","1.5×")}{srow("wifi","Audio only on cellular","On")}{srow("pip","Picture in picture","On",True)}</div></div>
   <div class="col" style="gap:8px"><div class="cap">Storage</div><div class="card col" style="gap:0">{srow("download","Downloads","3 meetings · 890 MB")}{srow("text","Transcript search index","63 meetings · 41 MB")}{srow("clock","Keep downloads for","30 days",True)}</div></div>
   <div class="col" style="gap:8px"><div class="cap">Account</div><div class="card col" style="gap:0">{srow("key","Personal access token","grain_pat_••••")}{srow("ext","Open Grain settings","",True)}</div></div>
-  <div class="sub" style="font-size:12px;text-align:center;padding-top:4px">better-grain 0.1 · open source · github.com/Asafrose/better-grain</div>
+  <div class="sub" style="font-size:12px;text-align:center;padding-top:4px">better-grain 0.1 · open source · github.com/Asafrose/grist-app</div>
 </div>
 {tabbar("Settings")}
 '''
