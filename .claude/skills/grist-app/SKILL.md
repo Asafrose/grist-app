@@ -1,6 +1,6 @@
 ---
 name: grist-app
-description: Product context for grist-app, an open-source mobile client for Grain meeting recordings. Load before designing screens, touching the data layer, or deciding whether a Grain feature belongs in the app.
+description: Product context for Grist, an open-source mobile client for Grain meeting recordings. Load before designing screens, touching the data layer, or deciding whether a Grain feature belongs in the app.
 ---
 
 # grist-app
@@ -34,7 +34,7 @@ Constraints that shape decisions:
 
 React Native with Expo SDK 57 and Expo Router, one codebase for iOS and
 Android. App display name is **Grist**, bundle `com.asafrose.grist`; the repo
-stays `grist-app`. Media playback via `expo-video` (AVPlayer / ExoPlayer
+is `grist-app`. Media playback via `expo-video` (AVPlayer / ExoPlayer
 underneath) for picture-in-picture, background audio, and lock-screen
 controls; all three need the config plugin, so development uses a dev client
 (`npx expo run:ios`), never Expo Go. Distribution via EAS to TestFlight and a
