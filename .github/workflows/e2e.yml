@@ -66,17 +66,7 @@ jobs:
             ~/Library/Caches/CocoaPods
           key: pods-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile') }}
 
-      - name: Restore DerivedData cache
-        uses: actions/cache/restore@v4
-        with:
-          path: apps/mobile/ios/build
-          key: deriveddata-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile.lock') }}-${{ github.sha }}
-          restore-keys: |
-            deriveddata-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile.lock') }}-
-            deriveddata-${{ runner.os }}-
-
       - name: Build debug simulator app
-        id: build
         working-directory: apps/mobile/ios
         run: |
           xcodebuild \
@@ -89,13 +79,6 @@ jobs:
             CODE_SIGN_IDENTITY=- \
             CODE_SIGNING_REQUIRED=NO \
             build
-
-      - name: Save DerivedData cache
-        if: steps.build.outcome == 'success'
-        uses: actions/cache/save@v4
-        with:
-          path: apps/mobile/ios/build
-          key: deriveddata-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile.lock') }}-${{ github.sha }}
 
       - name: Boot simulator
         id: sim

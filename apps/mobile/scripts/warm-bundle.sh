@@ -43,5 +43,21 @@ for _ in $(seq 1 120); do
 done
 
 cat "$LOG"
+
+case "$PLATFORM" in
+  ios)
+    xcrun simctl spawn "$DEVICE" launchctl list | grep -i grist || echo "app not running"
+    crash=$(find ~/Library/Logs/DiagnosticReports -newer "$LOG" -name '*Grist*' 2>/dev/null | tail -1)
+    if [ -n "$crash" ]; then
+      echo "Crash report: $crash"
+      head -60 "$crash"
+    fi
+    xcrun simctl spawn "$DEVICE" log show --last 12m --predicate 'process == "Grist"' --style compact | tail -80
+    ;;
+  android)
+    adb -s "$DEVICE" logcat -d -t 200 | grep -E 'grist|AndroidRuntime|FATAL'
+    ;;
+esac
+
 echo "The app never finished bundling" >&2
 exit 1
