@@ -12,7 +12,7 @@ concurrency:
 jobs:
   e2e-ios:
     name: e2e-ios
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     defaults:
       run:
@@ -22,9 +22,12 @@ jobs:
 
       - name: Select Xcode
         run: |
-          newest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          echo "Using $newest"
-          sudo xcode-select -s "$newest"
+          if [ ! -d /Applications/Xcode_26.6.app ]; then
+            ls -d /Applications/Xcode*.app
+            echo "Xcode 26.6 is not installed on this runner image" >&2
+            exit 1
+          fi
+          sudo xcode-select -s /Applications/Xcode_26.6.app
           xcodebuild -version
 
       - uses: actions/setup-node@v4
@@ -78,9 +81,9 @@ jobs:
       - name: Boot simulator
         id: sim
         run: |
+          xcrun simctl list devices available
           udid=$(xcrun simctl list devices available | grep -E '^ +iPhone' | tail -1 | grep -oE '[0-9A-F-]{36}')
           if [ -z "$udid" ]; then
-            xcrun simctl list devices available
             echo "No available iPhone simulator" >&2
             exit 1
           fi
