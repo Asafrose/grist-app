@@ -100,9 +100,13 @@ adb devices                  # expect emulator-5554  device
 ## 5. Maestro
 
 ```
-curl -fsSL "https://get.maestro.mobile.dev" | bash
+curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION=2.10.0 bash
 ~/.maestro/bin/maestro --version
 ```
+
+CI pins the same version through `MAESTRO_VERSION` in `.github/workflows/e2e.yml`,
+so keep the two in step: a local run on a different version can pass or fail
+where CI does the opposite.
 
 Add `~/.maestro/bin` to PATH. The flows live in `apps/mobile/.maestro/`.
 

@@ -9,6 +9,9 @@ concurrency:
   group: e2e-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  MAESTRO_VERSION: 2.10.0
+
 jobs:
   e2e-ios:
     name: e2e-ios
@@ -50,8 +53,6 @@ jobs:
             apps/mobile/ios/Pods
             ~/Library/Caches/CocoaPods
           key: pods-${{ runner.os }}-${{ hashFiles('package-lock.json', 'apps/mobile/ios/Podfile') }}
-          restore-keys: |
-            pods-${{ runner.os }}-
 
       - name: Install Pods
         working-directory: apps/mobile/ios
@@ -117,8 +118,9 @@ jobs:
 
       - name: Install Maestro
         run: |
-          curl -Ls https://get.maestro.mobile.dev | bash
+          curl -Ls https://get.maestro.mobile.dev | MAESTRO_VERSION="$MAESTRO_VERSION" bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
 
       - name: Run Maestro flows
         env:
@@ -184,8 +186,9 @@ jobs:
 
       - name: Install Maestro
         run: |
-          curl -Ls https://get.maestro.mobile.dev | bash
+          curl -Ls https://get.maestro.mobile.dev | MAESTRO_VERSION="$MAESTRO_VERSION" bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
 
       - name: Start Metro
         run: |
