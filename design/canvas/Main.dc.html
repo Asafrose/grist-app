@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+:root{--bg:#F7F6F2;--surface:#FFFFFF;--surface-2:#F1F0EB;--ink:#1B1D1F;--ink-2:#5A6067;--ink-3:#8B9096;--line:#E7E5DF;
+--accent:#0E8C86;--on-accent:#FFFFFF;--accent-soft:#DFF2F0;--ext:#B85C1E;--ext-soft:#FBEDE3;--danger:#C2410C;
+--s1:#2F8F9D;--s2:#B0752E;--s3:#8A6BB5;--s4:#4F9A5B;--scrim:rgba(20,22,24,.45)}
+.dark{--bg:#121415;--surface:#1B1E20;--surface-2:#22262A;--ink:#F2F1EC;--ink-2:#A9AFB5;--ink-3:#737980;--line:#2A2E31;
+--accent:#3FBDB4;--on-accent:#0E1F1E;--accent-soft:#163A38;--ext:#E08A4F;--ext-soft:#3A2416;--danger:#F0865A;
+--s1:#5FB6C2;--s2:#D3A15A;--s3:#B39AD8;--s4:#7BC287;--scrim:rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+body{margin:0;background:transparent}
+a{color:var(--accent)} a:hover{color:var(--ink)}
+.app{width:390px;height:844px;overflow:hidden;position:relative;background:var(--bg);color:var(--ink);
+font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.status{height:54px}
+.home{height:34px}
+.h1{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.h2{font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.h3{font-size:16px;font-weight:700;line-height:1.3}
+.cap{font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+.sub{font-size:13px;color:var(--ink-2)}
+.muted{color:var(--ink-3)}
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:8px}
+.grow{flex-grow:1}
+.px{padding-left:20px;padding-right:20px}
+.icon{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.icon24{width:24px;height:24px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:600}
+.tag.ext{background:var(--ext-soft);color:var(--ext)}
+.tag.int{background:var(--accent-soft);color:var(--accent)}
+.tag.plain{background:var(--surface-2);color:var(--ink-2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.field{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:12px;background:var(--surface-2);color:var(--ink-3);font-size:15px}
+.seg{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2)}
+.seg div{flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg .on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.thumb{width:72px;height:48px;border-radius:8px;background:linear-gradient(135deg,#2B3036,#5B6470);flex-shrink:0;position:relative;overflow:hidden}
+.thumb::after{content:"";position:absolute;inset:auto 6px 6px auto;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.ts{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:500}
+.hr{height:1px;background:var(--line)}
+.tabbar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 8px 34px;display:flex}
+.tabbar div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:48px;justify-content:center;font-size:11px;font-weight:600;color:var(--ink-3)}
+.tabbar .on{color:var(--accent)}
+.mini{position:absolute;left:12px;right:12px;bottom:98px;height:60px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:12px;padding:0 10px 0 10px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.mini .bar{position:absolute;left:14px;right:14px;bottom:0;height:2px;background:rgba(255,255,255,.2)}
+.mini .bar i{display:block;height:2px;width:38%;background:var(--accent)}
+.scrub{height:4px;border-radius:2px;background:var(--line);position:relative}
+.scrub i{position:absolute;left:0;top:0;height:4px;border-radius:2px;background:var(--accent)}
+.scrub b{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--accent);margin-left:-7px}
+.bullet{display:flex;gap:10px;align-items:flex-start}
+.bullet::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);margin-top:9px;flex-shrink:0}
+.check{width:22px;height:22px;border-radius:7px;border:1.75px solid var(--ink-3);flex-shrink:0;margin-top:1px}
+.check.done{background:var(--accent);border-color:var(--accent)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 20px 34px}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 16px}
+.sk{border-radius:6px;background:var(--surface-2)}
+.tt{display:flex;align-items:center;gap:8px;height:44px}
+.tt.on{color:var(--ink);border-bottom:2px solid var(--ink)}
+.hl{color:var(--ink);font-weight:700}
+</style>
+</helmet>
+<div class="app {{root}}">
+
+<div class="status"></div>
+<div class="px row" style="height:52px"><div class="h1 grow">Meetings</div><div class="iconbtn"><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></div></div>
+<div class="px" style="padding-top:6px"><div class="field"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14z"/><path d="M20 20l-3.5-3.5"/></svg><span>Filter by title</span></div></div>
+<div class="row" style="gap:8px;padding:12px 20px 4px;overflow:hidden">
+  <span class="chip on">Mine</span><span class="chip">Workspace</span><span class="chip">Sales</span><span class="chip">Ines's Works…</span>
+</div>
+<div class="row" style="gap:8px;padding:8px 20px 6px;overflow:hidden">
+  <span class="chip" style="height:28px;font-size:12px;background:var(--accent-soft);color:var(--accent);border-color:transparent"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>External</span>
+  <span class="chip" style="height:28px;font-size:12px">Last 30 days <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+  <span class="chip" style="height:28px;font-size:12px">Meeting type <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+</div>
+<div class="cap px" style="padding-top:18px;padding-bottom:4px">Today</div>
+<div class="row" style="padding:12px 20px;gap:14px">
+  <div class="thumb"></div>
+  <div class="grow col" style="gap:4px;min-width:0">
+    <div style="font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Trey Research / Relecloud: Demo + POV Discussion</div>
+    <div class="row" style="gap:8px"><span class="sub mono" style="font-size:12px">1:01 AM · 44m</span><span class="tag ext">External</span></div>
+  </div>
+  <div class="col" style="align-items:flex-end;gap:6px">
+    <span class="tag plain">Relecloud</span>
+    <span class="row sub" style="gap:4px;font-size:12px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg>4</span>
+  </div>
+</div>
+<div class="cap px" style="padding-top:18px;padding-bottom:4px">Yesterday</div>
+<div class="row" style="padding:12px 20px;gap:14px">
+  <div class="thumb"></div>
+  <div class="grow col" style="gap:4px;min-width:0">
+    <div style="font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Trey Research &amp; FABRIKAM</div>
+    <div class="row" style="gap:8px"><span class="sub mono" style="font-size:12px">8:01 PM · 26m</span><span class="tag ext">External</span></div>
+  </div>
+  <div class="col" style="align-items:flex-end;gap:6px">
+    <span class="tag plain">Fabrikam</span>
+    <span class="row sub" style="gap:4px;font-size:12px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg>5</span>
+  </div>
+</div>
+<div class="hr" style="margin-left:106px"></div>
+<div class="row" style="padding:12px 20px;gap:14px">
+  <div class="thumb"></div>
+  <div class="grow col" style="gap:4px;min-width:0">
+    <div style="font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Trey Research Demo for Theo &amp; Jordan</div>
+    <div class="row" style="gap:8px"><span class="sub mono" style="font-size:12px">6:01 PM · 1h 7m</span><span class="tag ext">External</span></div>
+  </div>
+  <div class="col" style="align-items:flex-end;gap:6px">
+    <span class="tag plain">Litware</span>
+    <span class="row sub" style="gap:4px;font-size:12px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg>5</span>
+  </div>
+</div>
+<div class="hr" style="margin-left:106px"></div>
+<div class="row" style="padding:12px 20px;gap:14px">
+  <div class="thumb"></div>
+  <div class="grow col" style="gap:4px;min-width:0">
+    <div style="font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Platform Team Daily</div>
+    <div class="row" style="gap:8px"><span class="sub mono" style="font-size:12px">10:15 AM · 22m</span><span class="tag int">Internal</span></div>
+  </div>
+  <div class="col" style="align-items:flex-end;gap:6px">
+    <span class="tag plain">Trey Research</span>
+    <span class="row sub" style="gap:4px;font-size:12px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg>8</span>
+  </div>
+</div>
+<div class="cap px" style="padding-top:18px;padding-bottom:4px">Thursday, Sep 3</div>
+<div class="row" style="padding:12px 20px;gap:14px">
+  <div class="thumb"></div>
+  <div class="grow col" style="gap:4px;min-width:0">
+    <div style="font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Trey Research Integration call (Round 2)</div>
+    <div class="row" style="gap:8px"><span class="sub mono" style="font-size:12px">11:01 PM · 16s</span><span class="tag ext">External</span></div>
+  </div>
+  <div class="col" style="align-items:flex-end;gap:6px">
+    <span class="tag plain">Adatum</span>
+    <span class="row sub" style="gap:4px;font-size:12px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg>6</span>
+  </div>
+</div>
+<div class="hr" style="margin-left:106px"></div>
+<div class="row" style="padding:12px 20px;gap:14px">
+  <div class="thumb"></div>
+  <div class="grow col" style="gap:4px;min-width:0">
+    <div style="font-size:15px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wingtip ⟷ Trey Research (Weekly POV check-in)</div>
+    <div class="row" style="gap:8px"><span class="sub mono" style="font-size:12px">7:58 PM · 33m</span><span class="tag ext">External</span></div>
+  </div>
+  <div class="col" style="align-items:flex-end;gap:6px">
+    <span class="tag plain">Wingtip</span>
+    <span class="row sub" style="gap:4px;font-size:12px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg>12</span>
+  </div>
+</div>
+<div class="mini">
+  <div class="thumb" style="width:44px;height:44px;border-radius:10px"></div>
+  <div class="grow" style="min-width:0">
+    <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Trey Research / Relecloud: Demo + POV Discussion</div>
+    <div class="mono" style="font-size:12px;opacity:.7">16:42 · 44:01</div>
+  </div>
+  <div class="iconbtn" style="color:var(--bg)"><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8"/><path d="M4 3v5h5"/><path d="M10 15v-5l-1.5 1M14.5 15c1 0 1.5-.8 1.5-2.5S15.5 10 14.5 10 13 10.8 13 12.5s.5 2.5 1.5 2.5z"/></svg></div>
+  <div class="iconbtn" style="color:var(--bg)"><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" stroke-width="3"/></svg></div>
+  <div class="bar"><i></i></div>
+</div>
+<div class="tabbar"><div class="on"><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3z"/></svg><span>Meetings</span></div><div class=""><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14z"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span></div><div class=""><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1l3.9 3.9"/></svg><span>Clips</span></div><div class=""><svg class="icon24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></div></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light","section":"Theme"}}'>
+class Component extends DCLogic { renderVals(){ return { root: (this.props.theme ?? 'light')==='dark' ? 'dark' : '' }; } }
+</script>
+</body>
+</html>

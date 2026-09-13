@@ -1,0 +1,210 @@
+{
+ "pages": [
+  {
+   "id": "screens",
+   "name": "Screens"
+  },
+  {
+   "id": "directions",
+   "name": "Alternate directions"
+  }
+ ],
+ "artboards": [
+  {
+   "file": "SignIn.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Sign in",
+   "page": "screens",
+   "x": 0,
+   "y": 0
+  },
+  {
+   "file": "Main.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Meetings",
+   "page": "screens",
+   "x": 470,
+   "y": 0
+  },
+  {
+   "file": "Filters.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Filters sheet",
+   "page": "screens",
+   "x": 940,
+   "y": 0
+  },
+  {
+   "file": "Search.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Search",
+   "page": "screens",
+   "x": 1410,
+   "y": 0
+  },
+  {
+   "file": "ClipsFeed.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Clips feed",
+   "page": "screens",
+   "x": 1880,
+   "y": 0
+  },
+  {
+   "file": "Settings.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Settings",
+   "page": "screens",
+   "x": 2350,
+   "y": 0
+  },
+  {
+   "file": "MeetingSummary.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Meeting \u00b7 Summary",
+   "page": "screens",
+   "x": 0,
+   "y": 984
+  },
+  {
+   "file": "MeetingTranscript.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Meeting \u00b7 Transcript",
+   "page": "screens",
+   "x": 470,
+   "y": 984
+  },
+  {
+   "file": "MeetingTimeline.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Meeting \u00b7 Timeline",
+   "page": "screens",
+   "x": 940,
+   "y": 984
+  },
+  {
+   "file": "MeetingClips.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Meeting \u00b7 Clips",
+   "page": "screens",
+   "x": 1410,
+   "y": 984
+  },
+  {
+   "file": "Actions.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Actions sheet",
+   "page": "screens",
+   "x": 1880,
+   "y": 984
+  },
+  {
+   "file": "NowPlaying.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Now playing (audio, dark)",
+   "page": "screens",
+   "x": 2350,
+   "y": 984
+  },
+  {
+   "file": "DirectionWarmEditorial.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Alt A \u00b7 Warm editorial",
+   "page": "directions",
+   "x": 0,
+   "y": 0
+  },
+  {
+   "file": "DirectionDarkCinematic.dc.html",
+   "w": 390,
+   "h": 844,
+   "title": "Alt B \u00b7 Dark cinematic",
+   "page": "directions",
+   "x": 470,
+   "y": 0
+  }
+ ],
+ "annotations": [
+  {
+   "id": "note-system",
+   "page": "screens",
+   "x": 0,
+   "y": -260,
+   "w": 420,
+   "text": "Design system\nCalm, reading-first, flat. Warm neutral ground, one teal accent, rust for External.\nType: Plus Jakarta Sans (UI) + JetBrains Mono (timestamps, durations).\nEvery artboard has a light/dark tweak. Icons: 1.75px stroke, 20/24px.\nStatus bar and home indicator are left as empty space, never painted."
+  },
+  {
+   "id": "note-nav",
+   "page": "screens",
+   "x": 470,
+   "y": -200,
+   "w": 380,
+   "text": "Navigation\n4 tabs: Meetings, Search, Clips, Settings. Playlists, Stories and Coaching are not in the API, so they are not tabs.\nA mini player sits above the tab bar whenever something is playing. Tap it for Now playing; swipe down to collapse."
+  },
+  {
+   "id": "note-scope",
+   "page": "screens",
+   "x": 940,
+   "y": -200,
+   "w": 420,
+   "text": "Scope filter\nThe scope chips (Mine / Workspace / team) and the External/Internal chip map straight to the API filters. Company and Participant are computed on device from the participants list."
+  },
+  {
+   "id": "note-detail",
+   "page": "screens",
+   "x": 0,
+   "y": 1928,
+   "w": 460,
+   "text": "Meeting detail\nPlayer stays pinned; the four tabs scroll under it. Every timestamp chip seeks the player.\nSummary, action items and template sections come from the API. Checkboxes are read-only for now (no write endpoint), so tapping one seeks instead of toggling.\nChapters are not in the API, so the scrubber has no chapter marks."
+  },
+  {
+   "id": "note-transcript",
+   "page": "screens",
+   "x": 470,
+   "y": 1928,
+   "w": 420,
+   "text": "Transcript\nSpeaker colours are stable per participant across Transcript and Timeline. Follow keeps the current line centred; scrolling pauses follow until tapped again. Search here is local to this meeting."
+  },
+  {
+   "id": "note-actions",
+   "page": "screens",
+   "x": 1880,
+   "y": 1928,
+   "w": 420,
+   "text": "Actions sheet\nTop group is what the API can do. The 'In Grain' group is every deferred feature from PARITY.md, deep-linking to the recording URL rather than stubbing it."
+  },
+  {
+   "id": "note-search",
+   "page": "screens",
+   "x": 1410,
+   "y": -200,
+   "w": 420,
+   "text": "Search\nTitles search the API live. Transcripts search a local index built from cached transcripts, so the result line says how many meetings are covered and it works offline."
+  },
+  {
+   "id": "note-dirs",
+   "page": "directions",
+   "x": 0,
+   "y": -200,
+   "w": 520,
+   "text": "Two low-fi alternates to the chosen direction, kept for comparison.\nA trades legibility density for warmth; B trades scanability for a media-first feel. The main direction sits between them: neutral, high-contrast, list-dense, with a dark mode for listening."
+  }
+ ],
+ "launch": {
+  "view": "canvas",
+  "page": "screens"
+ }
+}

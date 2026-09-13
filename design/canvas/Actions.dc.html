@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+:root{--bg:#F7F6F2;--surface:#FFFFFF;--surface-2:#F1F0EB;--ink:#1B1D1F;--ink-2:#5A6067;--ink-3:#8B9096;--line:#E7E5DF;
+--accent:#0E8C86;--on-accent:#FFFFFF;--accent-soft:#DFF2F0;--ext:#B85C1E;--ext-soft:#FBEDE3;--danger:#C2410C;
+--s1:#2F8F9D;--s2:#B0752E;--s3:#8A6BB5;--s4:#4F9A5B;--scrim:rgba(20,22,24,.45)}
+.dark{--bg:#121415;--surface:#1B1E20;--surface-2:#22262A;--ink:#F2F1EC;--ink-2:#A9AFB5;--ink-3:#737980;--line:#2A2E31;
+--accent:#3FBDB4;--on-accent:#0E1F1E;--accent-soft:#163A38;--ext:#E08A4F;--ext-soft:#3A2416;--danger:#F0865A;
+--s1:#5FB6C2;--s2:#D3A15A;--s3:#B39AD8;--s4:#7BC287;--scrim:rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+body{margin:0;background:transparent}
+a{color:var(--accent)} a:hover{color:var(--ink)}
+.app{width:390px;height:844px;overflow:hidden;position:relative;background:var(--bg);color:var(--ink);
+font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.status{height:54px}
+.home{height:34px}
+.h1{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.h2{font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.h3{font-size:16px;font-weight:700;line-height:1.3}
+.cap{font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+.sub{font-size:13px;color:var(--ink-2)}
+.muted{color:var(--ink-3)}
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:8px}
+.grow{flex-grow:1}
+.px{padding-left:20px;padding-right:20px}
+.icon{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.icon24{width:24px;height:24px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:600}
+.tag.ext{background:var(--ext-soft);color:var(--ext)}
+.tag.int{background:var(--accent-soft);color:var(--accent)}
+.tag.plain{background:var(--surface-2);color:var(--ink-2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.field{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:12px;background:var(--surface-2);color:var(--ink-3);font-size:15px}
+.seg{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2)}
+.seg div{flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg .on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.thumb{width:72px;height:48px;border-radius:8px;background:linear-gradient(135deg,#2B3036,#5B6470);flex-shrink:0;position:relative;overflow:hidden}
+.thumb::after{content:"";position:absolute;inset:auto 6px 6px auto;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.ts{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:500}
+.hr{height:1px;background:var(--line)}
+.tabbar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 8px 34px;display:flex}
+.tabbar div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:48px;justify-content:center;font-size:11px;font-weight:600;color:var(--ink-3)}
+.tabbar .on{color:var(--accent)}
+.mini{position:absolute;left:12px;right:12px;bottom:98px;height:60px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:12px;padding:0 10px 0 10px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.mini .bar{position:absolute;left:14px;right:14px;bottom:0;height:2px;background:rgba(255,255,255,.2)}
+.mini .bar i{display:block;height:2px;width:38%;background:var(--accent)}
+.scrub{height:4px;border-radius:2px;background:var(--line);position:relative}
+.scrub i{position:absolute;left:0;top:0;height:4px;border-radius:2px;background:var(--accent)}
+.scrub b{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--accent);margin-left:-7px}
+.bullet{display:flex;gap:10px;align-items:flex-start}
+.bullet::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);margin-top:9px;flex-shrink:0}
+.check{width:22px;height:22px;border-radius:7px;border:1.75px solid var(--ink-3);flex-shrink:0;margin-top:1px}
+.check.done{background:var(--accent);border-color:var(--accent)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 20px 34px}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 16px}
+.sk{border-radius:6px;background:var(--surface-2)}
+.tt{display:flex;align-items:center;gap:8px;height:44px}
+.tt.on{color:var(--ink);border-bottom:2px solid var(--ink)}
+.hl{color:var(--ink);font-weight:700}
+</style>
+</helmet>
+<div class="app {{root}}">
+
+<div style="position:absolute;inset:0;background:var(--scrim)"></div>
+<div class="sheet" style="height:700px">
+  <div class="grab"></div>
+  <div class="row" style="gap:12px;padding-bottom:12px"><div class="thumb"></div><div class="grow"><div style="font-size:15px;font-weight:700;line-height:1.3">Trey Research / Relecloud: Demo + POV Discussion</div><div class="sub" style="font-size:12px">Sep 5 · 44 min</div></div></div>
+  <div class="hr"></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Share link</div><div class="sub" style="font-size:12px">Anyone in the workspace can open it</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 19h14"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Download for offline</div><div class="sub" style="font-size:12px">Video · 312 MB</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11V4h7l10 10-7 7z"/><circle cx="7.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Tags</div><div class="sub" style="font-size:12px">sales, pov</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Copy transcript</div><div class="sub" style="font-size:12px">Plain text, for pasting into an AI chat</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Rename</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div>
+  <div class="cap" style="margin-top:14px;margin-bottom:4px">In Grain</div>
+  <div class="sub" style="font-size:13px;margin-bottom:6px">These open the Grain web app at this meeting.</div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Comments &amp; clips</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Add to playlist</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Change who can view</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></div>
+  <div class="row" style="height:52px;gap:14px"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg><div class="grow"><div style="font-size:15px;font-weight:600">Send to Slack, HubSpot, Salesforce</div></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></div>
+</div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light","section":"Theme"}}'>
+class Component extends DCLogic { renderVals(){ return { root: (this.props.theme ?? 'light')==='dark' ? 'dark' : '' }; } }
+</script>
+</body>
+</html>
