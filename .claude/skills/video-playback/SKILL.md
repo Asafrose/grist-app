@@ -67,7 +67,7 @@ Distilled from the expo-video docs, Expo's launch post, Mux's React Native guide
 
 ## Related skills
 
-- `better-grain` - product and architecture context
+- `grist-app` - product and architecture context
 - `dev-env` - machine setup, dev clients, simulators, Maestro
 - `development-flow` - how a change gets reviewed, verified and merged
 - `zustand` - store shape for the player facade and its atomic hooks

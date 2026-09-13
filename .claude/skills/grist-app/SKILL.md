@@ -1,15 +1,15 @@
 ---
-name: better-grain
-description: Product context for better-grain, an open-source mobile client for Grain meeting recordings. Load before designing screens, touching the data layer, or deciding whether a Grain feature belongs in the app.
+name: grist-app
+description: Product context for grist-app, an open-source mobile client for Grain meeting recordings. Load before designing screens, touching the data layer, or deciding whether a Grain feature belongs in the app.
 ---
 
-# better-grain
+# grist-app
 
 ## Goal
 
 Grain (grain.com) records, transcribes, and summarizes meetings. Our team
 consumes those recordings mostly on phones, and Grain has no mobile app and a
-poor mobile web experience. better-grain is a mobile client, built on Grain's
+poor mobile web experience. Grist is a mobile client, built on Grain's
 public API, that makes *consuming* a meeting on a phone fast and pleasant:
 open the app, find the meeting, listen or watch, read the AI summary and
 action items, follow the transcript, share a link.
@@ -34,7 +34,7 @@ Constraints that shape decisions:
 
 React Native with Expo SDK 57 and Expo Router, one codebase for iOS and
 Android. App display name is **Grist**, bundle `com.asafrose.grist`; the repo
-stays `better-grain`. Media playback via `expo-video` (AVPlayer / ExoPlayer
+stays `grist-app`. Media playback via `expo-video` (AVPlayer / ExoPlayer
 underneath) for picture-in-picture, background audio, and lock-screen
 controls; all three need the config plugin, so development uses a dev client
 (`npx expo run:ios`), never Expo Go. Distribution via EAS to TestFlight and a

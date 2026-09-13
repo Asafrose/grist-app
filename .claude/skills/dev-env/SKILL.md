@@ -197,7 +197,7 @@ is needed. Rerun a single failing flow before treating it as a real failure.
 ## Related skills
 
 - `development-flow` - how work is planned, implemented, reviewed and merged here
-- `better-grain` - product and architecture context
+- `grist-app` - product and architecture context
 - `video-playback` - playback rules
 - `zustand` - store rules
 - `expo-overview` and the other `expo-*` skills - framework guidance

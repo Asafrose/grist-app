@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** better-grain
+**Project:** grist-app
 **Generated:** 2026-09-05 20:13:00
 **Category:** Productivity Tool
 **Design Dials:** Variance 4/10 (Balanced / Modern) | Motion 3/10 (Subtle) | Density 5/10 (Standard)

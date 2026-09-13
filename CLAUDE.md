@@ -1,10 +1,10 @@
-# Grist / better-grain
+# Grist
 
 Which skill to load when:
 
 - New machine, broken build, emulator or Maestro trouble → `dev-env`
 - Any task in this repo, before writing code or spawning agents → `development-flow`
-- Product scope, data layer, architecture decisions → `better-grain`
+- Product scope, data layer, architecture decisions → `grist-app`
 - Player, downloads, fullscreen, anything creating a VideoPlayer → `video-playback`
 - Stores, selectors, re-renders → `zustand`
 - Screens, routing, native controls, design tokens → `expo-overview` and the skills it points to
