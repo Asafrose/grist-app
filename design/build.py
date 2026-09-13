@@ -176,7 +176,7 @@ def dayhead(t): return f'<div class="cap px" style="padding-top:18px;padding-bot
 SIGNIN = f'''
 <div class="status"></div>
 <div class="px col" style="gap:0;height:790px">
-  <div class="row" style="gap:10px;margin-top:40px"><div style="width:44px;height:44px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center">{ic("grain","icon24")}</div><div class="h2">better-grain</div></div>
+  <div class="row" style="gap:10px;margin-top:40px"><div style="width:44px;height:44px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center">{ic("grain","icon24")}</div><div class="h2">Grist</div></div>
   <div class="h1" style="margin-top:56px">Your meetings,<br>on your phone.</div>
   <div class="sub" style="font-size:16px;margin-top:12px;line-height:1.5">Listen to recordings, read AI notes and follow transcripts from your Grain workspace.</div>
   <div class="col" style="gap:8px;margin-top:44px">
@@ -454,7 +454,7 @@ SETTINGS = f'''
   <div class="col" style="gap:8px"><div class="cap">Playback</div><div class="card col" style="gap:0">{srow("speed","Default speed","1.5×")}{srow("wifi","Audio only on cellular","On")}{srow("pip","Picture in picture","On",True)}</div></div>
   <div class="col" style="gap:8px"><div class="cap">Storage</div><div class="card col" style="gap:0">{srow("download","Downloads","3 meetings · 890 MB")}{srow("text","Transcript search index","63 meetings · 41 MB")}{srow("clock","Keep downloads for","30 days",True)}</div></div>
   <div class="col" style="gap:8px"><div class="cap">Account</div><div class="card col" style="gap:0">{srow("key","Personal access token","grain_pat_••••")}{srow("ext","Open Grain settings","",True)}</div></div>
-  <div class="sub" style="font-size:12px;text-align:center;padding-top:4px">better-grain 0.1 · open source · github.com/Asafrose/grist-app</div>
+  <div class="sub" style="font-size:12px;text-align:center;padding-top:4px">Grist 0.1 · open source · github.com/Asafrose/grist-app</div>
 </div>
 {tabbar("Settings")}
 '''
