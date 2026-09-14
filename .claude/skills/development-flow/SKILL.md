@@ -120,9 +120,17 @@ the same point, decide it yourself and record the decision in the PR thread.
 
 ## 5. Local CI
 
-GitHub Actions runs lint, typecheck and test on Ubuntu; nothing native. Before
-merging, run the same three locally on the PR head rebased over current main, so
-a stale branch cannot break main:
+GitHub Actions runs lint, typecheck and test on Ubuntu (`ci`), and the Maestro
+suites natively (`e2e`): `e2e-ios` on `macos-26` and `e2e-android` on Ubuntu.
+`ci` is the only required check today; `e2e-ios` reports on every PR and
+becomes required after five consecutive green runs on main across at least
+three PRs; `e2e-android` stays advisory until the emulator is stable. Both
+build the debug app, start Metro, warm the bundle and run
+`scripts/maestro-suite.sh`; on failure they upload `~/.maestro/tests` and the
+Metro log.
+
+Before merging, run the same three locally on the PR head rebased over current
+main, so a stale branch cannot break main:
 
 ```
 git fetch origin
@@ -140,8 +148,8 @@ ask a subagent to run Maestro.
 
 1. Check the PR head out in the main checkout.
 2. Restart Metro (`npx expo start --port 8081 -c` from `apps/mobile`) and relaunch both apps. Rebuild with `expo run:*` if native config changed.
-3. iOS: `maestro test .maestro` - the whole directory in one run.
-4. Android: `./scripts/maestro-android.sh` from `apps/mobile` - one flow at a time against `emulator-5554`, retrying once after an `adb` restart when it reports `device offline`.
+3. iOS: `MAESTRO_DEVICE=<udid> ./scripts/maestro-suite.sh` from `apps/mobile` - one flow at a time, each retried once on failure.
+4. Android: `./scripts/maestro-android.sh` from `apps/mobile` - the same suite against `emulator-5554`, restarting adb and re-running `adb reverse` before each retry.
 5. Do not touch the working tree while a suite runs.
 6. Rerun any failing flow on its own before calling it a real failure; flakes are common in list recycling and sheet dismissal.
 

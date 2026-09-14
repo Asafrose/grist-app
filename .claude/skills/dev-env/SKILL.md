@@ -100,9 +100,13 @@ adb devices                  # expect emulator-5554  device
 ## 5. Maestro
 
 ```
-curl -fsSL "https://get.maestro.mobile.dev" | bash
+curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION=2.10.0 bash
 ~/.maestro/bin/maestro --version
 ```
+
+CI pins the same version through `MAESTRO_VERSION` in `.github/workflows/e2e.yml`,
+so keep the two in step: a local run on a different version can pass or fail
+where CI does the opposite.
 
 Add `~/.maestro/bin` to PATH. The flows live in `apps/mobile/.maestro/`.
 
@@ -182,14 +186,27 @@ Then, with Metro running and the debug app installed on both targets:
 
 ```
 cd apps/mobile
-maestro test .maestro          # iOS: the whole directory in one run
-./scripts/maestro-android.sh   # Android: one flow at a time, retries on "device offline"
+MAESTRO_DEVICE=<udid> ./scripts/maestro-suite.sh   # iOS, udid from simctl
+./scripts/maestro-android.sh                      # Android, emulator-5554
 ```
 
-Android cannot run the directory in one go reliably - `adb` drops to `device
-offline` between flows - so the script iterates `.maestro/*.yaml` against
-`emulator-5554`, restarts adb and re-runs `adb reverse` before retrying a flow
-once, and prints `[Passed]` / `[Failed]` per flow.
+`scripts/maestro-suite.sh` is the one runner for both platforms: it iterates
+`.maestro/*.yaml` against `$MAESTRO_DEVICE`, retries any failed flow once, and
+prints `[Passed]` / `[Failed]` per flow. Running the directory in one `maestro
+test .maestro` is unreliable on Android, where `adb` drops to `device offline`
+between flows. `scripts/maestro-android.sh` is the Android wrapper: it sets the
+device and points `MAESTRO_RETRY_HOOK` at `scripts/maestro-android-reset.sh`,
+which restarts adb and re-runs `adb reverse` before the retry.
+
+`scripts/warm-bundle.sh <metro-log> <ios|android> <device>` launches the app
+once and waits for Metro to report the first bundle, so the first flow does not
+time out on a cold bundle. CI uses it; locally it is only needed after `-c`.
+
+The same three scripts run in the `e2e` workflow, so a CI failure reproduces
+with the commands above. `ci` is the only required check today; `e2e-ios`
+reports on every PR and becomes required after five consecutive green runs on
+main across at least three PRs; `e2e-android` stays advisory until the emulator
+is stable.
 
 The flows sign in through the demo fixtures (`demo-sign-in`), so no real token
 is needed. Rerun a single failing flow before treating it as a real failure.
