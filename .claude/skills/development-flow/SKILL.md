@@ -43,7 +43,7 @@ root** (not the main checkout), and opens the PR itself.
 ```
 Implement GitHub issue #<n> in this worktree.
 
-Read first: .claude/skills/better-grain/SKILL.md, .claude/skills/development-flow/SKILL.md,
+Read first: .claude/skills/grist-app/SKILL.md, .claude/skills/development-flow/SKILL.md,
 and whichever of video-playback / zustand / expo-* apply to the files you touch.
 
 Start from origin/main: git fetch origin && git checkout -B <branch> origin/main.
@@ -217,6 +217,6 @@ confirm the issue closed.
 
 ## Related skills
 
-`dev-env` for machine setup and the verify commands; `better-grain` for product
+`dev-env` for machine setup and the verify commands; `grist-app` for product
 and architecture; `video-playback` for playback; `zustand` for stores;
 `expo-overview` and the other `expo-*` skills for framework questions.

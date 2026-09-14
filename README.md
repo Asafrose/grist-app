@@ -20,11 +20,15 @@ design/             Design canvas source (see design/build.py)
 ## Develop
 
 ```
-npm install
-npm run typecheck
+npm ci
 npm run lint
-cd apps/mobile && npx expo start
+cd apps/mobile && npm test
+cd apps/mobile && npx expo run:ios        # or: npx expo run:android
 ```
+
+Machine setup, simulators, Maestro and EAS are covered in
+`.claude/skills/dev-env/SKILL.md`; how work flows from issue to merge is in
+`.claude/skills/development-flow/SKILL.md`.
 
 Sign in with a Grain personal access token from
 Account settings → Integrations → Personal API.
