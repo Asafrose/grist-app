@@ -121,13 +121,16 @@ the same point, decide it yourself and record the decision in the PR thread.
 ## 5. Local CI
 
 GitHub Actions runs lint, typecheck and test on Ubuntu (`ci`), and the Maestro
-suites natively (`e2e`): `e2e-ios` on `macos-26` is a required check, while
-`e2e-android` is advisory until the emulator stops failing playback-timing
-assertions. Both build the debug app, start Metro, warm the bundle and run
+suites natively (`e2e`): `e2e-ios` on `macos-26` and `e2e-android` on Ubuntu.
+`ci` is the only required check today; `e2e-ios` reports on every PR and
+becomes required after five consecutive green runs on main across at least
+three PRs; `e2e-android` stays advisory until the emulator is stable. Both
+build the debug app, start Metro, warm the bundle and run
 `scripts/maestro-suite.sh`; on failure they upload `~/.maestro/tests` and the
-Metro log. Before
-merging, run the same three locally on the PR head rebased over current main, so
-a stale branch cannot break main:
+Metro log.
+
+Before merging, run the same three locally on the PR head rebased over current
+main, so a stale branch cannot break main:
 
 ```
 git fetch origin

@@ -202,9 +202,11 @@ which restarts adb and re-runs `adb reverse` before the retry.
 once and waits for Metro to report the first bundle, so the first flow does not
 time out on a cold bundle. CI uses it; locally it is only needed after `-c`.
 
-The same three scripts run in the `e2e` workflow - `e2e-ios` on `macos-26` is a
-required check, `e2e-android` is advisory - so a CI failure reproduces with the
-commands above.
+The same three scripts run in the `e2e` workflow, so a CI failure reproduces
+with the commands above. `ci` is the only required check today; `e2e-ios`
+reports on every PR and becomes required after five consecutive green runs on
+main across at least three PRs; `e2e-android` stays advisory until the emulator
+is stable.
 
 The flows sign in through the demo fixtures (`demo-sign-in`), so no real token
 is needed. Rerun a single failing flow before treating it as a real failure.
