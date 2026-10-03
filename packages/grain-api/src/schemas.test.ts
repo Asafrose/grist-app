@@ -22,6 +22,38 @@ describe("schemas against recorded fixtures", () => {
     expect(page.recordings[0]).toHaveProperty("workspace_shared");
   });
 
+  it("parses action item assignees with a null or missing id", () => {
+    const page = fixture("recordings.json");
+    const [first, ...rest] = page.recordings;
+    const parsed = RecordingsPage.parse({
+      ...page,
+      recordings: [
+        {
+          ...first,
+          ai_action_items: [
+            {
+              status: "pending",
+              timestamp: 1000,
+              text: "Send the deck",
+              assignee: { id: null, name: "Zara Lind", user_id: null },
+            },
+            {
+              status: "completed",
+              timestamp: 2000,
+              text: "Book the room",
+              assignee: { name: "Marcus Kowalski" },
+            },
+          ],
+        },
+        ...rest,
+      ],
+    });
+    expect(parsed.recordings[0].ai_action_items?.map((a) => a.assignee)).toEqual([
+      { id: null, name: "Zara Lind", user_id: null },
+      { name: "Marcus Kowalski" },
+    ]);
+  });
+
   it("parses a full recording with every include", () => {
     const r = Recording.parse(fixture("recording.json"));
     expect(r.participants?.length).toBeGreaterThan(0);

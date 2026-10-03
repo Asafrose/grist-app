@@ -56,7 +56,9 @@ export const ActionItem = z.object({
   status: ActionItemStatus,
   timestamp: z.number(),
   text: z.string(),
-  assignee: z.object({ id: z.string(), name: z.string(), user_id: z.string().nullish() }).nullish(),
+  assignee: z
+    .object({ id: z.string().nullish(), name: z.string(), user_id: z.string().nullish() })
+    .nullish(),
 });
 
 export const TemplateSection = z.object({ title: z.string().optional() }).loose();
