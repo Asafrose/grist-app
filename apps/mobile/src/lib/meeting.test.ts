@@ -105,6 +105,26 @@ describe("groupActionItems", () => {
     expect(groups[3]).toMatchObject({ company: null, colorIndex: 3 });
   });
 
+  it("groups assignees without an id by name", () => {
+    const groups = groupActionItems(
+      [
+        item(0, { id: null, name: "Nobody Here", user_id: null }),
+        item(1, { name: "Marcus Kowalski" }),
+        item(2, { id: null, name: "Nobody Here", user_id: null }),
+        item(3, { id: undefined, name: "Someone Else" }),
+      ],
+      participants,
+    );
+    expect(groups.map((g) => [g.key, g.name, g.colorIndex])).toEqual([
+      ["Nobody Here", "Nobody Here", 0],
+      ["Marcus Kowalski", "Marcus Kowalski", 1],
+      ["Someone Else", "Someone Else", 2],
+    ]);
+    expect(groups[0].items.map((i) => i.position)).toEqual([0, 2]);
+    expect(groups[0].company).toBeNull();
+    expect(groups[1].company).toBe("Treyresearch");
+  });
+
   it("returns nothing for no items", () => {
     expect(groupActionItems([], participants)).toEqual([]);
   });
