@@ -8,6 +8,17 @@ Grain's public API.
 Grist is not affiliated with Grain. It is a client you bring your own Grain
 account to.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/meetings.png" width="200" alt="Meetings"><br>Meetings</td>
+    <td align="center"><img src="docs/screenshots/summary.png" width="200" alt="Summary"><br>Summary</td>
+    <td align="center"><img src="docs/screenshots/transcript.png" width="200" alt="Transcript"><br>Transcript</td>
+    <td align="center"><img src="docs/screenshots/search.png" width="200" alt="Search"><br>Search</td>
+  </tr>
+</table>
+
 ## Layout
 
 ```
