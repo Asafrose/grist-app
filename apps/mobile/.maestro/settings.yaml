@@ -59,6 +59,9 @@ appId: com.asafrose.grist
     element: "Open source · Not affiliated with Grain"
     direction: DOWN
 - assertVisible: "About"
+- assertVisible:
+    id: "open-privacy-policy"
+- assertVisible: "Privacy policy"
 - takeScreenshot: settings-bottom
 - tapOn:
     id: "sign-out"
