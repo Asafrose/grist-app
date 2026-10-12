@@ -24,6 +24,7 @@ import { ReplaceToken } from "./replace-token";
 import { PickerRow, Row, Section, ToggleRow } from "./rows";
 
 export const REPO_URL = "https://github.com/Asafrose/grist-app";
+export const PRIVACY_POLICY_URL = `${REPO_URL}/blob/main/PRIVACY.md`;
 
 export function maskToken(token: string): string {
   return `${token.slice(0, 6)}••••`;
@@ -189,6 +190,12 @@ export function Settings() {
           value="github.com/Asafrose/grist-app"
           onPress={() => WebBrowser.openBrowserAsync(REPO_URL)}
           testID="open-source"
+        />
+        <Row
+          icon="external"
+          label="Privacy policy"
+          onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
+          testID="open-privacy-policy"
         />
       </Section>
 

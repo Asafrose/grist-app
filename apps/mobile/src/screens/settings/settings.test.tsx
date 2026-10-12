@@ -177,6 +177,14 @@ describe("Settings", () => {
     auth.accept();
   });
 
+  it("opens the privacy policy on GitHub", async () => {
+    await render(<Settings />);
+    await fireEvent.press(screen.getByTestId("open-privacy-policy"));
+    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(
+      "https://github.com/Asafrose/grist-app/blob/main/PRIVACY.md",
+    );
+  });
+
   it("opens Grain settings and the source repo, and signs out", async () => {
     await render(<Settings />);
     await fireEvent.press(screen.getByTestId("open-grain-settings"));
