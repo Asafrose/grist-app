@@ -1,4 +1,18 @@
+import { formatClock } from "@/lib/format";
+
 export type Timed = { start: number; end: number };
+
+export function recentTranscriptText(
+  segments: readonly (Timed & { speaker: string; text: string })[],
+  positionMs: number,
+): string {
+  if (!Number.isFinite(positionMs) || positionMs <= 0) return "";
+  const startMs = Math.max(0, positionMs - 30_000);
+  return segments
+    .filter((s) => s.end > startMs && s.start < positionMs && s.text.trim())
+    .map((s) => `[${formatClock(s.start / 1000)}] ${s.speaker}: ${s.text.trim()}`)
+    .join("\n");
+}
 
 export function segmentAt<T extends Timed>(segments: readonly T[], ms: number): T | null {
   let lo = 0;
