@@ -1,4 +1,10 @@
-import { initials, nextSpeakerStart, segmentAt, speakers } from "@/lib/transcript";
+import {
+  initials,
+  nextSpeakerStart,
+  recentTranscriptText,
+  segmentAt,
+  speakers,
+} from "@/lib/transcript";
 
 const segs = [
   { start: 0, end: 1000, speaker: "Ana Lima", text: "a" },
@@ -84,4 +90,39 @@ describe("initials", () => {
     expect(initials("Cher")).toBe("C");
     expect(initials("  ")).toBe("?");
   });
+});
+
+describe("recentTranscriptText", () => {
+  const segments = [
+    { start: 0, end: 30_000, speaker: "Ana", text: "Before the window" },
+    { start: 25_000, end: 35_000, speaker: "Ben", text: "Overlaps the start" },
+    { start: 35_000, end: 50_000, speaker: "Ana", text: " Inside the window " },
+    { start: 50_000, end: 70_000, speaker: "Ben", text: "Overlaps the end" },
+    { start: 60_000, end: 80_000, speaker: "Ana", text: "Not heard yet" },
+  ];
+
+  it("copies whole overlapping segments with speakers and timestamps, excluding boundary-only touches", () => {
+    expect(recentTranscriptText(segments, 60_000)).toBe(
+      "[0:25] Ben: Overlaps the start\n[0:35] Ana: Inside the window\n[0:50] Ben: Overlaps the end",
+    );
+  });
+
+  it("uses the available interval near the start of a recording", () => {
+    expect(recentTranscriptText(segments, 10_000)).toBe("[0:00] Ana: Before the window");
+  });
+
+  it("does not copy stale text during silence or from an empty transcript", () => {
+    expect(recentTranscriptText(segments, 120_000)).toBe("");
+    expect(recentTranscriptText([], 60_000)).toBe("");
+    expect(recentTranscriptText([{ start: 0, end: 1000, speaker: "Ana", text: "  " }], 500)).toBe(
+      "",
+    );
+  });
+
+  it.each([0, -1, NaN, Infinity])(
+    "does not copy at invalid or unplayed position %s",
+    (position) => {
+      expect(recentTranscriptText(segments, position)).toBe("");
+    },
+  );
 });

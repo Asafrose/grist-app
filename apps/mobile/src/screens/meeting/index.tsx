@@ -36,6 +36,7 @@ import { playback, useIsCurrent, useIsPlaying } from "@/lib/player";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/theme";
 import { ClipsTab } from "./clips-tab";
+import { CopyRecentTranscript } from "./copy-recent-transcript";
 import { PlayerCard, toNowPlaying } from "./player-card";
 import { SummaryTab } from "./summary-tab";
 import { TimelineTab } from "./timeline-tab";
@@ -379,6 +380,7 @@ export function Meeting({ id }: { id: string }) {
       >
         <View className="px-5 pt-1" onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>
           <PlayerCard rec={rec} />
+          {rec.mediaType !== "transcript" ? <CopyRecentTranscript key={rec.id} rec={rec} /> : null}
         </View>
       </Animated.View>
       <View className="gap-2.5 px-5 pt-3.5">
